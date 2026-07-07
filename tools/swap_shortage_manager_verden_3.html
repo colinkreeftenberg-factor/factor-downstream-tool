@@ -72,7 +72,8 @@
   /* compact live-feed strip */
   .live-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px;}
   @media (max-width:760px){.live-grid{grid-template-columns:1fr;}}
-  .livecard{border:1.5px solid var(--line);border-radius:12px;padding:8px 12px;background:var(--white);}
+  .livecard{border:1.5px solid var(--line);border-radius:12px;padding:8px 12px;background:var(--white);transition:background .2s,border-color .2s;}
+  .livecard.loaded{background:var(--tint-basil);border-color:var(--basil);}
   .livecard-top{display:flex;justify-content:space-between;align-items:center;gap:6px;}
   .livecard .dz-label{font-size:11.5px;font-weight:700;}
   .livecard .dz-file{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -207,7 +208,7 @@
       Reload
     </button>
   </div>
-  <div class="app-sub">Upload the weekly Rackfile and Box file for the run, then work through shortage/swap resolution below. Meal Database, customer IDs (DE ODL) and box prices are pulled live from the backend sheet.</div>
+  <div class="app-sub">Use this tool to strategically plan swaps and shortages into the Box Files. It will spread shorts and swaps instead of clustering it to one group of customers. You can select substitutes based on protein- and allergen requirements.</div>
 
   <div class="divider"></div>
 
@@ -314,16 +315,10 @@
       </div>
     </div>
 
-    <div class="danger-box" style="margin-top:20px;">
-      <b>Hard rule — allergens:</b> allergen detection here is a best-effort scan of the ingredient declaration text, not a certified check. Confirm manually before exporting.
-      <div class="confirm-line">
-        <input type="checkbox" id="confirm-allergen">
-        <label for="confirm-allergen">I've reviewed the allergen warnings above and confirmed none of the applied swaps introduce a new allergen for the affected customer.</label>
-      </div>
-    </div>
     <div class="export-row">
       <button class="primary-btn" id="download-p2l" disabled>Download modified box file (.csv)</button>
       <button class="secondary-btn" id="download-bartender" disabled>Download Bartender import file (.csv)</button>
+      <button class="secondary-btn" id="download-allergen-report" disabled>Download allergen report (.csv)</button>
       <button class="secondary-btn" id="reset-runs">Reset to original file</button>
     </div>
     <div id="session-log" style="margin-top:20px;"></div>
@@ -780,7 +775,9 @@
   function setLiveStatus(which, status, message){
     const dot = document.getElementById(which+'-dot');
     const statusEl = document.getElementById(which+'-status');
+    const card = document.getElementById('live-'+which);
     dot.className = 'live-dot' + (status==='ok' ? ' ok' : status==='error' ? ' error' : '');
+    if (card) card.classList.toggle('loaded', status==='ok');
     statusEl.textContent = message;
     statusEl.title = message;
   }
@@ -1330,9 +1327,9 @@
         state.auditLog.push({
           timestamp: now, run: runLabel, boxId: box.boxId, customerId: cust.customerId, customerMatchMethod: cust.method,
           market, impact: 'SWAP', qty: targetCounts[targetSlot],
-          originalSlotNum: shortRec.slotNum, originalSku: shortRec.sku, originalLabel: shortRec.label,
+          originalSlotNum: shortRec.slotNum, originalSku: shortRec.sku, originalLabel: shortRec.mealNameEN || shortRec.label,
           replacementSlotNum: targetRec ? targetRec.slotNum : '', replacementSku: targetRec ? targetRec.sku : '', replacementLabel: targetRec ? (targetRec.mealNameEN || targetRec.label) : '',
-          matchType, allergenFlag,
+          matchType, allergenFlag, newAllergens: compat ? compat.newAllergens : [],
           compensation: round2(perUnit * targetCounts[targetSlot])
         });
       });
@@ -1353,9 +1350,9 @@
         state.auditLog.push({
           timestamp: now, run: runLabel, boxId: box.boxId, customerId: cust.customerId, customerMatchMethod: cust.method,
           market, impact: 'SHORT', qty: shortUnits,
-          originalSlotNum: shortRec.slotNum, originalSku: shortRec.sku, originalLabel: shortRec.label,
+          originalSlotNum: shortRec.slotNum, originalSku: shortRec.sku, originalLabel: shortRec.mealNameEN || shortRec.label,
           replacementSlotNum: '', replacementSku: '', replacementLabel: '',
-          matchType: 'unresolved', allergenFlag: 'n/a',
+          matchType: 'unresolved', allergenFlag: 'n/a', newAllergens: [],
           compensation: compAmt
         });
       }
@@ -1444,13 +1441,12 @@
   }
 
   // ================= stage 4: export =================
-  const confirmBox = document.getElementById('confirm-allergen');
   function refreshExportGate(){
-    const ok = confirmBox.checked && state.sessionRuns.length>0;
+    const ok = state.sessionRuns.length>0;
     document.getElementById('download-p2l').disabled = !ok;
     document.getElementById('download-bartender').disabled = !ok;
+    document.getElementById('download-allergen-report').disabled = !ok;
   }
-  confirmBox.addEventListener('change', refreshExportGate);
 
   document.getElementById('download-p2l').addEventListener('click', ()=>{
     downloadCSV('p2l_modified.csv', state.p2lHeader, state.boxes.map(b=>b.raw));
@@ -1478,11 +1474,32 @@
       rows);
   });
 
+  document.getElementById('download-allergen-report').addEventListener('click', ()=>{
+    const rows = state.auditLog.map(e=>{
+      let allergenChange;
+      if (e.impact === 'SWAP'){
+        if (e.allergenFlag === 'warn') allergenChange = (e.newAllergens||[]).join(', ') || 'None';
+        else if (e.allergenFlag === 'safe') allergenChange = 'None';
+        else allergenChange = 'Unknown'; // meal DB match missing for one or both recipes
+      } else {
+        allergenChange = 'None'; // shortage: nothing new introduced
+      }
+      return {
+        'BoxID': e.boxId,
+        'Customer ID': stripLeadingLetters(e.customerId),
+        'Amount': e.qty,
+        'Original': e.originalLabel,
+        'New': e.impact === 'SWAP' ? e.replacementLabel : 'Shortage',
+        'Allergen Change': allergenChange
+      };
+    });
+    downloadCSV('allergen_report.csv', ['BoxID','Customer ID','Amount','Original','New','Allergen Change'], rows);
+  });
+
   document.getElementById('reset-runs').addEventListener('click', ()=>{
     state.boxes.forEach(b=>{ b.slots = b.originalSlots.slice(); rebuildBoxColumns(b); });
     state.auditLog = []; state.sessionRuns = []; state.lastRunBatch = []; state.boxTouchCount = new Map();
     renderRunResults(); renderSessionLog();
-    confirmBox.checked = false;
     refreshExportGate();
     state.shortages.forEach(s=>updateShortageCard(s));
   });
