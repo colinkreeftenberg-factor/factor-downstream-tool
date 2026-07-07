@@ -32,6 +32,17 @@
 
   /* Header */
   .app-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:6px;}
+  .app-header-inner{flex:1;display:flex;align-items:flex-start;gap:14px;}
+  .reload-btn{
+    flex:none;margin-top:4px;
+    appearance:none;border:1.5px solid var(--line);border-radius:999px;
+    background:#fff;color:var(--carbon);cursor:pointer;
+    font-family:inherit;font-weight:600;font-size:12.5px;
+    padding:7px 14px;display:flex;align-items:center;gap:6px;white-space:nowrap;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .reload-btn:hover{border-color:var(--carbon);box-shadow:0 0 0 3px rgba(20,20,20,0.08);}
+  .reload-btn svg{width:13px;height:13px;display:block;}
   .logo-mark{width:38px;height:38px;border-radius:9px;overflow:hidden;flex:none;box-shadow:0 1px 0 rgba(20,20,20,0.06);margin-top:3px;}
   .logo-mark img{width:100%;height:100%;display:block;object-fit:cover;}
   .app-title{
@@ -131,6 +142,7 @@
 
   /* Summary */
   .summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;}
+  .download-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
   .sum-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius-sm);padding:16px;}
   .sum-locale{font-family:'IBM Plex Mono', monospace;font-size:11.5px;font-weight:500;color:#7a7a70;letter-spacing:0.03em;text-transform:uppercase;}
   .sum-count{font-size:28px;font-weight:800;margin-top:4px;letter-spacing:-0.02em;}
@@ -157,7 +169,6 @@
   .review-list li{margin-bottom:3px;}
   .mono{font-family:'IBM Plex Mono', monospace;font-size:12px;}
 
-  .download-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
   .dl-card{
     background:#fff;border:1px solid var(--line);border-radius:var(--radius-sm);
     padding:16px;display:flex;flex-direction:column;gap:10px;overflow:hidden;
@@ -191,11 +202,14 @@
   footer{margin-top:36px;font-size:12px;color:#9b9a8f;text-align:center;}
   a.quiet{color:inherit;text-decoration:underline;text-underline-offset:2px;}
 
+  @media (max-width: 900px){
+    .download-row{grid-template-columns:repeat(3,1fr);}
+  }
   @media (max-width: 760px){
     .download-row{grid-template-columns:repeat(2,1fr);}
   }
   @media (max-width: 640px){
-    .summary-grid{grid-template-columns:1fr;}
+    .summary-grid{grid-template-columns:repeat(2,1fr);}
     .download-row{grid-template-columns:1fr;}
   }
 </style>
@@ -204,12 +218,21 @@
 <div class="wrap">
 
   <div class="app-header">
-    <div class="logo-mark"><img src="data:image/jpeg;base64,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" alt="Factor" /></div>
+    <div class="app-header-inner">
+      <div class="logo-mark"><img src="data:image/jpeg;base64,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" alt="Factor" /></div>
     <div>
       <div class="app-title">BNL CRM Tool</div>
       <div class="app-subtitle">Swap &amp; Shortage Export Tool</div>
       <div class="app-maker">Made &amp; maintained by <strong>Colin Kreeftenberg</strong> — questions, edits or new templates go to him.</div>
     </div>
+  </div>
+  <button class="reload-btn" onclick="location.reload()">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5a5.48 5.48 0 0 1 3.89 1.61L13.5 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M13.5 2.5v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Reload
+    </button>
   </div>
   <div class="app-sub">Welcome aboard! This is where messy dashboard exports get turned into clean, FileZilla-ready sendout files — upload, check, download, done.</div>
 
@@ -221,7 +244,7 @@
       <span class="step-num">01</span>
       <span class="step-title">Upload the dashboard export</span>
     </div>
-    <div class="step-desc">CSV with one row per SKU per impacted order (customer_id, order_item_id, locale, comment, Recipe_Swapped, Recipe_Swapped_to, …). Grab it from the <a class="quiet" href="https://docs.google.com/spreadsheets/d/1NQzhmy1jkfqDoxUQWabxvIV5568eIj4aqsOCaZBozH8/edit?gid=141571490#gid=141571490" target="_blank" rel="noopener">dashboard export sheet</a>.</div>
+    <div class="step-desc">Download Export from the tab 'CRM_TOOL' in the <a class="quiet" href="https://docs.google.com/spreadsheets/d/1NQzhmy1jkfqDoxUQWabxvIV5568eIj4aqsOCaZBozH8/edit?gid=141571490#gid=141571490" target="_blank" rel="noopener">dashboard export sheet</a>.</div>
     <div class="step-body">
       <label class="dropzone" id="dropzone">
         <input type="file" id="fileInput" accept=".csv" />
@@ -294,97 +317,277 @@
    COMMS TEMPLATES — from Swap_Tool_Backend_-_CRM.csv
 --------------------------------------------------------------- */
 const TEMPLATES = {
-  "be-NL": {
-    "swap": {
-      business_unit: "TO",
-      subjectline: "We hebben een vervangende maaltijd voor je",
-      preheader: "Belangrijke informatie over jouw Factor Box"
-    },
-    "short": {
-      business_unit: "TO",
-      subjectline: "Sorry... we kunnen niet alles leveren",
-      preheader: "Er mist een maaltijd in jouw Factor Box"
-    },
-    "mixed": {
-      business_unit: "TO",
-      subjectline: "Een paar aanpassingen in je Factor Box",
-      preheader: "Belangrijke informatie over jouw Factor Box"
-    },
-    "generic": {
-      business_unit: "TO",
-      subjectline: "We hebben een vervangende maaltijd voor je",
-      preheader: "Belangrijke informatie over jouw Factor Box",
-      content: "Door onvoorziene omstandigheden kunnen onze chefs deze week één of meerdere maaltijden niet bereiden volgens onze gebruikelijke hoge standaard. We begrijpen dat dit vervelend kan zijn en bieden onze oprechte excuses aan voor het ongemak. Om ervoor te zorgen dat je alsnog kunt genieten van een heerlijke maaltijd, hebben onze chefs al een passende vervangende maaltijd klaargemaakt voor deze week. <br><br> Controleer wel even de allergenen in de nieuwe maaltijd(en). Als tegemoetkoming ontvang je ook €5 tegoed per getroffen maaltijd, dat automatisch wordt verrekend met je volgende box. <br><br> Heb je vragen of ben je niet tevreden? Neem gerust contact op met onze klantenservice, we helpen je graag verder!"
-    }
-  },
   "nl-NL": {
     "swap": {
       business_unit: "TT",
-      subjectline: "We hebben een vervangende maaltijd voor je",
-      preheader: "Belangrijke informatie over jouw Factor Box"
+      subjectline: `We hebben een vervangende maaltijd voor je`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Helaas lukt het onze chefs door onvoorziene omstandigheden niet om {{ORIGIN}} te bereiden. Sorry voor het ongemak.<br><br>Gelukkig hebben we een alternatief voor je: deze week ontvang je {{DEST}}.<br><br>Controleer wel even de allergenen van deze maaltijd.<br><br>Als goedmakertje voegen we <b>€5 tegoed per maaltijd</b> toe aan je account. Dat kun je gebruiken bij je volgende box.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "swap_multiple": {
+      business_unit: "TT",
+      subjectline: `We hebben een vervangende maaltijd voor je`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Helaas lukt het onze chefs door onvoorziene omstandigheden niet om de volgende maaltijden te bereiden:{{ORIGIN}}<br>Sorry voor het ongemak.<br><br>Gelukkig hebben we een alternatief voor je: deze week ontvang je de volgende maaltijden:{{DEST}}<br><br>Controleer wel even de allergenen van deze maaltijd.<br><br>Als goedmakertje voegen we <b>€5 tegoed per maaltijd</b> toe aan je account. Dat kun je gebruiken bij je volgende box.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
     },
     "short": {
       business_unit: "TT",
-      subjectline: "Sorry... we kunnen niet alles leveren",
-      preheader: "Er mist een maaltijd in jouw Factor Box"
+      subjectline: `Sorry... we kunnen niet alles leveren`,
+      preheader: `Er mist een maaltijd in jouw Factor Box`,
+      content: `Er mist deze week een maaltijd in jouw box: {{SHORT}}. Helaas is het ons niet op tijd gelukt om de maaltijd met een passend alternatief dat aan onze hoge kwaliteitsstandaarden voldoet, te vervangen. Sorry voor het ongemak.<br><br>Natuurlijk voegen we het bedrag als tegoed aan je account toe, zodat je het op je volgende box als korting kunt inzetten. En niet te vergeten: geniet van de maaltijden die wél zijn thuisbezorgd.`
+    },
+    "short_multiple": {
+      business_unit: "TT",
+      subjectline: `Sorry... we kunnen niet alles leveren`,
+      preheader: `Er mist een maaltijd in jouw Factor Box`,
+      content: `Er missen deze week meerdere maaltijden in jouw box:{{SHORT}}<br>Helaas is het ons niet op tijd gelukt om deze maaltijden met een passend alternatief dat aan onze hoge kwaliteitsstandaarden voldoet, te vervangen. Sorry voor het ongemak.<br><br>Natuurlijk voegen we het bedrag als tegoed aan je account toe, zodat je het op je volgende box als korting kunt inzetten. En niet te vergeten: geniet van de maaltijden die wél zijn thuisbezorgd.`
     },
     "mixed": {
       business_unit: "TT",
-      subjectline: "Een paar aanpassingen in je Factor Box",
-      preheader: "Belangrijke informatie over jouw Factor Box"
+      subjectline: `Een paar aanpassingen in je Factor Box`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Deze week gaat niet alles volgens plan met je Factor Box.<br><br>Voor {{SHORT}} hebben we helaas geen passend alternatief kunnen vinden dat aan onze hoge kwaliteitsstandaarden voldoet — deze maaltijd ontbreekt in je levering.<br><br>Daarnaast hebben we {{ORIGIN}} moeten vervangen: hiervoor ontvang je {{DEST}}. Controleer wel even de allergenen van deze maaltijd.<br><br>Sorry voor het ongemak. Uiteraard verrekenen we alles netjes als tegoed in je account.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "mixed_multiple": {
+      business_unit: "TT",
+      subjectline: `Een paar aanpassingen in je Factor Box`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Deze week gaat niet alles volgens plan met je Factor Box.<br><br>Voor de volgende maaltijden hebben we helaas geen passend alternatief kunnen vinden dat aan onze hoge kwaliteitsstandaarden voldoet — ze ontbreken in je levering:{{SHORT}}<br>Daarnaast hebben we de volgende maaltijden moeten vervangen:{{ORIGIN}}<br>Hiervoor ontvang je:{{DEST}}<br>Controleer wel even de allergenen van deze maaltijden.<br><br>Sorry voor het ongemak. Uiteraard verrekenen we alles netjes als tegoed in je account.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
     },
     "generic": {
       business_unit: "TT",
-      subjectline: "We hebben een vervangende maaltijd voor je",
-      preheader: "Belangrijke informatie over jouw Factor Box",
-      content: "Door onvoorziene omstandigheden kunnen onze chefs deze week één of meerdere maaltijden niet bereiden volgens onze gebruikelijke hoge standaard. We begrijpen dat dit vervelend kan zijn en bieden onze oprechte excuses aan voor het ongemak. Om ervoor te zorgen dat je alsnog kunt genieten van een heerlijke maaltijd, hebben onze chefs al een passende vervangende maaltijd klaargemaakt voor deze week. <br><br> Controleer wel even de allergenen in de nieuwe maaltijd(en). Als tegemoetkoming ontvang je ook €5 tegoed per getroffen maaltijd, dat automatisch wordt verrekend met je volgende box. <br><br> Heb je vragen of ben je niet tevreden? Neem gerust contact op met onze klantenservice, we helpen je graag verder!"
+      subjectline: `We hebben een vervangende maaltijd voor je`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Door onvoorziene omstandigheden kunnen onze chefs deze week één of meerdere maaltijden niet bereiden volgens onze gebruikelijke hoge standaard. We begrijpen dat dit vervelend kan zijn en bieden onze oprechte excuses aan voor het ongemak. Om ervoor te zorgen dat je alsnog kunt genieten van een heerlijke maaltijd, hebben onze chefs al een passende vervangende maaltijd klaargemaakt voor deze week. <br><br> Controleer wel even de allergenen in de nieuwe maaltijd(en). Als tegemoetkoming ontvang je ook €5 tegoed per getroffen maaltijd, dat automatisch wordt verrekend met je volgende box. <br><br> Heb je vragen of ben je niet tevreden? Neem gerust contact op met onze klantenservice, we helpen je graag verder!`
+    }
+  },
+  "be-NL": {
+    "swap": {
+      business_unit: "TO",
+      subjectline: `We hebben een vervangende maaltijd voor je`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Helaas lukt het onze chefs door onvoorziene omstandigheden niet om {{ORIGIN}} te bereiden. Sorry voor het ongemak.<br><br>Gelukkig hebben we een alternatief voor je: deze week ontvang je {{DEST}}.<br><br>Controleer wel even de allergenen van deze maaltijd.<br><br>Als goedmakertje voegen we <b>€5 tegoed per maaltijd</b> toe aan je account. Dat kun je gebruiken bij je volgende box.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "swap_multiple": {
+      business_unit: "TO",
+      subjectline: `We hebben een vervangende maaltijd voor je`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Helaas lukt het onze chefs door onvoorziene omstandigheden niet om de volgende maaltijden te bereiden:{{ORIGIN}}<br>Sorry voor het ongemak.<br><br>Gelukkig hebben we een alternatief voor je: deze week ontvang je de volgende maaltijden:{{DEST}}<br><br>Controleer wel even de allergenen van deze maaltijd.<br><br>Als goedmakertje voegen we <b>€5 tegoed per maaltijd</b> toe aan je account. Dat kun je gebruiken bij je volgende box.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "short": {
+      business_unit: "TO",
+      subjectline: `Sorry... we kunnen niet alles leveren`,
+      preheader: `Er mist een maaltijd in jouw Factor Box`,
+      content: `Er mist deze week een maaltijd in jouw box: {{SHORT}}. Helaas is het ons niet op tijd gelukt om de maaltijd met een passend alternatief dat aan onze hoge kwaliteitsstandaarden voldoet, te vervangen. Sorry voor het ongemak.<br><br>Natuurlijk voegen we het bedrag als tegoed aan je account toe, zodat je het op je volgende box als korting kunt inzetten. En niet te vergeten: geniet van de maaltijden die wél zijn thuisbezorgd.`
+    },
+    "short_multiple": {
+      business_unit: "TO",
+      subjectline: `Sorry... we kunnen niet alles leveren`,
+      preheader: `Er mist een maaltijd in jouw Factor Box`,
+      content: `Er missen deze week meerdere maaltijden in jouw box:{{SHORT}}<br>Helaas is het ons niet op tijd gelukt om deze maaltijden met een passend alternatief dat aan onze hoge kwaliteitsstandaarden voldoet, te vervangen. Sorry voor het ongemak.<br><br>Natuurlijk voegen we het bedrag als tegoed aan je account toe, zodat je het op je volgende box als korting kunt inzetten. En niet te vergeten: geniet van de maaltijden die wél zijn thuisbezorgd.`
+    },
+    "mixed": {
+      business_unit: "TO",
+      subjectline: `Een paar aanpassingen in je Factor Box`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Deze week gaat niet alles volgens plan met je Factor Box.<br><br>Voor {{SHORT}} hebben we helaas geen passend alternatief kunnen vinden dat aan onze hoge kwaliteitsstandaarden voldoet — deze maaltijd ontbreekt in je levering.<br><br>Daarnaast hebben we {{ORIGIN}} moeten vervangen: hiervoor ontvang je {{DEST}}. Controleer wel even de allergenen van deze maaltijd.<br><br>Sorry voor het ongemak. Uiteraard verrekenen we alles netjes als tegoed in je account.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "mixed_multiple": {
+      business_unit: "TO",
+      subjectline: `Een paar aanpassingen in je Factor Box`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Deze week gaat niet alles volgens plan met je Factor Box.<br><br>Voor de volgende maaltijden hebben we helaas geen passend alternatief kunnen vinden dat aan onze hoge kwaliteitsstandaarden voldoet — ze ontbreken in je levering:{{SHORT}}<br>Daarnaast hebben we de volgende maaltijden moeten vervangen:{{ORIGIN}}<br>Hiervoor ontvang je:{{DEST}}<br>Controleer wel even de allergenen van deze maaltijden.<br><br>Sorry voor het ongemak. Uiteraard verrekenen we alles netjes als tegoed in je account.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "generic": {
+      business_unit: "TO",
+      subjectline: `We hebben een vervangende maaltijd voor je`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Door onvoorziene omstandigheden kunnen onze chefs deze week één of meerdere maaltijden niet bereiden volgens onze gebruikelijke hoge standaard. We begrijpen dat dit vervelend kan zijn en bieden onze oprechte excuses aan voor het ongemak. Om ervoor te zorgen dat je alsnog kunt genieten van een heerlijke maaltijd, hebben onze chefs al een passende vervangende maaltijd klaargemaakt voor deze week. <br><br> Controleer wel even de allergenen in de nieuwe maaltijd(en). Als tegemoetkoming ontvang je ook €5 tegoed per getroffen maaltijd, dat automatisch wordt verrekend met je volgende box. <br><br> Heb je vragen of ben je niet tevreden? Neem gerust contact op met onze klantenservice, we helpen je graag verder!`
     }
   },
   "be-FR": {
     "swap": {
       business_unit: "TO",
-      subjectline: "Nous avons remplacé un plat",
-      preheader: "Information importante concernant votre box"
+      subjectline: `Nous avons remplacé un plat`,
+      preheader: `Information importante concernant votre box`,
+      content: `Malheureusement, en raison de circonstances imprévues, nos chefs ne parviennent pas à préparer {{ORIGIN}}. Désolé pour ce désagrément.<br><br>Heureusement, nous avons une alternative pour vous : cette semaine, vous recevrez {{DEST}}.<br><br>Veuillez tout de même vérifier les allergènes de ce repas.<br><br>Pour nous excuser, nous ajoutons <b>5 € de crédit par repas</b> sur votre compte. Vous pourrez l’utiliser lors de votre prochaine box.<br><br>Si vous avez des questions ou si vous n’êtes pas satisfait, n’hésitez pas à contacter notre équipe du service client.`
+    },
+    "swap_multiple": {
+      business_unit: "TO",
+      subjectline: `Nous avons remplacé un plat`,
+      preheader: `Information importante concernant votre box`,
+      content: `Malheureusement, en raison de circonstances imprévues, nos chefs ne parviennent pas à préparer les plats suivants :{{ORIGIN}}<br>Désolé pour ce désagrément.<br><br>Heureusement, nous avons une alternative pour vous : cette semaine, vous recevrez les plats suivants :{{DEST}}<br><br>Veuillez tout de même vérifier les allergènes de ce repas.<br><br>Pour nous excuser, nous ajoutons <b>5 € de crédit par repas</b> sur votre compte. Vous pourrez l’utiliser lors de votre prochaine box.<br><br>Si vous avez des questions ou si vous n’êtes pas satisfait, n’hésitez pas à contacter notre équipe du service client.`
     },
     "short": {
       business_unit: "TO",
-      subjectline: "Petit imprévu dans la livraison",
-      preheader: "Votre box est arrivée… avec un petit changement."
+      subjectline: `Petit imprévu dans la livraison`,
+      preheader: `Votre box est arrivée… avec un petit changement.`,
+      content: `Vous aviez sélectionné ce plat dans votre box cette semaine : {{SHORT}}. Malheureusement, nos chefs n’ont pas pu le préparer, ni trouver d’alternative à la hauteur de nos standards à temps.<br><br>Veuillez nous excuser pour ce contretemps. Nous avons crédité votre compte. Vous pourrez utiliser ce montant comme réduction lors de votre prochaine commande.<br><br>Bon appétit !`
+    },
+    "short_multiple": {
+      business_unit: "TO",
+      subjectline: `Petit imprévu dans la livraison`,
+      preheader: `Votre box est arrivée… avec un petit changement.`,
+      content: `Vous aviez sélectionné ces plats dans votre box cette semaine :{{SHORT}}<br>Malheureusement, nos chefs n’ont pas pu les préparer, ni trouver d’alternative à la hauteur de nos standards à temps.<br><br>Veuillez nous excuser pour ce contretemps. Nous avons crédité votre compte. Vous pourrez utiliser ce montant comme réduction lors de votre prochaine commande.<br><br>Bon appétit !`
     },
     "mixed": {
       business_unit: "TO",
-      subjectline: "Quelques ajustements dans votre Factor Box",
-      preheader: "Information importante concernant votre box"
+      subjectline: `Quelques ajustements dans votre Factor Box`,
+      preheader: `Information importante concernant votre box`,
+      content: `Cette semaine, tout ne s’est pas déroulé comme prévu avec votre Factor Box.<br><br>Pour {{SHORT}}, nous n’avons malheureusement pas pu trouver d’alternative répondant à nos standards de qualité élevés — ce plat est absent de votre livraison.<br><br>Par ailleurs, nous avons dû remplacer {{ORIGIN}} : vous recevrez à la place {{DEST}}. Pensez à vérifier les allergènes de ce plat.<br><br>Désolé pour ce désagrément. Bien entendu, nous créditerons tout cela correctement sur votre compte.<br><br>Si vous avez des questions ou n’êtes pas satisfait, n’hésitez pas à contacter notre service client.`
+    },
+    "mixed_multiple": {
+      business_unit: "TO",
+      subjectline: `Quelques ajustements dans votre Factor Box`,
+      preheader: `Information importante concernant votre box`,
+      content: `Cette semaine, tout ne s’est pas déroulé comme prévu avec votre Factor Box.<br><br>Pour les plats suivants, nous n’avons malheureusement pas pu trouver d’alternative répondant à nos standards de qualité élevés — ils sont absents de votre livraison :{{SHORT}}<br>Par ailleurs, nous avons dû remplacer les plats suivants :{{ORIGIN}}<br>Vous recevrez à la place :{{DEST}}<br>Pensez à vérifier les allergènes de ces plats.<br><br>Désolé pour ce désagrément. Bien entendu, nous créditerons tout cela correctement sur votre compte.<br><br>Si vous avez des questions ou n’êtes pas satisfait, n’hésitez pas à contacter notre service client.`
     },
     "generic": {
       business_unit: "TO",
-      subjectline: "Nous avons remplacé un plat",
-      preheader: "Information importante concernant votre box",
-      content: "En raison de circonstances imprévues, nos chefs n’ont pas pu préparer un ou plusieurs des repas que vous aviez sélectionné cette semaine. Nous sommes désolés pour ce désagrément. <br><br> Rassurez-vous : nos chefs ont soigneusement sélectionné un ou plusieurs plats de remplacement, préparés avec la même exigence et la même qualité que d’habitude.<br><br> Nous vous invitons à vérifier les allergènes présents dans ces nouveaux plats. En compensation, un crédit de 5 € par repas concerné sera automatiquement appliqué à votre prochaine box. <br><br> Si vous avez la moindre question, notre service client se fera un plaisir de vous aider."
+      subjectline: `Nous avons remplacé un plat`,
+      preheader: `Information importante concernant votre box`,
+      content: `En raison de circonstances imprévues, nos chefs n’ont pas pu préparer un ou plusieurs des repas que vous aviez sélectionné cette semaine. Nous sommes désolés pour ce désagrément. <br><br> Rassurez-vous : nos chefs ont soigneusement sélectionné un ou plusieurs plats de remplacement, préparés avec la même exigence et la même qualité que d’habitude.<br><br> Nous vous invitons à vérifier les allergènes présents dans ces nouveaux plats. En compensation, un crédit de 5 € par repas concerné sera automatiquement appliqué à votre prochaine box. <br><br> Si vous avez la moindre question, notre service client se fera un plaisir de vous aider.`
+    }
+  },
+  "de-DE": {
+    "swap": {
+      business_unit: "TZ",
+      subjectline: `Wir haben eine Ersatzmahlzeit für dich`,
+      preheader: `Wichtige Information zu deiner Factor Box`,
+      content: `Leider können unsere Köche aufgrund unvorhergesehener Umstände {{ORIGIN}} nicht zubereiten. Entschuldige bitte die Unannehmlichkeiten.<br><br>Zum Glück haben wir eine Alternative für dich: Diese Woche erhältst du {{DEST}}.<br><br>Bitte überprüfe die Allergene dieser Mahlzeit.<br><br>Als kleine Geste schreiben wir dir <b>5 € Gutschrift pro Mahlzeit</b> auf deinem Konto gut. Diesen kannst du bei deiner nächsten Box einlösen.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam.`
+    },
+    "swap_multiple": {
+      business_unit: "TZ",
+      subjectline: `Wir haben eine Ersatzmahlzeit für dich`,
+      preheader: `Wichtige Information zu deiner Factor Box`,
+      content: `Leider können unsere Köche aufgrund unvorhergesehener Umstände die folgenden Mahlzeiten nicht zubereiten:{{ORIGIN}}<br>Entschuldige bitte die Unannehmlichkeiten.<br><br>Zum Glück haben wir eine Alternative für dich: Diese Woche erhältst du die folgenden Mahlzeiten:{{DEST}}<br><br>Bitte überprüfe die Allergene dieser Mahlzeiten.<br><br>Als kleine Geste schreiben wir dir <b>5 € Gutschrift pro Mahlzeit</b> auf deinem Konto gut. Diesen kannst du bei deiner nächsten Box einlösen.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam.`
+    },
+    "short": {
+      business_unit: "TZ",
+      subjectline: `Entschuldigung... wir können nicht alles liefern`,
+      preheader: `Es fehlt eine Mahlzeit in deiner Factor Box`,
+      content: `Diese Woche fehlt eine Mahlzeit in deiner Box: {{SHORT}}. Leider ist es uns nicht rechtzeitig gelungen, diese Mahlzeit durch eine passende Alternative zu ersetzen, die unseren hohen Qualitätsstandards entspricht. Entschuldige bitte die Unannehmlichkeiten.<br><br>Selbstverständlich schreiben wir dir den Betrag als Guthaben auf deinem Konto gut, das du bei deiner nächsten Box als Rabatt einlösen kannst. Und nicht zu vergessen: Genieße die Mahlzeiten, die wir dir liefern konnten.`
+    },
+    "short_multiple": {
+      business_unit: "TZ",
+      subjectline: `Entschuldigung... wir können nicht alles liefern`,
+      preheader: `Es fehlt eine Mahlzeit in deiner Factor Box`,
+      content: `Diese Woche fehlen mehrere Mahlzeiten in deiner Box:{{SHORT}}<br>Leider ist es uns nicht rechtzeitig gelungen, diese Mahlzeiten durch passende Alternativen zu ersetzen, die unseren hohen Qualitätsstandards entsprechen. Entschuldige bitte die Unannehmlichkeiten.<br><br>Selbstverständlich schreiben wir dir den Betrag als Guthaben auf deinem Konto gut, das du bei deiner nächsten Box als Rabatt einlösen kannst. Und nicht zu vergessen: Genieße die Mahlzeiten, die wir dir liefern konnten.`
+    },
+    "mixed": {
+      business_unit: "TZ",
+      subjectline: `Ein paar Anpassungen in deiner Factor Box`,
+      preheader: `Wichtige Information zu deiner Factor Box`,
+      content: `Diese Woche läuft nicht alles nach Plan mit deiner Factor Box.<br><br>Für {{SHORT}} konnten wir leider keine passende Alternative finden, die unseren hohen Qualitätsstandards entspricht — diese Mahlzeit fehlt daher in deiner Lieferung.<br><br>Außerdem mussten wir {{ORIGIN}} ersetzen: Dafür erhältst du {{DEST}}. Bitte überprüfe die Allergene dieser Mahlzeit.<br><br>Entschuldige bitte die Unannehmlichkeiten. Selbstverständlich verrechnen wir alles ordentlich als Guthaben auf deinem Konto.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam.`
+    },
+    "mixed_multiple": {
+      business_unit: "TZ",
+      subjectline: `Ein paar Anpassungen in deiner Factor Box`,
+      preheader: `Wichtige Information zu deiner Factor Box`,
+      content: `Diese Woche läuft nicht alles nach Plan mit deiner Factor Box.<br><br>Für die folgenden Mahlzeiten konnten wir leider keine passende Alternative finden, die unseren hohen Qualitätsstandards entspricht — sie fehlen daher in deiner Lieferung:{{SHORT}}<br>Außerdem mussten wir die folgenden Mahlzeiten ersetzen:{{ORIGIN}}<br>Dafür erhältst du:{{DEST}}<br>Bitte überprüfe die Allergene dieser Mahlzeiten.<br><br>Entschuldige bitte die Unannehmlichkeiten. Selbstverständlich verrechnen wir alles ordentlich als Guthaben auf deinem Konto.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam.`
+    },
+    "generic": {
+      business_unit: "TZ",
+      subjectline: `Wir haben eine Ersatzmahlzeit für dich`,
+      preheader: `Wichtige Information zu deiner Factor Box`,
+      content: `Aufgrund unvorhergesehener Umstände können unsere Köche diese Woche eine oder mehrere Mahlzeiten nicht nach unserem gewohnt hohen Standard zubereiten. Wir verstehen, dass das ärgerlich sein kann, und entschuldigen uns aufrichtig für die Unannehmlichkeiten. Damit du trotzdem eine leckere Mahlzeit genießen kannst, haben unsere Köche bereits eine passende Ersatzmahlzeit für diese Woche vorbereitet. <br><br> Bitte überprüfe die Allergene in der/den neuen Mahlzeit(en). Als Entschädigung erhältst du außerdem 5 € Gutschrift pro betroffener Mahlzeit, die automatisch mit deiner nächsten Box verrechnet wird. <br><br> Hast du Fragen oder bist du nicht zufrieden? Wende dich gerne an unseren Kundenservice, wir helfen dir gerne weiter!`
+    }
+  },
+  "sv-SE": {
+    "swap": {
+      business_unit: "TV",
+      subjectline: `Vi har en ersättningsmåltid till dig`,
+      preheader: `Viktig information om din Factor Box`,
+      content: `Tyvärr har våra kockar på grund av oförutsedda omständigheter inte kunnat tillaga {{ORIGIN}}. Vi ber om ursäkt för besväret.<br><br>Som tur är har vi ett alternativ till dig: den här veckan får du {{DEST}} istället.<br><br>Kontrollera gärna allergenerna för den här måltiden.<br><br>Som en liten gest lägger vi till <b>5 € tillgodo per måltid</b> på ditt konto. Det kan du använda till din nästa box.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam.`
+    },
+    "swap_multiple": {
+      business_unit: "TV",
+      subjectline: `Vi har en ersättningsmåltid till dig`,
+      preheader: `Viktig information om din Factor Box`,
+      content: `Tyvärr har våra kockar på grund av oförutsedda omständigheter inte kunnat tillaga följande måltider:{{ORIGIN}}<br>Vi ber om ursäkt för besväret.<br><br>Som tur är har vi ett alternativ till dig: den här veckan får du följande måltider istället:{{DEST}}<br><br>Kontrollera gärna allergenerna för dessa måltider.<br><br>Som en liten gest lägger vi till <b>5 € tillgodo per måltid</b> på ditt konto. Det kan du använda till din nästa box.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam.`
+    },
+    "short": {
+      business_unit: "TV",
+      subjectline: `Vi är ledsna... vi kan inte leverera allt`,
+      preheader: `Det saknas en måltid i din Factor Box`,
+      content: `Den här veckan saknas det en måltid i din box: {{SHORT}}. Tyvärr lyckades vi inte i tid hitta ett lämpligt alternativ som uppfyller våra höga kvalitetsstandarder. Vi ber om ursäkt för besväret.<br><br>Vi lägger så klart till beloppet som tillgodo på ditt konto, så att du kan använda det som rabatt på din nästa box. Och glöm inte att njuta av de måltider som faktiskt levererades.`
+    },
+    "short_multiple": {
+      business_unit: "TV",
+      subjectline: `Vi är ledsna... vi kan inte leverera allt`,
+      preheader: `Det saknas en måltid i din Factor Box`,
+      content: `Den här veckan saknas det flera måltider i din box:{{SHORT}}<br>Tyvärr lyckades vi inte i tid hitta lämpliga alternativ som uppfyller våra höga kvalitetsstandarder. Vi ber om ursäkt för besväret.<br><br>Vi lägger så klart till beloppet som tillgodo på ditt konto, så att du kan använda det som rabatt på din nästa box. Och glöm inte att njuta av de måltider som faktiskt levererades.`
+    },
+    "mixed": {
+      business_unit: "TV",
+      subjectline: `Några ändringar i din Factor Box`,
+      preheader: `Viktig information om din Factor Box`,
+      content: `Den här veckan går inte allt enligt plan med din Factor Box.<br><br>För {{SHORT}} kunde vi tyvärr inte hitta ett lämpligt alternativ som uppfyller våra höga kvalitetsstandarder — den här måltiden saknas därför i din leverans.<br><br>Dessutom har vi behövt byta ut {{ORIGIN}}: istället får du {{DEST}}. Kontrollera gärna allergenerna för den här måltiden.<br><br>Vi ber om ursäkt för besväret. Vi ser givetvis till att allt kompenseras korrekt som tillgodo på ditt konto.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam.`
+    },
+    "mixed_multiple": {
+      business_unit: "TV",
+      subjectline: `Några ändringar i din Factor Box`,
+      preheader: `Viktig information om din Factor Box`,
+      content: `Den här veckan går inte allt enligt plan med din Factor Box.<br><br>För följande måltider kunde vi tyvärr inte hitta lämpliga alternativ som uppfyller våra höga kvalitetsstandarder — de saknas därför i din leverans:{{SHORT}}<br>Dessutom har vi behövt byta ut följande måltider:{{ORIGIN}}<br>Istället får du:{{DEST}}<br>Kontrollera gärna allergenerna för dessa måltider.<br><br>Vi ber om ursäkt för besväret. Vi ser givetvis till att allt kompenseras korrekt som tillgodo på ditt konto.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam.`
+    },
+    "generic": {
+      business_unit: "TV",
+      subjectline: `Vi har en ersättningsmåltid till dig`,
+      preheader: `Viktig information om din Factor Box`,
+      content: `På grund av oförutsedda omständigheter kan våra kockar den här veckan inte tillaga en eller flera måltider enligt vår vanliga höga standard. Vi förstår att det kan vara tråkigt och ber uppriktigt om ursäkt för besväret. För att du ändå ska kunna njuta av en god måltid har våra kockar redan förberett ett lämpligt alternativ till den här veckan. <br><br> Kontrollera gärna allergenerna i den/de nya måltiden/måltiderna. Som kompensation får du också 5 € tillgodo per berörd måltid, vilket automatiskt dras av på din nästa box. <br><br> Har du frågor eller är du inte nöjd? Hör gärna av dig till vår kundtjänst, vi hjälper dig gärna vidare!`
+    }
+  },
+  "da-DK": {
+    "swap": {
+      business_unit: "TK",
+      subjectline: `Vi har fundet en erstatningsret til dig`,
+      preheader: `Vigtig information om din Factor Box`,
+      content: `Desværre har vores kokke på grund af uforudsete omstændigheder ikke kunnet tilberede {{ORIGIN}}. Undskyld ulejligheden.<br><br>Heldigvis har vi et alternativ til dig: denne uge modtager du {{DEST}} i stedet.<br><br>Husk at tjekke allergenerne for denne ret.<br><br>Som en lille kompensation tilføjer vi <b>5 € til gode pr. ret</b> på din konto. Det kan du bruge på din næste box.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam.`
+    },
+    "swap_multiple": {
+      business_unit: "TK",
+      subjectline: `Vi har fundet en erstatningsret til dig`,
+      preheader: `Vigtig information om din Factor Box`,
+      content: `Desværre har vores kokke på grund af uforudsete omstændigheder ikke kunnet tilberede følgende retter:{{ORIGIN}}<br>Undskyld ulejligheden.<br><br>Heldigvis har vi et alternativ til dig: denne uge modtager du følgende retter i stedet:{{DEST}}<br><br>Husk at tjekke allergenerne for disse retter.<br><br>Som en lille kompensation tilføjer vi <b>5 € til gode pr. ret</b> på din konto. Det kan du bruge på din næste box.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam.`
+    },
+    "short": {
+      business_unit: "TK",
+      subjectline: `Beklager... vi kan ikke levere det hele`,
+      preheader: `Der mangler en ret i din Factor Box`,
+      content: `Der mangler en ret i din box denne uge: {{SHORT}}. Desværre lykkedes det os ikke i tide at finde et passende alternativ, der lever op til vores høje kvalitetsstandarder. Undskyld ulejligheden.<br><br>Selvfølgelig tilføjer vi beløbet som tilgodehavende på din konto, så du kan bruge det som rabat på din næste box. Og glem ikke at nyde de retter, der rent faktisk blev leveret.`
+    },
+    "short_multiple": {
+      business_unit: "TK",
+      subjectline: `Beklager... vi kan ikke levere det hele`,
+      preheader: `Der mangler en ret i din Factor Box`,
+      content: `Der mangler flere retter i din box denne uge:{{SHORT}}<br>Desværre lykkedes det os ikke i tide at finde passende alternativer, der lever op til vores høje kvalitetsstandarder. Undskyld ulejligheden.<br><br>Selvfølgelig tilføjer vi beløbet som tilgodehavende på din konto, så du kan bruge det som rabat på din næste box. Og glem ikke at nyde de retter, der rent faktisk blev leveret.`
+    },
+    "mixed": {
+      business_unit: "TK",
+      subjectline: `Et par ændringer i din Factor Box`,
+      preheader: `Vigtig information om din Factor Box`,
+      content: `Denne uge går ikke alt efter planen med din Factor Box.<br><br>For {{SHORT}} har vi desværre ikke kunnet finde et passende alternativ, der lever op til vores høje kvalitetsstandarder — denne ret mangler derfor i din levering.<br><br>Derudover har vi været nødt til at erstatte {{ORIGIN}}: i stedet modtager du {{DEST}}. Husk at tjekke allergenerne for denne ret.<br><br>Undskyld ulejligheden. Vi sørger selvfølgelig for, at alt bliver godtgjort som tilgodehavende på din konto.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam.`
+    },
+    "mixed_multiple": {
+      business_unit: "TK",
+      subjectline: `Et par ændringer i din Factor Box`,
+      preheader: `Vigtig information om din Factor Box`,
+      content: `Denne uge går ikke alt efter planen med din Factor Box.<br><br>For følgende retter har vi desværre ikke kunnet finde passende alternativer, der lever op til vores høje kvalitetsstandarder — de mangler derfor i din levering:{{SHORT}}<br>Derudover har vi været nødt til at erstatte følgende retter:{{ORIGIN}}<br>I stedet modtager du:{{DEST}}<br>Husk at tjekke allergenerne for disse retter.<br><br>Undskyld ulejligheden. Vi sørger selvfølgelig for, at alt bliver godtgjort som tilgodehavende på din konto.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam.`
+    },
+    "generic": {
+      business_unit: "TK",
+      subjectline: `Vi har fundet en erstatningsret til dig`,
+      preheader: `Vigtig information om din Factor Box`,
+      content: `På grund af uforudsete omstændigheder kan vores kokke denne uge ikke tilberede en eller flere retter efter vores sædvanlige høje standard. Vi forstår, at det kan være ærgerligt, og vi undskylder oprigtigt for ulejligheden. For at du alligevel kan nyde en lækker ret, har vores kokke allerede tilberedt et passende alternativ til denne uge. <br><br> Husk at tjekke allergenerne i den/de nye ret(ter). Som kompensation modtager du også 5 € til gode pr. berørt ret, som automatisk bliver modregnet i din næste box. <br><br> Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores kundeservice - vi hjælper dig gerne videre!`
     }
   }
 };
-
-const LOCALES = ["nl-NL", "be-NL", "be-FR"];
-
-/* ---------------------------------------------------------------
-   STATE
---------------------------------------------------------------- */
-let parsedRows = null;
-let csvHeaders = [];          // header order of the uploaded dashboard export
-let resultByLocale = {};      // locale -> array of output rows
-let stats = {};               // locale -> {swap, short, mixed, generic, multi, total}
-let flags = { unmappedLocale: {}, unrecognized: [] };
-let mealStats = {};           // recipeName -> { "nl-NL": {swap,short}, "be-NL": {...}, "be-FR": {...} }
-let manualReviewRows = [];    // raw source rows still needing a human (unmapped locale etc.)
-let testAccountsInfo = [];    // which test accounts got appended, and from which email
+const LOCALES = ["nl-NL", "be-NL", "be-FR", "de-DE", "sv-SE", "da-DK"];
 
 /* ---------------------------------------------------------------
    HELPERS
 --------------------------------------------------------------- */
-function clean(s){
-  return (s || "").toString().replace(/\s+/g, " ").trim();
-}
+function clean(s){ return (s || "").toString().replace(/\s+/g, " ").trim(); }
 
 function escHtml(s){
   return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -397,22 +600,11 @@ function uniqueList(items){
   return unique;
 }
 
-// A single value renders as text; 2+ values render as a bulleted list
+// Every meal name renders bold + italic.
+// Multiple names are separated by a line break (no bullets — CRM tool limitation).
 function asListHtml(unique){
   if (unique.length === 0) return "";
-  if (unique.length === 1) return escHtml(unique[0]);
-  return "<ul>" + unique.map(v => "<li>" + escHtml(v) + "</li>").join("") + "</ul>";
-}
-
-function ensureMeal(name){
-  if (!mealStats[name]){
-    mealStats[name] = {
-      "nl-NL": { swap: 0, short: 0 },
-      "be-NL": { swap: 0, short: 0 },
-      "be-FR": { swap: 0, short: 0 }
-    };
-  }
-  return mealStats[name];
+  return unique.map(v => `<b><i>${escHtml(v)}</i></b>`).join("<br>");
 }
 
 function todayDDMM(){
@@ -422,108 +614,25 @@ function todayDDMM(){
   return dd + mm;
 }
 
-// Filenames must be all-underscore, no hyphens (e.g. "nl-NL" -> "nl_NL")
-function fileSafe(s){
-  return s.replace(/-/g, '_');
-}
+// All-underscore filenames (e.g. "be-NL" → "be_NL")
+function fileSafe(s){ return s.replace(/-/g, '_'); }
 
-/* ----- SWAP copy (Dutch shared for nl-NL/be-NL, French for be-FR) ----- */
-function buildDutchSwapContent(origins, dests){
-  const uo = uniqueList(origins), ud = uniqueList(dests);
-  const originHtml = asListHtml(uo);
-  const destHtml = asListHtml(ud);
-  const originSentence = uo.length > 1
-    ? `Helaas lukt het onze chefs door onvoorziene omstandigheden niet om de volgende maaltijden te bereiden:${originHtml}Sorry voor het ongemak.`
-    : `Helaas lukt het onze chefs door onvoorziene omstandigheden niet om <b>${originHtml}</b> te bereiden. Sorry voor het ongemak.`;
-  const destSentence = ud.length > 1
-    ? `Gelukkig hebben we een alternatief voor je: deze week ontvang je de volgende maaltijden:${destHtml}`
-    : `Gelukkig hebben we een alternatief voor je: deze week ontvang je <b>${destHtml}</b>.`;
-  const tail = `<br><br>Controleer wel even de allergenen van deze maaltijd.<br><br>Als goedmakertje voegen we <b>€5 tegoed per maaltijd</b> toe aan je account. Dat kun je gebruiken bij je volgende box.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`;
-  return originSentence + "<br><br>" + destSentence + tail;
-}
-
-function buildFrenchSwapContent(origins, dests){
-  const uo = uniqueList(origins), ud = uniqueList(dests);
-  const originHtml = asListHtml(uo);
-  const destHtml = asListHtml(ud);
-  const originSentence = uo.length > 1
-    ? `Malheureusement, en raison de circonstances imprévues, nos chefs ne parviennent pas à préparer les plats suivants :${originHtml}Désolé pour ce désagrément.`
-    : `Malheureusement, en raison de circonstances imprévues, nos chefs ne parviennent pas à préparer <b>${originHtml}</b>. Désolé pour ce désagrément.`;
-  const destSentence = ud.length > 1
-    ? `Heureusement, nous avons une alternative pour vous : cette semaine, vous recevrez les plats suivants :${destHtml}`
-    : `Heureusement, nous avons une alternative pour vous : cette semaine, vous recevrez <b>${destHtml}</b>.`;
-  const tail = `<br><br>Veuillez tout de même vérifier les allergènes de ce repas.<br><br>Pour nous excuser, nous ajoutons <b>5 € de crédit par repas</b> sur votre compte. Vous pourrez l’utiliser lors de votre prochaine box.<br><br>Si vous avez des questions ou si vous n’êtes pas satisfait, n’hésitez pas à contacter notre équipe du service client.`;
-  return originSentence + "<br><br>" + destSentence + tail;
-}
-
-function buildSwapContent(locale, origins, dests){
-  return locale === "be-FR" ? buildFrenchSwapContent(origins, dests) : buildDutchSwapContent(origins, dests);
-}
-
-/* ----- SHORT copy — single meal (from the sheet), multi-meal is our own extension ----- */
-function buildDutchShortContent(recipes){
-  const ur = uniqueList(recipes);
-  const html = asListHtml(ur);
-  if (ur.length > 1){
-    return `Er missen deze week meerdere maaltijden in jouw box:${html}Helaas is het ons niet op tijd gelukt om deze maaltijden met een passend alternatief dat aan onze hoge kwaliteitsstandaarden voldoet, te vervangen. Sorry voor het ongemak.<br><br>Natuurlijk voegen we het bedrag als tegoed aan je account toe, zodat je het op je volgende box als korting kunt inzetten. En niet te vergeten: geniet van de maaltijden die wél zijn thuisbezorgd.`;
+function ensureMeal(name){
+  if (!mealStats[name]){
+    mealStats[name] = Object.fromEntries(LOCALES.map(l => [l, { swap: 0, short: 0 }]));
   }
-  return `Er mist deze week een maaltijd in jouw box: <b>${html}</b>. Helaas is het ons niet op tijd gelukt om de maaltijd met een passend alternatief dat aan onze hoge kwaliteitsstandaarden voldoet, te vervangen. Sorry voor het ongemak.<br><br>Natuurlijk voegen we het bedrag als tegoed aan je account toe, zodat je het op je volgende box als korting kunt inzetten. En niet te vergeten: geniet van de maaltijden die wél zijn thuisbezorgd.`;
+  return mealStats[name];
 }
 
-function buildFrenchShortContent(recipes){
-  const ur = uniqueList(recipes);
-  const html = asListHtml(ur);
-  if (ur.length > 1){
-    return `Vous aviez sélectionné ces plats dans votre box cette semaine :${html}Malheureusement, nos chefs n’ont pas pu les préparer, ni trouver d’alternative à la hauteur de nos standards à temps.<br><br>Veuillez nous excuser pour ce contretemps. Nous avons crédité votre compte. Vous pourrez utiliser ce montant comme réduction lors de votre prochaine commande.<br><br>Bon appétit !`;
-  }
-  return `Vous aviez sélectionné ce plat dans votre box cette semaine : <b>${html}</b>. Malheureusement, nos chefs n’ont pas pu le préparer, ni trouver d’alternative à la hauteur de nos standards à temps.<br><br>Veuillez nous excuser pour ce contretemps. Nous avons crédité votre compte. Vous pourrez utiliser ce montant comme réduction lors de votre prochaine commande.<br><br>Bon appétit !`;
-}
-
-function buildShortContent(locale, recipes){
-  return locale === "be-FR" ? buildFrenchShortContent(recipes) : buildDutchShortContent(recipes);
-}
-
-/* ----- MIXED copy — customer has both a shortage AND a swap, must be ONE email ----- */
-function buildDutchMixedContent(shortRecipes, origins, dests){
-  const us = uniqueList(shortRecipes), uo = uniqueList(origins), ud = uniqueList(dests);
-  const shortHtml = asListHtml(us);
-  const originHtml = asListHtml(uo);
-  const destHtml = asListHtml(ud);
-
-  const shortSentence = us.length > 1
-    ? `Voor de volgende maaltijden hebben we helaas geen passend alternatief kunnen vinden dat aan onze hoge kwaliteitsstandaarden voldoet — ze ontbreken in je levering:${shortHtml}`
-    : `Voor <b>${shortHtml}</b> hebben we helaas geen passend alternatief kunnen vinden dat aan onze hoge kwaliteitsstandaarden voldoet — deze maaltijd ontbreekt in je levering.`;
-
-  const swapSentence = uo.length > 1
-    ? `Daarnaast hebben we de volgende maaltijden moeten vervangen:${originHtml}Hiervoor ontvang je:${destHtml}Controleer wel even de allergenen van deze maaltijden.`
-    : `Daarnaast hebben we <b>${originHtml}</b> moeten vervangen: hiervoor ontvang je <b>${destHtml}</b>. Controleer wel even de allergenen van deze maaltijd.`;
-
-  const tail = `<br><br>Sorry voor het ongemak. Uiteraard verrekenen we alles netjes als tegoed in je account.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`;
-
-  return `Deze week gaat niet alles volgens plan met je Factor Box.<br><br>${shortSentence}<br><br>${swapSentence}${tail}`;
-}
-
-function buildFrenchMixedContent(shortRecipes, origins, dests){
-  const us = uniqueList(shortRecipes), uo = uniqueList(origins), ud = uniqueList(dests);
-  const shortHtml = asListHtml(us);
-  const originHtml = asListHtml(uo);
-  const destHtml = asListHtml(ud);
-
-  const shortSentence = us.length > 1
-    ? `Pour les plats suivants, nous n’avons malheureusement pas pu trouver d’alternative répondant à nos standards de qualité élevés — ils sont absents de votre livraison :${shortHtml}`
-    : `Pour <b>${shortHtml}</b>, nous n’avons malheureusement pas pu trouver d’alternative répondant à nos standards de qualité élevés — ce plat est absent de votre livraison.`;
-
-  const swapSentence = uo.length > 1
-    ? `Par ailleurs, nous avons dû remplacer les plats suivants :${originHtml}Vous recevrez à la place :${destHtml}Pensez à vérifier les allergènes de ces plats.`
-    : `Par ailleurs, nous avons dû remplacer <b>${originHtml}</b> : vous recevrez à la place <b>${destHtml}</b>. Pensez à vérifier les allergènes de ce plat.`;
-
-  const tail = `<br><br>Désolé pour ce désagrément. Bien entendu, nous créditerons tout cela correctement sur votre compte.<br><br>Si vous avez des questions ou n’êtes pas satisfait, n’hésitez pas à contacter notre service client.`;
-
-  return `Cette semaine, tout ne s’est pas déroulé comme prévu avec votre Factor Box.<br><br>${shortSentence}<br><br>${swapSentence}${tail}`;
-}
-
-function buildMixedContent(locale, shortRecipes, origins, dests){
-  return locale === "be-FR" ? buildFrenchMixedContent(shortRecipes, origins, dests) : buildDutchMixedContent(shortRecipes, origins, dests);
+// Builds final HTML content from the template for a customer.
+// origin/dest/short are already-rendered HTML strings (bold-italic names, <br>-separated if multiple).
+function buildContent(locale, reasonKey, parts){
+  const tpl = TEMPLATES[locale] && TEMPLATES[locale][reasonKey];
+  if (!tpl) return "";
+  return tpl.content
+    .replace(/{{ORIGIN}}/g, parts.origin || "")
+    .replace(/{{DEST}}/g,   parts.dest   || "")
+    .replace(/{{SHORT}}/g,  parts.short  || "");
 }
 
 /* ---------------------------------------------------------------
@@ -573,12 +682,8 @@ document.getElementById('processBtn').addEventListener('click', () => {
 });
 
 function process(rows){
-  resultByLocale = { "nl-NL": [], "be-NL": [], "be-FR": [] };
-  stats = {
-    "nl-NL": { swap: 0, short: 0, mixed: 0, generic: 0, multi: 0, total: 0 },
-    "be-NL": { swap: 0, short: 0, mixed: 0, generic: 0, multi: 0, total: 0 },
-    "be-FR": { swap: 0, short: 0, mixed: 0, generic: 0, multi: 0, total: 0 }
-  };
+  resultByLocale = Object.fromEntries(LOCALES.map(l => [l, []]));
+  stats = Object.fromEntries(LOCALES.map(l => [l, { swap: 0, short: 0, mixed: 0, generic: 0, multi: 0, total: 0 }]));
   flags = { unmappedLocale: {}, unrecognized: [] };
   mealStats = {};
   manualReviewRows = [];
@@ -681,25 +786,40 @@ function process(rows){
     const hasSwap = reasons.has('swap');
     const hasShort = reasons.has('short');
     const reason = (hasSwap && hasShort) ? 'mixed' : (hasSwap ? 'swap' : 'short');
-    const tpl = TEMPLATES[locale][reason];
 
-    let content;
-    let impactCount;
+    let reasonKey, content, impactCount;
 
     if (reason === 'mixed'){
-      content = buildMixedContent(locale, uniqueShort, origins, dests);
+      const isMulti = uniquePairs.length > 1 || uniqueShort.length > 1;
+      reasonKey = isMulti ? 'mixed_multiple' : 'mixed';
+      content = buildContent(locale, reasonKey, {
+        origin: asListHtml(origins),
+        dest:   asListHtml(dests),
+        short:  asListHtml(uniqueShort)
+      });
       impactCount = uniquePairs.length + uniqueShort.length;
       origins.forEach(name => { ensureMeal(name)[locale].swap++; });
       uniqueShort.forEach(name => { ensureMeal(name)[locale].short++; });
     } else if (reason === 'swap'){
-      content = buildSwapContent(locale, origins, dests);
+      const isMulti = origins.length > 1;
+      reasonKey = isMulti ? 'swap_multiple' : 'swap';
+      content = buildContent(locale, reasonKey, {
+        origin: asListHtml(origins),
+        dest:   asListHtml(dests)
+      });
       impactCount = uniquePairs.length;
       origins.forEach(name => { ensureMeal(name)[locale].swap++; });
     } else {
-      content = buildShortContent(locale, uniqueShort);
+      const isMulti = uniqueShort.length > 1;
+      reasonKey = isMulti ? 'short_multiple' : 'short';
+      content = buildContent(locale, reasonKey, {
+        short: asListHtml(uniqueShort)
+      });
       impactCount = uniqueShort.length;
       uniqueShort.forEach(name => { ensureMeal(name)[locale].short++; });
     }
+
+    const tpl = TEMPLATES[locale][reasonKey];
 
     stats[locale][reason]++;
     stats[locale].total++;
@@ -733,9 +853,9 @@ function process(rows){
 // Standing test accounts that always get an extra row per locale export,
 // carrying whatever the most complex email generated that run looks like.
 const TEST_ACCOUNTS = [
-  { business_unit: "TT", customer_id: "2732029", locale: "nl-NL" },
-  { business_unit: "TO", customer_id: "100021255", locale: "be-NL" },
-  { business_unit: "TO", customer_id: "100021255", locale: "be-FR" }
+  { business_unit: "TT", customer_id: "2732029",   locale: "nl-NL" },
+  { business_unit: "TO", customer_id: "100021255",  locale: "be-NL" },
+  { business_unit: "TO", customer_id: "100021255",  locale: "be-FR" }
 ];
 
 function difficultyScore(row){
