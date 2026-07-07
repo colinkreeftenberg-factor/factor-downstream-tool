@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VERDEN - BULK ERROR BUILDER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --carbon:#141414; --natural:#F1F1EA; --natural-2:#E7E6DC;
+    --saffron:#FFC800; --line:#D9D7C9; --ok:#206B19; --warn:#C79C00; --err:#9B2629;
+    --radius:22px; --radius-sm:12px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{ background:var(--natural); color:var(--carbon); font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:960px;margin:0 auto;padding:40px 24px 96px;}
+
+  .app-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:6px;}
+  .logo-mark{width:38px;height:38px;border-radius:9px;overflow:hidden;flex:none;box-shadow:0 1px 0 rgba(20,20,20,0.06);margin-top:3px;}
+  .logo-mark img{width:100%;height:100%;display:block;object-fit:cover;}
+  .app-title{font-weight:600;font-size:26px;letter-spacing:0.01em;text-transform:uppercase;border-bottom:4px solid var(--saffron);padding-bottom:3px;display:inline-block;line-height:1.1;}
+  .app-subtitle{font-weight:400;font-size:14px;color:#5b5b54;margin-top:7px;}
+  .app-maker{font-size:11.5px;color:#8a897d;margin-top:6px;}
+  .app-sub{font-weight:500;font-size:13.5px;color:#5b5b54;margin:10px 0 0 52px;max-width:640px;line-height:1.5;}
+
+  .divider{height:1px;background:var(--line);margin:26px 0 30px;}
+  .step{ background:#FBFBF7; border:1px solid var(--line); border-radius:var(--radius); padding:24px 26px; margin-bottom:18px; position:relative;}
+  .step[data-disabled="true"]{opacity:0.45;pointer-events:none;}
+  .step-head{display:flex;align-items:baseline;gap:12px;margin-bottom:4px;}
+  .step-num{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:500;background:var(--natural-2);border:1px solid var(--line);padding:2px 9px;border-radius:999px;}
+  .step-title{font-size:16.5px;font-weight:700;letter-spacing:-0.01em;}
+  .step-desc{font-size:13.5px;color:#5b5b54;margin:8px 0 16px;line-height:1.5;max-width:640px;}
+  .dropzone{ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1.5px solid #B9B6A4;border-radius:var(--radius-sm);background:#fff;padding:24px 20px;min-height:100px;text-align:center;cursor:pointer;transition:.15s;}
+  .dropzone:hover,.dropzone.drag{border-color:var(--saffron);background:#FFFDF3;}
+  .dropzone input{display:none;}
+  .dz-title{font-weight:700;font-size:14px;}
+  .dz-sub{font-size:12px;color:#7a7a70;}
+  .filelist{margin-top:8px;font-size:11.5px;font-family:'IBM Plex Mono',monospace;color:#206B19;}
+  .filelist div{padding:2px 0;word-break:break-all;}
+  .btn{appearance:none;border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:13.5px;padding:11px 20px;border-radius:999px;transition:.12s;}
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:var(--saffron);color:var(--carbon);}
+  .btn-primary:hover{box-shadow:0 0 0 3px rgba(255,200,0,.35);}
+  .btn-primary:disabled{background:#E9E6D4;color:#a9a798;cursor:not-allowed;box-shadow:none;}
+  .btn-dark{background:var(--carbon);color:var(--natural);}
+  .btn-dark:hover{box-shadow:0 0 0 3px rgba(20,20,20,.15);}
+  .btn-dark:disabled{background:#cfcfc7;color:#8f8f86;cursor:not-allowed;}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--carbon);}
+  .btn-ghost:hover{border-color:var(--carbon);}
+  .btn-sm{padding:7px 14px;font-size:12px;border-radius:999px;}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;align-items:center;}
+  .status-line{font-size:12.5px;color:#5b5b54;display:flex;align-items:center;gap:8px;margin-top:4px;padding:8px 12px;border-radius:10px;border:1px solid transparent;transition:.2s;}
+  .status-line.pending{background:#FFF7D6;border-color:#F0DE8C;color:#6B5900;}
+  .status-line.ok{background:#E9F5E4;border-color:#BFDDB3;color:var(--ok);}
+  .status-line.warn{background:#FBE3E3;border-color:#E9B7B8;color:var(--err);}
+  .status-icon{font-weight:800;flex:none;}
+  .dot-status{width:8px;height:8px;border-radius:50%;flex:none;}
+  .dot-ok{background:var(--ok);}
+  .dot-warn{background:var(--err);}
+  .dot-pending{background:#B9B6A4;}
+  details.manual-fallback{margin-top:14px;font-size:12.5px;}
+  details.manual-fallback summary{cursor:pointer;color:#5b5b54;}
+  .summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+  .sum-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px;}
+  .sum-locale{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:#7a7a70;letter-spacing:.03em;text-transform:uppercase;}
+  .sum-count{font-size:24px;font-weight:800;margin-top:3px;}
+  .sum-bu{font-size:12px;color:#7a7a70;margin-top:2px;}
+  .sum-breakdown{font-size:12.5px;color:#5b5b54;margin-top:10px;display:flex;flex-direction:column;gap:5px;border-top:1px solid var(--line);padding-top:10px;}
+  .badge{display:flex;align-items:center;justify-content:space-between;}
+  .badge .lbl{display:flex;align-items:center;gap:6px;}
+  .badge .sq{width:7px;height:7px;border-radius:2px;flex:none;}
+  .sq-swap{background:var(--saffron);}
+  .sq-short{background:var(--carbon);}
+  .review-box{background:#FFF9E6;border:1px solid #EBD98A;border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:16px;font-size:13px;line-height:1.55;}
+  .review-box.ok{background:#F0F5EE;border-color:#C7DABF;}
+  .review-title{font-weight:700;margin-bottom:6px;}
+  .review-list{margin:0;padding-left:18px;}
+  .review-list li{margin-bottom:3px;}
+  .mono{font-family:'IBM Plex Mono',monospace;font-size:11.5px;}
+  table{width:100%;border-collapse:collapse;font-size:12px;background:#fff;}
+  thead th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:#7a7a70;border-bottom:1px solid var(--line);padding:8px 9px;position:sticky;top:0;background:#fff;}
+  tbody td{padding:8px 9px;border-bottom:1px solid #EFEDE4;vertical-align:top;}
+  .tablewrap{border:1px solid var(--line);border-radius:var(--radius-sm);overflow:auto;max-height:420px;margin-bottom:6px;}
+  .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;}
+  .tag.swap{background:#FFF3CC;color:#8A6A00;}
+  .tag.short{background:#FBE0E0;color:var(--err);}
+  .filecard{background:#fff;border:1px solid var(--line);border-radius:var(--radius-sm);padding:16px 18px;margin-bottom:12px;}
+  .filecard-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+  .filecard-name{font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .filecard-meta{margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#7a7a70;display:flex;align-items:center;gap:6px;}
+  .filecard select{width:100%;margin-top:12px;padding:9px 11px;border-radius:10px;border:1px solid var(--line);font-family:inherit;font-size:13px;background:#fff;color:var(--carbon);}
+  .remove-x{background:none;border:none;cursor:pointer;color:#9b9a8f;font-size:16px;line-height:1;padding:2px;}
+  .remove-x:hover{color:var(--carbon);}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:10.5px;font-weight:700;background:var(--natural-2);color:#5b5b54;}
+  .toggle-switch{position:relative;display:inline-block;width:42px;height:24px;flex:none;}
+  .toggle-switch input{opacity:0;width:0;height:0;}
+  .toggle-slider{position:absolute;cursor:pointer;inset:0;background:#cfcdc0;border-radius:999px;transition:.15s;}
+  .toggle-slider::before{content:"";position:absolute;height:18px;width:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s;}
+  .toggle-switch input:checked + .toggle-slider{background:var(--saffron);}
+  .toggle-switch input:checked + .toggle-slider::before{transform:translateX(18px);}
+  .download-row{display:flex;gap:12px;flex-wrap:wrap;}
+  .dl-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px;display:flex;flex-direction:column;gap:8px;min-width:220px;flex:1;}
+  .dl-locale{font-weight:800;font-size:14px;}
+  .dl-meta{font-size:11.5px;color:#7a7a70;}
+  .dl-card .btn{width:100%;text-align:center;border-radius:12px;padding:9px 10px;font-size:11.5px;white-space:normal;word-break:break-all;}
+  .dl-card .btn:disabled{opacity:.5;}
+  footer{margin-top:32px;font-size:12px;color:#9b9a8f;text-align:center;}
+  a.quiet{color:inherit;text-decoration:underline;text-underline-offset:2px;}
+  .slack-box{background:var(--carbon);border-radius:var(--radius-sm);padding:16px 18px;}
+  .slack-text{color:#F1F1EA;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.7;white-space:pre-wrap;word-break:break-word;margin:0;}
+  @media (max-width:760px){.summary-grid{grid-template-columns:repeat(1,1fr);}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="app-header">
+    <div class="logo-mark"><img src="data:image/png;base64,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" alt="Factor" /></div>
+    <div>
+      <div class="app-title">Bulk Error Report Builder</div>
+      <div class="app-subtitle">TZ · TV · TK Bulk-Error Import Tool</div>
+      <div class="app-maker">Made &amp; maintained by <strong>Colin Kreeftenberg</strong> — questions, edits or new markets go to him.</div>
+    </div>
+  </div>
+  <div class="app-sub">Recipe names, culinary SKUs and box prices are pulled live from the <a class="quiet" href="https://docs.google.com/spreadsheets/d/1DjYDHfwKLRkQzlEj22whxrBjdk9T36VRQqMGE91l17U/edit?gid=1369729448#gid=1369729448" target="_blank" rel="noopener">backend sheet</a> — you only need to upload the weekly incident files from production and pick the right error category per file.</div>
+
+  <div class="divider"></div>
+
+  <!-- STEP 1 -->
+  <div class="step" id="step1">
+    <div class="step-head"><span class="step-num">01</span><span class="step-title">Recipe &amp; meal-code mapping</span></div>
+    <div class="step-desc">Fetched live from the Meal Database tab — maps weekly recipe slots to recipe names and culinary SKUs. Refresh manually if the sheet was just updated.</div>
+    <div class="status-line pending" id="recipeMapStatus"><span class="status-icon">…</span> Not loaded yet...</div>
+    <div class="btn-row">
+      <button class="btn btn-ghost btn-sm" id="refreshRecipeMap">Refresh recipe mapping</button>
+    </div>
+    <details class="manual-fallback">
+      <summary>Live loading not working? Upload the Verden export CSV manually as a fallback</summary>
+      <div style="margin-top:10px;">
+        <label class="dropzone" id="dz-recipemap" style="min-height:70px;">
+          <input type="file" id="file-recipemap" accept=".csv" />
+          <div class="dz-title">Swap_Tool_Backend – Verden (.csv)</div>
+          <div class="dz-sub">only needed if the live link isn't working</div>
+        </label>
+        <div class="filelist" id="list-recipemap"></div>
+      </div>
+    </details>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step" id="step2">
+    <div class="step-head"><span class="step-num">02</span><span class="step-title">Compensation Price Feature</span></div>
+    <div class="step-desc">Shorts are calculated based on the customer's meal price. Swaps are 5&euro; or 120kr.</div>
+    <div class="btn-row" style="margin:2px 0 16px;">
+      <label class="toggle-switch">
+        <input type="checkbox" id="swapCompToggle" checked>
+        <span class="toggle-slider"></span>
+      </label>
+      <span style="font-size:13px;font-weight:600;" id="swapCompLabel">Swap compensation: 5€ / 120kr</span>
+    </div>
+    <div class="status-line pending" id="boxPriceStatus"><span class="status-icon">…</span> Not loaded yet...</div>
+    <div class="btn-row">
+      <button class="btn btn-ghost btn-sm" id="refreshBoxPrice">Refresh box prices</button>
+    </div>
+    <details class="manual-fallback">
+      <summary>Live loading not working? Upload the BoxPriceTZ export CSV manually as a fallback</summary>
+      <div style="margin-top:10px;">
+        <label class="dropzone" id="dz-boxprice" style="min-height:70px;">
+          <input type="file" id="file-boxprice" accept=".csv" />
+          <div class="dz-title">Swap_Tool_Backend – BoxPriceTZ (.csv)</div>
+          <div class="dz-sub">only needed if the live link isn't working</div>
+        </label>
+        <div class="filelist" id="list-boxprice"></div>
+      </div>
+    </details>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step" id="step3">
+    <div class="step-head"><span class="step-num">03</span><span class="step-title">Upload incident files</span></div>
+    <div class="step-desc">The Factor_Incident_Result .xlsx files from production. Swap vs. shortage is detected automatically. Pick the right error category per file — it applies to every row in that file.</div>
+    <label class="dropzone" id="dz-incidents">
+      <input type="file" id="file-incidents" multiple accept=".xlsx" />
+      <div class="dz-title">Click or drop .xlsx files here</div>
+      <div class="dz-sub">multiple files allowed</div>
+    </label>
+    <div id="incidentFileCards" style="margin-top:14px;"></div>
+    <details class="manual-fallback">
+      <summary>Need to change the error category list? Upload a new categories export</summary>
+      <div style="margin-top:10px;">
+        <label class="dropzone" id="dz-categories" style="min-height:70px;">
+          <input type="file" id="file-categories" accept=".csv" />
+          <div class="dz-title">Factor EU – Error Categories (.csv)</div>
+          <div class="dz-sub">column A = issue description, column E = additional detail 1</div>
+        </label>
+        <div class="filelist" id="list-categories"></div>
+      </div>
+    </details>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step" id="step4">
+    <div class="step-head"><span class="step-num">04</span><span class="step-title">Build export</span></div>
+    <div class="step-desc">Combines every file above — with its selected category — into one comma-separated CSV.</div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-build" disabled>Build export</button>
+    </div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step" id="step5" data-disabled="true">
+    <div class="step-head"><span class="step-num">05</span><span class="step-title">Review</span></div>
+    <div class="step-desc">Rows ready to export, plus anything worth a second look.</div>
+    <div class="step-body" id="reviewBody"></div>
+    <details style="margin-top:6px;">
+      <summary style="cursor:pointer;font-size:12.5px;color:#5b5b54;">Show per-row details</summary>
+      <div class="tablewrap" id="tablewrap" style="display:block;margin-top:10px;">
+        <table>
+          <thead><tr><th>Customer ID</th><th>Box ID</th><th>Recipe name</th><th>Recipe index</th><th>Culinary SKU</th><th>Compensation</th><th>Comment</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </details>
+  </div>
+
+  <!-- STEP 6 -->
+  <div class="step" id="step6" data-disabled="true">
+    <div class="step-head"><span class="step-num">06</span><span class="step-title">Download</span></div>
+    <div class="step-desc">One CSV per market, ready to upload into the error tooling — split automatically if you uploaded more than one market at once.</div>
+    <div class="download-row" id="downloadRow"></div>
+  </div>
+
+  <!-- STEP 7 -->
+  <div class="step" id="step7" data-disabled="true">
+    <div class="step-head"><span class="step-num">07</span><span class="step-title">Slack update</span></div>
+    <div class="step-desc">A summary you can paste straight into Slack — per market, per reason, with totals.</div>
+    <div class="step-body" id="slackBody"></div>
+  </div>
+
+  <footer>Factor · internal tool · content sourced from the <a class="quiet" href="https://docs.google.com/spreadsheets/d/1DjYDHfwKLRkQzlEj22whxrBjdk9T36VRQqMGE91l17U/edit" target="_blank" rel="noopener">backend comms sheet</a> — update the tool if the source sheet structure changes.</footer>
+</div>
+
+<script>
+/* =================================================================
+   STATIC REFERENCE DATA
+================================================================= */
+const MARKET_CONFIG = {
+  TZ: { name: 'Germany', currency: 'EUR', swapAmount: 5,   slotField: 'slotGER', nameField: 'germanName',  active: true  },
+  TV: { name: 'Sweden',  currency: 'SEK', swapAmount: 120, slotField: 'slotNOR', nameField: 'swedishName', active: false },
+  TK: { name: 'Denmark', currency: 'DKK', swapAmount: 120, slotField: 'slotNOR', nameField: 'danishName',  active: false }
+};
+
+const DEFAULT_CATEGORIES = [
+  { issue:'Cooking issues in production', cat:'operations_use_only', sub:'_recipes', complaint:'internal_cooking_error', d1:'missing', d2:'' },
+  { issue:'Verden production issue causes recipe not to be finished', cat:'operations_use_only', sub:'_recipes', complaint:'internal_production_error_inventory', d1:'sku_change', d2:'impact_high' },
+  { issue:'Verden production issue causes recipe not to be finished', cat:'operations_use_only', sub:'_recipes', complaint:'internal_production_error_inventory', d1:'missing', d2:'impact_high' },
+  { issue:'Verden ordering/procurement issue causes recipe not to be finished', cat:'operations_use_only', sub:'_recipes', complaint:'internal_ordering_error', d1:'sku_change', d2:'' },
+  { issue:'Verden ordering/procurement issue causes recipe not to be finished', cat:'operations_use_only', sub:'_recipes', complaint:'internal_ordering_error', d1:'missing', d2:'' },
+  { issue:'Maitre issue with meals', cat:'operations_use_only', sub:'_recipes', complaint:'supplier_short_delivery', d1:'sku_change', d2:'' },
+  { issue:'Maitre issue with meals', cat:'operations_use_only', sub:'_recipes', complaint:'supplier_short_delivery', d1:'missing', d2:'' },
+  { issue:'Meals fail in production due to a food safety issue', cat:'operations_use_only', sub:'_recipes', complaint:'internal_food_safety', d1:'sku_change', d2:'impact_high' },
+  { issue:'Meals fail in production due to a food safety issue', cat:'operations_use_only', sub:'_recipes', complaint:'internal_food_safety', d1:'missing', d2:'impact_high' },
+  { issue:'Verden fulfilment causing late/delayed delivery', cat:'operations_use_only', sub:'logistics', complaint:'courier_network_error', d1:'late_delivery_1_day', d2:'late_departure_at_production' },
+  { issue:'Verden fulfilment causing failed delivery', cat:'operations_use_only', sub:'logistics', complaint:'no_delivery', d1:'courier_network_error', d2:'' }
+];
+
+const OUTPUT_COLUMNS = ['customer id','box id','error category','error sub category','complaint','additional detail 1','additional detail 2','ingredient','recipe name','compensation type','compensation amount','recipe index','culinary sku','comment'];
+
+/* Google Apps Script Web App URL — same source used elsewhere in this
+   project. ?sheet=verden and ?sheet=boxpricetz are both additive branches;
+   the default ("Meal Database") and ?sheet=odl behaviour used by other
+   tools is untouched. */
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyZ0jqfnQnWDK3gnsLHJvu68BrT0p3_PIkC2lkdRdcF1LlFn_zhszHUI8elLYNfqYFp6A/exec';
+
+/* =================================================================
+   STATE
+================================================================= */
+let recipeMap = [];          // [{week, slotBNL, slotNOR, slotGER, code, dutchName, danishName, swedishName, germanName}]
+let boxPriceMap = {};        // { normalizedBoxId: {productsize, totalOrderValue} }
+let boxPriceCount = 0;
+let categories = DEFAULT_CATEGORIES.slice();
+let incidentFiles = [];      // [{fileName, incidentId, type, market, affectedSlot, substituteSlot, rows, fileWarnings, categoryIndex}]
+let exportRows = [];
+let swapCompensationEnabled = true;
+
+document.getElementById('swapCompToggle').addEventListener('change', function(){
+  swapCompensationEnabled = this.checked;
+  document.getElementById('swapCompLabel').textContent = 'Swap compensation: ' + (swapCompensationEnabled ? '5€ / 120kr' : '0 (disabled)');
+});
+
+/* =================================================================
+   HELPERS
+================================================================= */
+function round2(n){ if(n===null||n===undefined||isNaN(n)) return null; return Math.round((n+Number.EPSILON)*100)/100; }
+function fmt2(n){ return (n===null||n===undefined) ? '' : n.toFixed(2); }
+function stripLeadingLetters(v){ return v==null ? '' : String(v).replace(/^[A-Za-z]+/, ''); }
+function stripTrailingLetters(v){ return v==null ? '' : String(v).replace(/[A-Za-z]+$/, ''); }
+function mealsFromSku(sku){ if(!sku) return null; const p = String(sku).split('-'); const n = parseInt(p[2],10); return isNaN(n) ? null : n; }
+function weekShort(w){ if(!w) return null; const p = String(w).split('-'); return p[p.length-1]; }
+function normalizeBoxId(id){ if(!id) return ''; const m = String(id).trim().toUpperCase().match(/^([A-Z]{2}\d+)/); return m ? m[1] : String(id).trim().toUpperCase(); }
+function detectMarket(boxId){ if(!boxId) return null; const p = String(boxId).trim().slice(0,2).toUpperCase(); return MARKET_CONFIG[p] ? p : null; }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function todayDDMM(){ const d = new Date(); const dd = String(d.getDate()).padStart(2,'0'); const mm = String(d.getMonth()+1).padStart(2,'0'); return `${dd}_${mm}`; }
+function formatMoney(amount, market){
+  const cfg = MARKET_CONFIG[market];
+  const amt = (amount===null||amount===undefined) ? '0.00' : amount.toFixed(2);
+  if(!cfg) return amt;
+  return cfg.currency==='EUR' ? `€${amt}` : `${amt} ${cfg.currency}`;
+}
+
+/* =================================================================
+   JSONP LOADER — Google Apps Script published endpoints don't return
+   CORS headers, so a plain fetch() fails silently in the browser. A
+   dynamically injected <script> tag sidesteps that. Open this file
+   directly in your browser rather than previewing it inside a sandboxed
+   tool — script tags to external domains are typically blocked there.
+================================================================= */
+function loadViaJsonp(url, timeoutMs){
+  timeoutMs = timeoutMs || 45000;
+  return new Promise((resolve, reject) => {
+    const cbName = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const timeout = setTimeout(() => { cleanup(); reject(new Error('Timed out — no response (cold starts can take up to 45s, try again).')); }, timeoutMs);
+    function cleanup(){ clearTimeout(timeout); delete window[cbName]; if(script.parentNode) script.parentNode.removeChild(script); }
+    window[cbName] = function(data){
+      cleanup();
+      if(data && data.error){ reject(new Error(data.error)); return; }
+      resolve(data);
+    };
+    const script = document.createElement('script');
+    script.src = url + (url.indexOf('?')>=0 ? '&' : '?') + 'callback=' + cbName + '&t=' + Date.now();
+    script.onerror = () => { cleanup(); reject(new Error('Could not load the published source (network error).')); };
+    document.body.appendChild(script);
+  });
+}
+
+/* =================================================================
+   PARSERS — shared between live JSONP loads (already array-of-arrays)
+   and manual CSV upload fallback.
+================================================================= */
+function buildRecipeMap(rows){
+  let headerIdx = -1;
+  for(let i=0;i<Math.min(rows.length,5);i++){
+    if(rows[i].some(c => (c||'').toString().trim()==='Slot GER')){ headerIdx = i; break; }
+  }
+  if(headerIdx===-1){
+    throw new Error('Could not find a header row containing "Slot GER".');
+  }
+  const header = rows[headerIdx].map(h=>(h||'').toString().trim());
+  const idx = {
+    slotBNL: header.indexOf('Slot BNL'),
+    slotNOR: header.indexOf('Slot NOR'),
+    slotGER: header.indexOf('Slot GER'),
+    code: header.indexOf('Code'),
+    dutch: header.indexOf('Dutch name'),
+    danish: header.indexOf('Danish Name'),
+    swedish: header.indexOf('Swedish Name'),
+    german: header.indexOf('German Name')
+  };
+  const out = [];
+  for(let i=headerIdx+1;i<rows.length;i++){
+    const r = rows[i];
+    if(!r || !r[0]) continue;
+    const week = r[0].toString().trim();
+    const slotGER = idx.slotGER>=0 ? r[idx.slotGER] : null;
+    if(!slotGER) continue;
+    out.push({
+      week,
+      slotBNL: idx.slotBNL>=0 && r[idx.slotBNL] ? r[idx.slotBNL].toString().trim() : '',
+      slotNOR: idx.slotNOR>=0 && r[idx.slotNOR] ? r[idx.slotNOR].toString().trim() : '',
+      slotGER: slotGER.toString().trim(),
+      code: idx.code>=0 && r[idx.code] ? r[idx.code].toString().trim() : '',
+      dutchName: idx.dutch>=0 ? (r[idx.dutch]||'') : '',
+      danishName: idx.danish>=0 ? (r[idx.danish]||'') : '',
+      swedishName: idx.swedish>=0 ? (r[idx.swedish]||'') : '',
+      germanName: idx.german>=0 ? (r[idx.german]||'') : ''
+    });
+  }
+  return out;
+}
+
+function buildBoxPriceMap(rows){
+  let headerIdx = -1;
+  for(let i=0;i<Math.min(rows.length,5);i++){
+    if(rows[i].some(c => (c||'').toString().trim().toLowerCase()==='box_id')){ headerIdx = i; break; }
+  }
+  if(headerIdx===-1){
+    throw new Error('Could not find a header row containing "box_id".');
+  }
+  const header = rows[headerIdx].map(h=>(h||'').toString().trim().toLowerCase());
+  const iBox = header.indexOf('box_id');
+  const iSize = header.indexOf('productsize');
+  const iVal = header.indexOf('total_order_value');
+  const map = {};
+  let count = 0;
+  for(let i=headerIdx+1;i<rows.length;i++){
+    const r = rows[i];
+    if(!r || !r[iBox]) continue;
+    map[normalizeBoxId(r[iBox])] = { productsize: iSize>=0?r[iSize]:null, totalOrderValue: iVal>=0?parseFloat(r[iVal]):null };
+    count++;
+  }
+  return { map, count };
+}
+
+/* =================================================================
+   RECIPE MAPPING — live via JSONP, with CSV fallback
+================================================================= */
+function setRecipeMapStatus(html, kind){
+  const cls = kind==='ok' ? 'ok' : (kind==='warn' ? 'warn' : 'pending');
+  const icon = kind==='ok' ? '✓' : (kind==='warn' ? '⚠' : '…');
+  document.getElementById('recipeMapStatus').className = `status-line ${cls}`;
+  document.getElementById('recipeMapStatus').innerHTML = `<span class="status-icon">${icon}</span> ${html}`;
+}
+
+async function refreshRecipeMap(){
+  setRecipeMapStatus('Loading... (can take up to 45s for a large sheet)', 'pending');
+  try{
+    const rows = await loadViaJsonp(APPS_SCRIPT_URL + '?sheet=verden');
+    recipeMap = buildRecipeMap(rows);
+    const weeks = Array.from(new Set(recipeMap.map(d=>d.week))).sort();
+    setRecipeMapStatus(`Loaded live · ${recipeMap.length} rows · weeks ${weeks[0]}–${weeks[weeks.length-1]}`, 'ok');
+  } catch(err){
+    setRecipeMapStatus(`Live loading failed (${err.message}) — upload the Verden CSV manually below.`, 'warn');
+    console.error(err);
+  }
+  checkReady();
+}
+
+document.getElementById('refreshRecipeMap').addEventListener('click', refreshRecipeMap);
+document.getElementById('file-recipemap').addEventListener('change', function(){
+  const f = this.files[0];
+  if(!f) return;
+  document.getElementById('list-recipemap').innerHTML = `<div>${f.name}</div>`;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const rows = Papa.parse(e.target.result, {skipEmptyLines:false}).data;
+    try{
+      recipeMap = buildRecipeMap(rows);
+      const weeks = Array.from(new Set(recipeMap.map(d=>d.week))).sort();
+      setRecipeMapStatus(`Loaded manually from ${f.name} · ${recipeMap.length} rows · weeks ${weeks[0]}–${weeks[weeks.length-1]}`, 'ok');
+    } catch(err){
+      setRecipeMapStatus(`Error in file: ${err.message}`, 'warn');
+    }
+    checkReady();
+  };
+  reader.readAsText(f, 'utf-8');
+});
+
+/* =================================================================
+   BOX PRICE — live via JSONP, with CSV fallback
+================================================================= */
+function setBoxPriceStatus(html, kind){
+  const cls = kind==='ok' ? 'ok' : (kind==='warn' ? 'warn' : 'pending');
+  const icon = kind==='ok' ? '✓' : (kind==='warn' ? '⚠' : '…');
+  document.getElementById('boxPriceStatus').className = `status-line ${cls}`;
+  document.getElementById('boxPriceStatus').innerHTML = `<span class="status-icon">${icon}</span> ${html}`;
+}
+
+async function refreshBoxPrice(){
+  setBoxPriceStatus('Loading... (can take up to 45s for a large sheet)', 'pending');
+  try{
+    const rows = await loadViaJsonp(APPS_SCRIPT_URL + '?sheet=boxpricetz');
+    const built = buildBoxPriceMap(rows);
+    boxPriceMap = built.map; boxPriceCount = built.count;
+    setBoxPriceStatus(`Loaded live · ${boxPriceCount} boxes`, 'ok');
+  } catch(err){
+    setBoxPriceStatus(`Live loading failed (${err.message}) — upload the BoxPriceTZ CSV manually below. Make sure the Apps Script has the "boxpricetz" branch added.`, 'warn');
+    console.error(err);
+  }
+  checkReady();
+}
+
+document.getElementById('refreshBoxPrice').addEventListener('click', refreshBoxPrice);
+document.getElementById('file-boxprice').addEventListener('change', function(){
+  const f = this.files[0];
+  if(!f) return;
+  document.getElementById('list-boxprice').innerHTML = `<div>${f.name}</div>`;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const rows = Papa.parse(e.target.result, {skipEmptyLines:false}).data;
+    try{
+      const built = buildBoxPriceMap(rows);
+      boxPriceMap = built.map; boxPriceCount = built.count;
+      setBoxPriceStatus(`Loaded manually from ${f.name} · ${boxPriceCount} boxes`, 'ok');
+    } catch(err){
+      setBoxPriceStatus(`Error in file: ${err.message}`, 'warn');
+    }
+    checkReady();
+  };
+  reader.readAsText(f, 'utf-8');
+});
+
+window.addEventListener('load', () => { refreshRecipeMap(); refreshBoxPrice(); });
+
+/* =================================================================
+   CATEGORIES (optional override)
+================================================================= */
+document.getElementById('file-categories').addEventListener('change', function(){
+  const f = this.files[0];
+  if(!f) return;
+  document.getElementById('list-categories').innerHTML = `<div>${f.name}</div>`;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const rows = Papa.parse(e.target.result, {skipEmptyLines:true}).data;
+    const parsed = rows.slice(1).filter(r=>r[0]).map(r => ({ issue:r[0]||'', cat:r[1]||'', sub:r[2]||'', complaint:r[3]||'', d1:r[4]||'', d2:r[5]||'' }));
+    if(parsed.length){ categories = parsed; renderIncidentCards(); }
+  };
+  reader.readAsText(f, 'utf-8');
+});
+
+/* =================================================================
+   INCIDENT FILES
+================================================================= */
+function readWorkbook(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = e => {
+      try{ resolve(XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates:true})); }
+      catch(err){ reject(err); }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function processIncidentWorkbook(wb, fileName){
+  const sheetNames = wb.SheetNames;
+  const detailsName = sheetNames.find(n=>n.toLowerCase()==='details') || sheetNames[1] || sheetNames[0];
+  const custName = sheetNames.find(n=>n.toLowerCase().includes('customer')) || sheetNames[sheetNames.length-1];
+
+  const detailsRows = XLSX.utils.sheet_to_json(wb.Sheets[detailsName], {defval:null});
+  const custRows = custName ? XLSX.utils.sheet_to_json(wb.Sheets[custName], {defval:null}) : [];
+
+  const boxWeekMap = {};
+  custRows.forEach(r=>{ if(r.boxid) boxWeekMap[String(r.boxid).trim().toUpperCase()] = r.hellofresh_week; });
+
+  const cleanRows = detailsRows.filter(r=>r.incident_id);
+  if(cleanRows.length===0){
+    return { fileName, error:'No data rows found in the Details sheet.', rows:[] };
+  }
+
+  const first = cleanRows[0];
+  const isSwap = first.substitute_recipe!==null && first.substitute_recipe!==undefined && Number(first.substitute_recipe)>0;
+  const affectedSlot = String(first.affected_recipe).trim();
+  const substituteSlot = isSwap ? String(first.substitute_recipe).trim() : null;
+  const market = detectMarket(first.boxid);
+
+  function findRecipe(slot, week, mkt){
+    const cfg = MARKET_CONFIG[mkt];
+    const field = cfg ? cfg.slotField : 'slotGER';
+    return recipeMap.find(m => m[field]===String(slot).trim() && m.week===week);
+  }
+
+  // Only name/SKU resolution happens here. Compensation and the resulting
+  // comment are computed on demand via computeRowOutcome() — that way an
+  // error-category pick (e.g. containing "missing") or the swap-compensation
+  // toggle can change the outcome later without having to re-parse the file.
+  const rows = [];
+
+  cleanRows.forEach(row=>{
+    const boxId = row.boxid;
+    const customerId = row.customer_id;
+    const subs = Number(row.subs_for_this_box)||0;
+    const rowMarket = detectMarket(boxId) || market;
+    const marketCfg = MARKET_CONFIG[rowMarket];
+    const wk = weekShort(boxWeekMap[String(boxId).trim().toUpperCase()]);
+
+    let affectedName = '', substituteName = '', culinarySku = '';
+    const rowWarnings = [];
+
+    if(wk){
+      const aEntry = findRecipe(affectedSlot, wk, rowMarket);
+      const nameField = marketCfg ? marketCfg.nameField : 'germanName';
+      if(aEntry && aEntry[nameField] && aEntry[nameField]!=='#N/A'){ affectedName = aEntry[nameField]; }
+      else { rowWarnings.push(`no recipe name for slot ${affectedSlot} / week ${wk}`); }
+      if(aEntry && aEntry.code && aEntry.code!=='#REF!'){ culinarySku = aEntry.code; }
+      if(isSwap){
+        const sEntry = findRecipe(substituteSlot, wk, rowMarket);
+        if(sEntry && sEntry[nameField] && sEntry[nameField]!=='#N/A'){ substituteName = sEntry[nameField]; }
+        else { rowWarnings.push(`no recipe name for slot ${substituteSlot} / week ${wk}`); }
+      }
+    } else {
+      rowWarnings.push('box not found in Customer-ID sheet (no week)');
+    }
+
+    rows.push({ customerId, boxId, recipeName:affectedName, recipeIndex:affectedSlot, culinarySku, affectedName, substituteName, subs, warnings:rowWarnings });
+  });
+
+  return {
+    fileName, incidentId:first.incident_id, type: isSwap?'SWAP':'SHORTAGE', market,
+    affectedSlot, substituteSlot, rows, categoryIndex:null, error:null
+  };
+}
+
+/* =================================================================
+   SHARED OUTCOME LOGIC — a file's detected type (SWAP/SHORTAGE) is
+   overridden to SHORTAGE whenever the chosen error category mentions
+   "missing" (colleagues use that to flag a recipe as genuinely missing
+   even on a file production tagged as a swap). Compensation, the comment
+   text, and the file's displayed tag all follow this effective type.
+================================================================= */
+function categoryForcesShortage(cat){
+  if(!cat) return false;
+  return /missing/i.test(cat.d1||'') || /missing/i.test(cat.issue||'') || /missing/i.test(cat.complaint||'');
+}
+
+function effectiveFileType(f){
+  const cat = (f.categoryIndex!==null && f.categoryIndex!==undefined) ? categories[f.categoryIndex] : null;
+  const forced = categoryForcesShortage(cat);
+  return (f.type==='SWAP' && !forced) ? 'SWAP' : 'SHORTAGE';
+}
+
+function computeRowOutcome(f, r){
+  const effType = effectiveFileType(f);
+  const marketCfg = MARKET_CONFIG[f.market];
+  let compensation = null, warning = null;
+
+  if(effType==='SWAP'){
+    if(marketCfg){ compensation = round2((swapCompensationEnabled ? marketCfg.swapAmount : 0) * r.subs); }
+    else { warning = `unknown market for box ${r.boxId}`; }
+  } else {
+    if(f.market==='TZ'){
+      const priceEntry = boxPriceMap[normalizeBoxId(r.boxId)];
+      if(priceEntry && priceEntry.totalOrderValue){
+        const meals = mealsFromSku(priceEntry.productsize);
+        if(meals){ compensation = round2((priceEntry.totalOrderValue/meals)*r.subs); }
+        else { warning = `could not parse meal count from SKU "${priceEntry.productsize}"`; }
+      } else {
+        warning = 'no box price data found for this box';
+      }
+    } else {
+      warning = `market ${f.market||'?'} not yet supported for shortages (no price data loaded)`;
+    }
+  }
+
+  const comment = effType==='SWAP'
+    ? `Swap: ${r.affectedName||'Unknown'} \u2192 ${r.substituteName||'Unknown'}`
+    : `Shortage: ${r.affectedName||'Unknown'}`;
+
+  return { compensation, comment, warning, effType };
+}
+
+function getFileWarnings(f){
+  const set = new Set();
+  f.rows.forEach(r=>{
+    r.warnings.forEach(w=>set.add(w));
+    const outcome = computeRowOutcome(f, r);
+    if(outcome.warning) set.add(outcome.warning);
+  });
+  return Array.from(set);
+}
+
+function renderIncidentCards(){
+  const container = document.getElementById('incidentFileCards');
+  container.innerHTML = incidentFiles.map((f, idx) => {
+    if(f.error){
+      return `<div class="filecard">
+        <div class="filecard-head">
+          <div class="filecard-name" style="color:var(--err);">${f.fileName}: ${f.error}</div>
+          <button class="remove-x" onclick="removeIncidentFile(${idx})">✕</button>
+        </div>
+      </div>`;
+    }
+    const effType = effectiveFileType(f);
+    const typeTagClass = effType==='SWAP' ? 'swap' : 'short';
+    const marketName = f.market ? (MARKET_CONFIG[f.market]?.name || f.market) : 'unknown market';
+    const aName = f.rows.find(r=>r.affectedName)?.affectedName || f.affectedSlot;
+    const sName = f.rows.find(r=>r.substituteName)?.substituteName || f.substituteSlot;
+    const flowText = effType==='SWAP' ? `${aName} \u2192 ${sName}` : `${aName}`;
+    const catOptions = categories.map((c,i) => `<option value="${i}" ${f.categoryIndex===i?'selected':''}>${c.issue} — ${c.d1}</option>`).join('');
+    const warnings = getFileWarnings(f);
+    const warnHtml = warnings.length ? `
+      <div class="review-box" style="margin-top:12px;margin-bottom:0;">
+        <div class="review-title">${warnings.length} issue${warnings.length===1?'':'s'} found</div>
+        <ul class="review-list">
+          ${warnings.slice(0,5).map(w=>`<li>${w}</li>`).join('')}
+          ${warnings.length>5 ? `<li>...and ${warnings.length-5} more.</li>` : ''}
+        </ul>
+      </div>` : '';
+    return `<div class="filecard">
+      <div class="filecard-head">
+        <div>
+          <div class="filecard-name">${f.fileName} <span class="tag ${typeTagClass}">${effType}</span> <span class="pill">${marketName}</span></div>
+          <div class="filecard-meta">${flowText} · ${f.rows.length} box${f.rows.length===1?'':'es'}</div>
+        </div>
+        <button class="remove-x" onclick="removeIncidentFile(${idx})">✕</button>
+      </div>
+      <select onchange="setFileCategory(${idx}, this.value)">
+        <option value="">Select error category for this file…</option>
+        ${catOptions}
+      </select>
+      ${warnHtml}
+    </div>`;
+  }).join('');
+  checkReady();
+}
+
+function setFileCategory(idx, val){
+  incidentFiles[idx].categoryIndex = val==='' ? null : Number(val);
+  renderIncidentCards();
+}
+
+
+function removeIncidentFile(idx){
+  incidentFiles.splice(idx,1);
+  renderIncidentCards();
+}
+
+document.getElementById('file-incidents').addEventListener('change', async function(){
+  const files = Array.from(this.files);
+  for(const f of files){
+    try{
+      const wb = await readWorkbook(f);
+      incidentFiles.push(processIncidentWorkbook(wb, f.name));
+    } catch(err){
+      incidentFiles.push({ fileName:f.name, error:'Could not parse this file as an incident export.', rows:[] });
+    }
+  }
+  this.value = '';
+  renderIncidentCards();
+});
+
+function checkReady(){
+  const hasFiles = incidentFiles.some(f=>!f.error);
+  document.getElementById('btn-build').disabled = !(hasFiles && recipeMap.length);
+}
+
+/* =================================================================
+   BUILD EXPORT
+================================================================= */
+let exportGroups = {};   // { market: [row, row, ...] }
+
+function buildExport(){
+  exportRows = [];
+  exportGroups = {};
+  let noCategory = 0, noCompensation = 0;
+  const fileSummaries = [];   // per-file breakdown for the Slack summary
+  const marketTotals = {};    // { market: totalCompensation }
+
+  incidentFiles.forEach(f => {
+    if(f.error) return;
+    if(f.categoryIndex===null || f.categoryIndex===undefined){ noCategory += f.rows.length; return; }
+    const cat = categories[f.categoryIndex];
+    let fileMeals = 0, fileComp = 0;
+
+    f.rows.forEach(r => {
+      const outcome = computeRowOutcome(f, r);
+      if(outcome.compensation===null){ noCompensation++; return; }
+      const row = {
+        'customer id': stripLeadingLetters(r.customerId),
+        'box id': stripTrailingLetters(r.boxId),
+        'error category': cat.cat,
+        'error sub category': cat.sub,
+        'complaint': cat.complaint,
+        'additional detail 1': cat.d1,
+        'additional detail 2': cat.d2,
+        'ingredient': '',
+        'recipe name': r.recipeName,
+        'compensation type': 'credit',
+        'compensation amount': fmt2(outcome.compensation),
+        'recipe index': r.recipeIndex,
+        'culinary sku': r.culinarySku,
+        'comment': outcome.comment
+      };
+      exportRows.push(row);
+      (exportGroups[f.market] = exportGroups[f.market] || []).push(row);
+      fileMeals += r.subs;
+      fileComp += outcome.compensation;
+      marketTotals[f.market] = (marketTotals[f.market]||0) + outcome.compensation;
+    });
+
+    if(fileMeals>0){
+      fileSummaries.push({ market:f.market, reason:`${cat.issue} (${cat.d1})`, meals:fileMeals, comp:round2(fileComp) });
+    }
+  });
+
+  renderReview(noCategory, noCompensation);
+  renderTable();
+  renderDownload();
+  renderSlack(fileSummaries, marketTotals);
+
+  document.getElementById('step5').removeAttribute('data-disabled');
+  document.getElementById('step6').removeAttribute('data-disabled');
+  document.getElementById('step7').removeAttribute('data-disabled');
+}
+document.getElementById('btn-build').addEventListener('click', buildExport);
+
+function renderReview(noCategory, noCompensation){
+  let html = `<div class="summary-grid">
+    <div class="sum-card">
+      <div class="sum-locale">Ready</div>
+      <div class="sum-count">${exportRows.length}</div>
+      <div class="sum-bu">rows ready to export</div>
+    </div>
+    <div class="sum-card">
+      <div class="sum-locale">Needs category</div>
+      <div class="sum-count">${noCategory}</div>
+      <div class="sum-bu">rows waiting on a category pick</div>
+    </div>
+    <div class="sum-card">
+      <div class="sum-locale">Skipped</div>
+      <div class="sum-count">${noCompensation}</div>
+      <div class="sum-bu">rows where compensation couldn't be calculated</div>
+    </div>
+  </div>`;
+
+  if(noCategory || noCompensation){
+    html += '<div class="review-box"><div class="review-title">Worth a look</div><ul class="review-list">';
+    if(noCategory) html += `<li><strong>${noCategory}</strong> row(s) are waiting on an error category selection for their file.</li>`;
+    if(noCompensation) html += `<li><strong>${noCompensation}</strong> row(s) were skipped — see the warnings on the file card above (usually missing box price or recipe data).</li>`;
+    html += '</ul></div>';
+  } else if(exportRows.length){
+    html += '<div class="review-box ok"><div class="review-title">Nothing flagged</div>Every row resolved cleanly.</div>';
+  }
+  document.getElementById('reviewBody').innerHTML = html;
+}
+
+function renderTable(){
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = exportRows.map(r => `
+    <tr>
+      <td class="mono">${r['customer id']}</td>
+      <td class="mono">${r['box id']}</td>
+      <td>${r['recipe name']}</td>
+      <td class="mono">${r['recipe index']}</td>
+      <td class="mono">${r['culinary sku']}</td>
+      <td class="mono">${r['compensation amount']}</td>
+      <td>${r['comment']}</td>
+    </tr>`).join('');
+  document.getElementById('tablewrap').style.display = 'block';
+}
+
+function downloadCsvFor(market){
+  const rows = exportGroups[market] || [];
+  const csv = Papa.unparse({ fields: OUTPUT_COLUMNS, data: rows.map(r => OUTPUT_COLUMNS.map(c => r[c])) });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `f_bulk_error_${todayDDMM()}_${market}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function renderDownload(){
+  const row = document.getElementById('downloadRow');
+  const markets = Object.keys(exportGroups);
+  if(markets.length===0){
+    row.innerHTML = `<div class="dl-card">
+      <div class="dl-locale">Bulk error report</div>
+      <div class="dl-meta">0 rows</div>
+      <button class="btn btn-dark" disabled>Download</button>
+    </div>`;
+    return;
+  }
+  row.innerHTML = markets.map(market => {
+    const rows = exportGroups[market];
+    const marketName = MARKET_CONFIG[market]?.name || market;
+    const filename = `f_bulk_error_${todayDDMM()}_${market}.csv`;
+    return `<div class="dl-card">
+      <div class="dl-locale">Bulk error report — ${marketName} (${market})</div>
+      <div class="dl-meta">${rows.length} row${rows.length===1?'':'s'}</div>
+      <button class="btn btn-dark" onclick="downloadCsvFor('${market}')">Download<br><span class="mono" style="font-weight:500;">${filename}</span></button>
+    </div>`;
+  }).join('');
+}
+
+/* =================================================================
+   SLACK SUMMARY
+================================================================= */
+function renderSlack(fileSummaries, marketTotals){
+  const lines = ['📦 *Verden Bulk Error Report*', ''];
+  const markets = Object.keys(marketTotals);
+
+  if(markets.length===0){
+    lines.push('Nothing to report yet — build the export first.');
+  } else {
+    markets.forEach(market => {
+      const marketName = MARKET_CONFIG[market]?.name || market;
+      lines.push(`*${marketName} (${market})*`);
+      fileSummaries.filter(s=>s.market===market).forEach(s => {
+        lines.push(`• ${s.meals} meal${s.meals===1?'':'s'} impacted — ${s.reason} — ${formatMoney(s.comp, market)}`);
+      });
+      lines.push(`Total compensation (${market}): ${formatMoney(marketTotals[market], market)}`);
+      lines.push('');
+    });
+
+    if(markets.length>1){
+      const eurTotal = markets.filter(m=>MARKET_CONFIG[m]?.currency==='EUR').reduce((s,m)=>s+marketTotals[m],0);
+      lines.push(`Total compensation across all files: €${eurTotal.toFixed(2)}${markets.some(m=>MARKET_CONFIG[m]?.currency!=='EUR') ? ' + local-currency totals above' : ''}`);
+    } else {
+      lines.push(`Total compensation across all files: ${formatMoney(marketTotals[markets[0]], markets[0])}`);
+    }
+  }
+
+  const msg = lines.join('\n').trim();
+  document.getElementById('slackBody').innerHTML = `
+    <div class="slack-box"><pre class="slack-text" id="slackText"></pre></div>
+    <div class="btn-row"><button class="btn btn-primary btn-sm" id="copySlackBtn">Copy for Slack</button></div>`;
+  document.getElementById('slackText').textContent = msg;
+  document.getElementById('copySlackBtn').addEventListener('click', ()=>{
+    navigator.clipboard.writeText(msg).then(()=>{
+      const btn = document.getElementById('copySlackBtn');
+      const orig = btn.textContent; btn.textContent = 'Copied ✓';
+      setTimeout(()=>{ btn.textContent = orig; }, 1800);
+    });
+  });
+}
+
+/* =================================================================
+   INCIDENT DROPZONE (drag & drop support)
+================================================================= */
+(function setupDrop(){
+  const drop = document.getElementById('dz-incidents');
+  const input = document.getElementById('file-incidents');
+  drop.addEventListener('dragover', e=>{ e.preventDefault(); drop.classList.add('drag'); });
+  drop.addEventListener('dragleave', ()=> drop.classList.remove('drag'));
+  drop.addEventListener('drop', e=>{
+    e.preventDefault(); drop.classList.remove('drag');
+    input.files = e.dataTransfer.files;
+    input.dispatchEvent(new Event('change'));
+  });
+})();
+</script>
+</body>
+</html>
