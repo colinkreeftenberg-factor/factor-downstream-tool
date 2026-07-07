@@ -1,0 +1,1494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Swap & Shortage Manager - Verden</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --carbon:#141414; --natural:#F1F1EA; --natural-2:#E7E6DC; --white:#FFFFFF;
+    --saffron:#FFC800; --line:#D9D7C9;
+    --basil:#206B19; --pistachio:#75C26D; --cherry:#9B2629; --watermelon:#FF585D;
+    --ocean:#18849F; --sky:#61DFFF; --dijon:#C79C00;
+    --ok:#206B19; --warn:#C79C00; --err:#9B2629;
+    --radius:22px; --radius-sm:12px;
+    --ink:var(--carbon); --ink-dim:#5b5b54; --ink-faint:#8a897d;
+    --tint-basil:rgba(32,107,25,.10); --tint-cherry:rgba(255,88,93,.14);
+    --tint-ocean:rgba(24,132,159,.10); --tint-dijon:rgba(199,156,0,.16);
+    --tint-saffron:rgba(255,200,0,.22); --tint-watermelon:rgba(255,88,93,.16);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--natural);color:var(--ink);font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  ::selection{background:var(--tint-saffron);}
+  a{color:var(--ocean);}
+  :focus-visible{outline:2px solid var(--ocean);outline-offset:2px;}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 24px 100px;}
+
+  /* header */
+  .app-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:6px;}
+  .app-header-inner{flex:1;display:flex;align-items:flex-start;gap:14px;}
+  .reload-btn{
+    flex:none;margin-top:4px;
+    appearance:none;border:1.5px solid var(--line);border-radius:999px;
+    background:#fff;color:var(--carbon);cursor:pointer;
+    font-family:inherit;font-weight:600;font-size:12.5px;
+    padding:7px 14px;display:flex;align-items:center;gap:6px;white-space:nowrap;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .reload-btn:hover{border-color:var(--carbon);box-shadow:0 0 0 3px rgba(20,20,20,0.08);}
+  .reload-btn svg{width:13px;height:13px;display:block;}
+  .logo-mark{width:38px;height:38px;border-radius:9px;overflow:hidden;flex:none;box-shadow:0 1px 0 rgba(20,20,20,0.06);margin-top:3px;}
+  .logo-mark img{width:100%;height:100%;display:block;object-fit:cover;}
+  .app-title{font-weight:600;font-size:26px;letter-spacing:0.01em;text-transform:uppercase;border-bottom:4px solid var(--saffron);padding-bottom:3px;display:inline-block;line-height:1.1;}
+  .app-subtitle{font-weight:400;font-size:14px;color:#5b5b54;margin-top:7px;}
+  .app-maker{font-size:11.5px;color:#8a897d;margin-top:6px;}
+  .app-sub{font-weight:500;font-size:13.5px;color:#5b5b54;margin:14px 0 0 52px;max-width:680px;line-height:1.5;}
+  .divider{height:1px;background:var(--line);margin:26px 0 30px;}
+
+  .info-box{border:1px solid var(--line);background:var(--white);color:var(--ink-dim);border-radius:16px;padding:12px 16px;font-size:12px;margin-bottom:20px;line-height:1.5;}
+  .info-box b{color:var(--ink);}
+
+  /* stages */
+  .stage{background:#FBFBF7;border:1px solid var(--line);border-radius:var(--radius);padding:26px 26px 28px;margin-bottom:18px;position:relative;}
+  .stage[data-disabled="true"]{opacity:.45;pointer-events:none;}
+  .stage-head{display:flex;align-items:baseline;gap:12px;margin-bottom:4px;}
+  .stage-num{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:500;background:var(--natural-2);border:1px solid var(--line);padding:2px 9px;border-radius:999px;}
+  .stage-title{font-size:16.5px;font-weight:700;letter-spacing:-0.01em;}
+  .stage-desc{font-size:13.5px;color:var(--ink-dim);margin:8px 0 18px;line-height:1.5;max-width:700px;}
+
+  .drop-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media (max-width:760px){.drop-grid{grid-template-columns:1fr;}}
+  .dropzone{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;border:1.5px solid #B9B6A4;border-radius:var(--radius-sm);background:var(--white);padding:16px 18px;min-height:78px;cursor:pointer;transition:.15s;}
+  .dropzone:hover{border-color:var(--saffron);background:#FFFDF3;}
+  .dropzone.filled{border-style:solid;border-color:var(--basil);background:var(--tint-basil);}
+  input[type=file]{display:none;}
+  .dz-label{font-weight:700;font-size:13.5px;}
+  .dz-file{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink);word-break:break-all;}
+  .dz-hint{font-size:11px;color:var(--ink-faint);margin-top:2px;}
+
+  /* compact live-feed strip */
+  .live-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px;}
+  @media (max-width:760px){.live-grid{grid-template-columns:1fr;}}
+  .livecard{border:1.5px solid var(--line);border-radius:12px;padding:8px 12px;background:var(--white);}
+  .livecard-top{display:flex;justify-content:space-between;align-items:center;gap:6px;}
+  .livecard .dz-label{font-size:11.5px;font-weight:700;}
+  .livecard .dz-file{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .livecard .dz-hint{font-size:9.5px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--dijon);flex:none;}
+  .live-dot.ok{background:var(--basil);}
+  .live-dot.error{background:var(--cherry);}
+  .manual-fallback-link{color:var(--ocean);text-decoration:underline;cursor:pointer;font-weight:500;}
+
+  label.field-label{display:block;font-size:12px;color:var(--ink-dim);margin-bottom:7px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;}
+  input[type=number], input[type=text]{width:100%;background:var(--natural);border:1px solid var(--line);color:var(--ink);padding:10px 12px;border-radius:10px;font-size:13.5px;font-family:inherit;}
+  input:focus{border-color:var(--ocean);outline:none;}
+  .row{display:grid;gap:14px;}
+  .row.short{grid-template-columns:2.4fr 1fr;}
+  .row.two{grid-template-columns:1fr 1fr;}
+  @media (max-width:680px){.row.short, .row.two{grid-template-columns:1fr;}}
+
+  .combo{position:relative;}
+  .combo-input{cursor:text;}
+  .combo-panel{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:30;background:var(--white);border:1px solid var(--line);border-radius:12px;max-height:280px;overflow-y:auto;box-shadow:0 12px 28px rgba(20,20,20,.14);padding:6px;}
+  .combo-option{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;}
+  .combo-option:hover, .combo-option.active{background:var(--natural);}
+  .co-meta{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+  .co-idx{font-size:10px;font-family:'IBM Plex Mono',monospace;color:#8A6900;background:var(--tint-saffron);border-radius:5px;padding:1px 5px;font-weight:600;}
+  .co-cat{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--ink-dim);white-space:nowrap;padding:2px 7px;border-radius:20px;background:var(--natural);position:relative;padding-left:16px;}
+  .co-cat::before{content:'';position:absolute;left:7px;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:var(--cat-color,#999);}
+  .combo-empty{padding:14px 10px;font-size:12.5px;color:var(--ink-faint);text-align:center;}
+
+  .leftover-block{border:1px solid var(--line);border-radius:16px;background:var(--white);margin-bottom:10px;padding:14px;}
+  .leftover-row{display:grid;grid-template-columns:2fr .9fr auto auto;gap:10px;align-items:end;}
+  @media (max-width:680px){.leftover-row{grid-template-columns:1fr;}}
+  .like-toggle{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-dim);font-weight:500;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--white);white-space:nowrap;cursor:pointer;user-select:none;}
+  .like-toggle input{accent-color:var(--basil);}
+  .like-toggle.on{color:var(--basil);border-color:var(--basil);background:var(--tint-basil);}
+  .remove-btn{background:none;border:1px solid var(--line);color:var(--ink-faint);border-radius:10px;padding:10px 13px;cursor:pointer;font-size:12px;}
+  .remove-btn:hover{color:var(--cherry);border-color:var(--cherry);}
+  .lf-status{margin-top:10px;font-size:12px;padding:8px 10px;border-radius:8px;}
+  .lf-status.safe{background:var(--tint-basil);color:var(--basil);}
+  .lf-status.warn{background:var(--tint-cherry);color:#6E1A1D;}
+  .lf-status.unknown{background:var(--tint-dijon);color:#5C4700;}
+  .lf-status.empty{display:none;}
+
+  .ghost-btn{background:none;border:1px dashed var(--line);color:var(--ink-dim);border-radius:10px;padding:10px 15px;font-size:12.5px;cursor:pointer;margin-top:2px;font-weight:500;}
+  .ghost-btn:hover{border-color:var(--ocean);color:var(--ocean);}
+  .ghost-btn.small{padding:5px 10px;font-size:11px;margin-top:0;}
+  .primary-btn{background:var(--saffron);color:var(--carbon);border:none;border-radius:12px;padding:13px 22px;font-size:13.5px;font-weight:700;cursor:pointer;}
+  .primary-btn:hover{filter:brightness(1.04);}
+  .primary-btn:disabled{background:var(--line);color:var(--ink-faint);cursor:not-allowed;}
+  .secondary-btn{background:var(--white);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:13px 22px;font-size:13.5px;font-weight:600;cursor:pointer;}
+  .secondary-btn:hover{border-color:var(--carbon);}
+
+  .coverage-bar{height:11px;border-radius:6px;background:var(--natural);overflow:hidden;display:flex;margin:16px 0 10px;border:1px solid var(--line);}
+  .coverage-seg{height:100%;}
+  .coverage-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-dim);margin-bottom:4px;}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;position:relative;top:1px;}
+
+  .num-strip{display:flex;gap:14px;flex-wrap:wrap;margin:16px 0 4px;}
+  .num-card{background:var(--natural);border:1px solid var(--line);border-radius:14px;padding:14px 18px;min-width:128px;}
+  .num-card .n{font-size:23px;font-weight:800;}
+  .num-card .l{font-size:10.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;font-weight:500;}
+  .num-card.basil .n{color:var(--basil);}
+  .num-card.dijon .n{color:var(--dijon);}
+  .num-card.cherry .n{color:var(--cherry);}
+  .num-card.ocean .n{color:var(--ocean);}
+
+  .warn-box{border:1px solid var(--dijon);background:var(--tint-dijon);color:#5C4700;border-radius:14px;padding:13px 16px;font-size:12.5px;margin:14px 0;}
+  .warn-box ul{margin:8px 0 0 18px;padding:0;font-size:11.5px;}
+  .warn-box li{margin-bottom:2px;}
+  .danger-box{border:1px solid var(--cherry);background:var(--tint-cherry);color:#6E1A1D;border-radius:16px;padding:16px 18px;font-size:12.5px;margin:16px 0;}
+  .confirm-line{display:flex;gap:10px;align-items:flex-start;margin-top:10px;font-size:12.5px;}
+  .confirm-line input{margin-top:2px;accent-color:var(--cherry);}
+  .success-banner{background:var(--tint-basil);border:1px solid var(--basil);color:var(--basil);border-radius:14px;padding:12px 16px;font-size:13px;font-weight:700;margin-bottom:16px;border-left:4px solid var(--saffron);}
+
+  .seq-wrap{margin:20px 0 6px;}
+  .seq-strip{display:flex;flex-wrap:wrap;gap:2px;padding:14px;border-radius:16px;background:var(--natural);border:1px solid var(--line);}
+  .seq-block{width:7px;height:16px;border-radius:2px;background:var(--line);}
+  .seq-block.like{background:var(--basil);}
+  .seq-block.cross{background:var(--ocean);}
+  .seq-block.short{background:var(--cherry);}
+  .seq-caption{font-size:11.5px;color:var(--ink-faint);margin-top:9px;font-family:'IBM Plex Mono',monospace;}
+
+  .run-log-entry{border-left:2px solid var(--line);padding:9px 0 9px 14px;margin-bottom:4px;font-size:12.5px;color:var(--ink-dim);}
+  .run-log-entry b{color:var(--ink);}
+  .run-result-block{border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;background:var(--natural);}
+  .run-result-title{font-weight:700;font-size:13px;margin-bottom:8px;}
+  .export-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px;}
+  .field-note{font-size:11.5px;color:var(--ink-faint);margin-top:6px;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+
+  /* multi-shortage cards */
+  .strategy-box{background:var(--natural);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:18px;}
+  .strategy-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media (max-width:680px){.strategy-options{grid-template-columns:1fr;}}
+  .strategy-option{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--white);cursor:pointer;font-size:12.5px;color:var(--ink-dim);}
+  .strategy-option input{margin-top:3px;accent-color:var(--saffron);flex-shrink:0;}
+  .strategy-option:has(input:checked){border-color:var(--saffron);background:var(--tint-saffron);}
+  .shortage-card{border:1.5px solid var(--line);border-radius:18px;padding:20px;background:var(--natural);margin-bottom:16px;}
+  .shortage-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .shortage-badge{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--carbon);background:var(--tint-saffron);padding:4px 10px;border-radius:20px;}
+  .sub-section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);margin:18px 0 8px;}
+  .table-scroll{max-height:360px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;background:var(--white);}
+  .table-scroll table{margin-top:0;width:100%;border-collapse:collapse;font-size:12.5px;}
+  .table-scroll th{position:sticky;top:0;background:var(--white);text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);padding:8px 10px;border-bottom:2px solid var(--saffron);font-weight:600;}
+  .table-scroll td{padding:8px 10px;border-bottom:1px solid var(--line);color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:12px;}
+  tr.row-allergen-mismatch td{background:var(--tint-cherry);}
+  tr.row-allergen-mismatch:hover td{background:var(--tint-watermelon);}
+  .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10.5px;font-weight:700;}
+  .badge.like{background:var(--tint-basil);color:var(--basil);}
+  .badge.cross{background:var(--tint-ocean);color:var(--ocean);}
+  .badge.short{background:var(--tint-cherry);color:var(--cherry);}
+  .badge.warnflag{background:var(--tint-watermelon);color:#8A1F22;}
+  .match-add-btn{white-space:nowrap;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="app-header">
+    <div class="app-header-inner">
+      <div class="logo-mark"><img src="data:image/png;base64,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" alt="Factor" /></div>
+      <div>
+        <div class="app-title">Swap &amp; Shortage Manager - Verden</div>
+        <div class="app-subtitle">TZ · TV · TK Fulfilment Manager</div>
+        <div class="app-maker">Made &amp; maintained by <strong>Colin Kreeftenberg</strong> — questions, edits or new markets go to him.</div>
+      </div>
+    </div>
+    <button class="reload-btn" onclick="location.reload()">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5a5.48 5.48 0 0 1 3.89 1.61L13.5 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M13.5 2.5v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Reload
+    </button>
+  </div>
+  <div class="app-sub">Upload the weekly Rackfile and Box file for the run, then work through shortage/swap resolution below. Meal Database, customer IDs (DE ODL) and box prices are pulled live from the backend sheet.</div>
+
+  <div class="divider"></div>
+
+  <div class="info-box">
+    No zone or meal-choice data yet, so impact spreads evenly across the run instead. Protein/allergens come from the Meal Database when a recipe's Rackfile code matches — otherwise it's a flagged guess. Compensation is automatic: <b>€5 / 120 kr</b> swaps by market, <b>price-based</b> shortages (manual fallback until SE/DK box prices land).
+  </div>
+
+  <!-- STAGE 1 -->
+  <div class="stage" id="stage1">
+    <div class="stage-head"><span class="stage-num">01</span><span class="stage-title">Load data</span></div>
+    <p class="stage-desc">The Rackfile and Box file are tied to this specific DC/week's run, so those stay manual uploads. Meal Database, DE ODL and box prices are pulled live from the shared backend sheet.</p>
+    <div class="drop-grid">
+      <div class="dropzone" id="dz-rackfile" tabindex="0">
+        <div class="dz-label">RACKFILE (CSV)</div>
+        <div class="dz-file" id="dz-rackfile-file">Click or drop file here</div>
+        <div class="dz-hint">Maps this run's recipe slots to SKU + name</div>
+        <input type="file" id="file-rackfile" accept=".csv">
+      </div>
+      <div class="dropzone" id="dz-p2l" tabindex="0">
+        <div class="dz-label">BOX FILE (CSV)</div>
+        <div class="dz-file" id="dz-p2l-file">Click or drop file here</div>
+        <div class="dz-hint">Box ID, Box Type, Recipes ("303_1p + 303_1p + …")</div>
+        <input type="file" id="file-p2l" accept=".csv">
+      </div>
+    </div>
+    <div class="live-grid">
+      <div class="livecard" id="live-mealdb">
+        <div class="livecard-top">
+          <div class="dz-label">Meal Database <span class="live-dot" id="mealdb-dot"></span></div>
+          <button class="ghost-btn small" id="refresh-mealdb" type="button">Refresh</button>
+        </div>
+        <div class="dz-file" id="mealdb-status" title="Fetching live data…">Fetching live data…</div>
+        <div class="dz-hint" title="Published &quot;Meal Database&quot; tab">"Meal Database" tab · <label class="manual-fallback-link" for="file-mealdb">upload CSV</label></div>
+        <input type="file" id="file-mealdb" accept=".csv" style="display:none;">
+      </div>
+      <div class="livecard" id="live-odl">
+        <div class="livecard-top">
+          <div class="dz-label">DE ODL <span class="live-dot" id="odl-dot"></span></div>
+          <button class="ghost-btn small" id="refresh-odl" type="button">Refresh</button>
+        </div>
+        <div class="dz-file" id="odl-status" title="Fetching live data…">Fetching live data…</div>
+        <div class="dz-hint" title="Published &quot;DE ODL&quot; tab, covers TZ/TV/TK">"DE ODL" tab · <label class="manual-fallback-link" for="file-odl">upload CSV</label></div>
+        <input type="file" id="file-odl" accept=".csv" style="display:none;">
+      </div>
+      <div class="livecard" id="live-boxprice">
+        <div class="livecard-top">
+          <div class="dz-label">Box price <span class="live-dot" id="boxprice-dot"></span></div>
+          <button class="ghost-btn small" id="refresh-boxprice" type="button">Refresh</button>
+        </div>
+        <div class="dz-file" id="boxprice-status" title="Fetching live data…">Fetching live data…</div>
+        <div class="dz-hint" title="Published &quot;BoxPriceTZ&quot; tab, used for shortage price-per-meal">"BoxPriceTZ" tab · <label class="manual-fallback-link" for="file-boxprice">upload CSV</label></div>
+        <input type="file" id="file-boxprice" accept=".csv" style="display:none;">
+      </div>
+    </div>
+    <div id="stage1-summary"></div>
+  </div>
+
+  <!-- STAGE 2 -->
+  <div class="stage" data-disabled="true" id="stage2">
+    <div class="stage-head"><span class="stage-num">02</span><span class="stage-title">Shortages</span></div>
+    <p class="stage-desc">Add every recipe you're short on. Each gets its own match matrix and Substitute Step.</p>
+
+    <div class="strategy-box" id="strategy-box" style="display:none;">
+      <label class="field-label" style="margin-bottom:10px;">Multiple shortages — how should impact spread across customers?</label>
+      <div class="strategy-options">
+        <label class="strategy-option">
+          <input type="radio" name="impact-strategy" value="avoid-overlap" checked>
+          <div><b>Spread</b> — avoid a customer missing 2 different meals</div>
+        </label>
+        <label class="strategy-option">
+          <input type="radio" name="impact-strategy" value="concentrate">
+          <div><b>Concentrate</b> — reuse already-impacted customers (max 2 per customer)</div>
+        </label>
+      </div>
+    </div>
+
+    <div id="shortage-cards"></div>
+    <button class="ghost-btn" id="add-shortage">+ Add shortage</button>
+  </div>
+
+  <!-- STAGE 3 -->
+  <div class="stage" data-disabled="true" id="stage3">
+    <div class="stage-head"><span class="stage-num">03</span><span class="stage-title">Run against the box file</span></div>
+    <p class="stage-desc">Applies all shortages in order: like-for-like → cross-swap → shortage.</p>
+    <button class="primary-btn" id="run-btn">Run all</button>
+    <div id="run-results"></div>
+  </div>
+
+  <!-- STAGE 4 -->
+  <div class="stage" data-disabled="true" id="stage4">
+    <div class="stage-head"><span class="stage-num">04</span><span class="stage-title">Export</span></div>
+    <p class="stage-desc">Download the modified box file and the Bartender-format import file (cumulative across this session).</p>
+
+    <div class="row two">
+      <div>
+        <label class="field-label">Swap credit (auto, by market)</label>
+        <input type="text" id="comp-swap-display" value="€5.00 (TZ) · 120.00 kr (TV/TK)" disabled>
+        <div class="field-note">Applied automatically per box's market — not editable here.</div>
+      </div>
+      <div>
+        <label class="field-label">Shortage credit fallback (€/kr)</label>
+        <input type="number" min="0" step="0.01" id="comp-short-fallback" value="5">
+        <div class="field-note">Only used when a box has no live price data — normal shortages use box price ÷ meals × units short.</div>
+      </div>
+    </div>
+
+    <div class="danger-box" style="margin-top:20px;">
+      <b>Hard rule — allergens:</b> allergen detection here is a best-effort scan of the ingredient declaration text, not a certified check. Confirm manually before exporting.
+      <div class="confirm-line">
+        <input type="checkbox" id="confirm-allergen">
+        <label for="confirm-allergen">I've reviewed the allergen warnings above and confirmed none of the applied swaps introduce a new allergen for the affected customer.</label>
+      </div>
+    </div>
+    <div class="export-row">
+      <button class="primary-btn" id="download-p2l" disabled>Download modified box file (.csv)</button>
+      <button class="secondary-btn" id="download-bartender" disabled>Download Bartender import file (.csv)</button>
+      <button class="secondary-btn" id="reset-runs">Reset to original file</button>
+    </div>
+    <div id="session-log" style="margin-top:20px;"></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ================= market config =================
+  const MARKET_CONFIG = {
+    TZ: { name:'Germany', currency:'EUR', symbol:'€', swapAmount:5 },
+    TV: { name:'Sweden',  currency:'SEK', symbol:'kr', swapAmount:120 },
+    TK: { name:'Denmark', currency:'DKK', symbol:'kr', swapAmount:120 }
+  };
+  function detectMarket(boxId){
+    if (!boxId) return null;
+    const p = String(boxId).trim().slice(0,2).toUpperCase();
+    return MARKET_CONFIG[p] ? p : null;
+  }
+
+  // ================= state =================
+  const state = {
+    recipeIndex: [], recipeBySlot: new Map(),
+    mealDbRows: [], mealDbByDigits: new Map(),
+    odlRows: [], odlByExact: new Map(), odlByStripped: new Map(),
+    boxPriceMap: {},
+    p2lHeader: [], boxes: [],
+    shortages: [], impactStrategy: 'avoid-overlap', boxTouchCount: new Map(),
+    lastRunBatch: [], auditLog: [], sessionRuns: []
+  };
+  let leftoverSeq = 0, shortageSeq = 0;
+
+  // ================= CSV helpers =================
+  function parseCSVRaw(text){
+    const rows = [];
+    let row = [], field = '', inQuotes = false;
+    for (let i=0;i<text.length;i++){
+      const c = text[i];
+      if (inQuotes){
+        if (c === '"'){ if (text[i+1] === '"'){ field += '"'; i++; } else inQuotes = false; }
+        else field += c;
+      } else {
+        if (c === '"') inQuotes = true;
+        else if (c === ','){ row.push(field); field=''; }
+        else if (c === '\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+        else if (c === '\r'){ /* skip */ }
+        else field += c;
+      }
+    }
+    if (field.length || row.length){ row.push(field); rows.push(row); }
+    return rows;
+  }
+  function findHeaderRowIndex(rows, mustContainLower){
+    for (let i=0;i<Math.min(rows.length,10);i++){
+      if (rows[i].some(c => (c||'').trim().toLowerCase() === mustContainLower)) return i;
+    }
+    return 0;
+  }
+  function rowsToObjects(rows, headerIdx){
+    const header = rows[headerIdx].map(h=>(h||'').trim());
+    return rows.slice(headerIdx+1)
+      .filter(r => r.some(c=>c && c.trim()!==''))
+      .map(r=>{ const obj={}; header.forEach((h,i)=> obj[h] = (r[i]!==undefined ? r[i] : '').trim()); return obj; });
+  }
+  function getField(obj){
+    const keys = Object.keys(obj);
+    for (let i=1;i<arguments.length;i++){
+      const cand = arguments[i];
+      const hit = keys.find(k=>k.toLowerCase()===cand.toLowerCase());
+      if (hit !== undefined) return obj[hit];
+    }
+    return '';
+  }
+  function toCSV(headers, rows){
+    const esc = v => { v = (v===undefined||v===null) ? '' : String(v); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+    const lines = [headers.join(',')];
+    rows.forEach(r => lines.push(headers.map(h=>esc(r[h])).join(',')));
+    return lines.join('\r\n');
+  }
+  function downloadCSV(filename, headers, rows){
+    const csv = toCSV(headers, rows);
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function titleCase(s){
+    return String(s||'').toLowerCase().replace(/\b\w/g, c=>c.toUpperCase());
+  }
+  function digitsOf(code){
+    if (!code) return null;
+    const m = String(code).match(/(\d+)/);
+    return m ? parseInt(m[1],10) : null;
+  }
+  function stripTrailingLetter(s){ return String(s||'').replace(/[A-Za-z]+$/,''); }
+  function stripLeadingLetters(s){ return String(s||'').replace(/^[A-Za-z]+/,''); }
+  function normalizeBoxId(id){
+    if (!id) return '';
+    const m = String(id).trim().toUpperCase().match(/^([A-Z]{2}\d+)/);
+    return m ? m[1] : String(id).trim().toUpperCase();
+  }
+  function round2(n){ if (n===null||n===undefined||isNaN(n)) return null; return Math.round((n+Number.EPSILON)*100)/100; }
+  function mealsFromSku(sku){ if (!sku) return null; const p = String(sku).split('-'); const n = parseInt(p[2],10); return isNaN(n) ? null : n; }
+
+  // ================= protein fallback heuristic (DE/SE/DK name keywords) =================
+  function guessCategoryFallback(name, sku){
+    const n = (name||'').toLowerCase();
+    if ((sku||'').startsWith('BEV-') || /shot|wellness|ginger|turmeric|spirulina|free4life/.test(n)) return 'Beverage';
+    if (/h[aä]hnchen|kyckling|kylling|chicken|poulet/.test(n)) return 'Poultry';
+    if (/\brind|beef|n[öo]t\b|oxe/.test(n)) return 'Beef';
+    if (/schwein|fl[äa]sk|svin|pork/.test(n)) return 'Pork';
+    if (/lachs|\blax\b|\blaks\b|salmon/.test(n)) return 'Fish';
+    if (/garnelen|r[äa]kor|rejer|shrimp|prawn/.test(n)) return 'Seafood';
+    if (/vegetarisch|vegetarian|kichererbsen|chickpea/.test(n)) return 'Vegetarian';
+    return 'Unknown';
+  }
+  const CAT_COLORS = {
+    'Poultry':'#C79C00','Beef':'#9B2629','Pork':'#E0708F','Fish':'#18849F','Seafood':'#61DFFF',
+    'Vegetarian':'#206B19','Beverage':'#75C26D','Unknown':'#B5B5AC'
+  };
+
+  // ================= allergen extraction =================
+  const ALLERGENS = [
+    {key:'Milk', re:/\bmilk\b/i}, {key:'Egg', re:/\begg/i}, {key:'Fish', re:/\bfish\b/i},
+    {key:'Crustaceans', re:/crustacean/i}, {key:'Molluscs', re:/mollusc/i}, {key:'Peanuts', re:/peanut/i},
+    {key:'Soya', re:/\bsoy(a|bean)/i}, {key:'Sesame', re:/sesame/i}, {key:'Celery', re:/celery/i},
+    {key:'Mustard', re:/mustard/i}, {key:'Sulphites', re:/sulphite|sulfite|sulphur dioxide/i}, {key:'Lupin', re:/\blupin/i},
+    {key:'Almonds', re:/almond/i}, {key:'Hazelnuts', re:/hazelnut/i}, {key:'Walnuts', re:/walnut/i},
+    {key:'Cashews', re:/cashew/i}, {key:'Pistachios', re:/pistachio/i}, {key:'Macadamia', re:/macadamia/i},
+    {key:'Brazil nuts', re:/brazil nut/i}, {key:'Wheat', re:/\bwheat\b/i}, {key:'Barley', re:/\bbarley\b/i},
+    {key:'Oats', re:/\boats?\b/i}, {key:'Spelt', re:/\bspelt\b/i}, {key:'Rye', re:/\brye\b/i}
+  ];
+  function extractAllergens(text){
+    const set = new Set();
+    ALLERGENS.forEach(a=>{ if (a.re.test(text||'')) set.add(a.key); });
+    return set;
+  }
+  function parseAllergenProfile(declaration, mayContainCol){
+    const decl = declaration || '';
+    const idx = decl.toLowerCase().indexOf('may contain');
+    let actualText = decl, traceText = '';
+    if (idx >= 0){ actualText = decl.slice(0, idx); traceText = decl.slice(idx); }
+    const actual = extractAllergens(actualText);
+    const trace = extractAllergens(traceText);
+    if (mayContainCol && !/^n\.?\/?a\.?$/i.test(mayContainCol.trim())){
+      extractAllergens(mayContainCol).forEach(a=>trace.add(a));
+    }
+    return { actual, trace };
+  }
+  function setDiff(a, b){ return [...a].filter(x=>!b.has(x)); }
+  function allergenListStr(set){ return set.size ? [...set].join(', ') : 'none detected'; }
+
+  // ================= searchable combobox (slot-based) =================
+  function createCombobox({container, getOptions, placeholder, onSelect}){
+    container.innerHTML = `<div class="combo"><input type="text" class="combo-input" placeholder="${escapeHtml(placeholder||'Search recipes…')}" autocomplete="off"><div class="combo-panel" style="display:none;"></div></div>`;
+    const wrap = container.querySelector('.combo');
+    const input = wrap.querySelector('.combo-input');
+    const panel = wrap.querySelector('.combo-panel');
+    let currentSlot = '', activeIndex = -1, currentList = [];
+
+    function renderOptions(filter){
+      const opts = getOptions();
+      const f = (filter||'').toLowerCase().trim();
+      const filtered = f ? opts.filter(o => o.label.toLowerCase().includes(f) || o.category.toLowerCase().includes(f) || String(o.slotNum).includes(f)) : opts;
+      currentList = filtered;
+      if (!opts.length){ panel.innerHTML = `<div class="combo-empty">Load the Rackfile first</div>`; return; }
+      if (!filtered.length){ panel.innerHTML = `<div class="combo-empty">No matching recipes</div>`; return; }
+      panel.innerHTML = filtered.map((o,i)=>`
+        <div class="combo-option" data-idx="${i}">
+          <span class="co-label">${escapeHtml(o.label)}</span>
+          <span class="co-meta">
+            <span class="co-idx">#${escapeHtml(o.slotNum)}</span>
+            <span class="co-cat" style="--cat-color:${CAT_COLORS[o.category]||'#999'}">${escapeHtml(o.category)}</span>
+          </span>
+        </div>`).join('');
+    }
+    function openPanel(){ renderOptions(''); panel.style.display='block'; activeIndex=-1; }
+    function closePanel(){ panel.style.display='none'; activeIndex=-1; }
+    function updateActive(){
+      panel.querySelectorAll('.combo-option').forEach((it,i)=> it.classList.toggle('active', i===activeIndex));
+      const el = panel.querySelectorAll('.combo-option')[activeIndex];
+      if (el) el.scrollIntoView({block:'nearest'});
+    }
+    function select(rec){
+      currentSlot = rec ? rec.slot : '';
+      input.value = rec ? rec.label : '';
+      closePanel();
+      onSelect(rec);
+    }
+    input.addEventListener('focus', ()=>{ input.select(); openPanel(); });
+    input.addEventListener('input', ()=>{ renderOptions(input.value); panel.style.display='block'; activeIndex=-1; if (!input.value) currentSlot=''; });
+    input.addEventListener('keydown', e=>{
+      if (panel.style.display==='none') return;
+      if (e.key==='ArrowDown'){ e.preventDefault(); activeIndex=Math.min(activeIndex+1, currentList.length-1); updateActive(); }
+      else if (e.key==='ArrowUp'){ e.preventDefault(); activeIndex=Math.max(activeIndex-1,0); updateActive(); }
+      else if (e.key==='Enter'){ e.preventDefault(); if (activeIndex>=0 && currentList[activeIndex]) select(currentList[activeIndex]); }
+      else if (e.key==='Escape'){ closePanel(); input.blur(); }
+    });
+    panel.addEventListener('mousedown', e=>{
+      const opt = e.target.closest('.combo-option');
+      if (!opt) return;
+      e.preventDefault();
+      const rec = currentList[+opt.dataset.idx];
+      if (rec) select(rec);
+    });
+    input.addEventListener('blur', ()=>{
+      setTimeout(()=>{
+        closePanel();
+        const rec = getOptions().find(o=>o.slot===currentSlot);
+        input.value = rec ? rec.label : '';
+        if (!rec) currentSlot = '';
+      }, 120);
+    });
+    return {
+      getSlot: ()=>currentSlot,
+      setSelection: slot=>{ const rec = getOptions().find(o=>o.slot===slot); currentSlot = slot||''; input.value = rec? rec.label : ''; }
+    };
+  }
+
+  // ================= file loading =================
+  function setupDropzone(dzId, fileId, labelId, onLoaded){
+    const dz = document.getElementById(dzId);
+    const input = document.getElementById(fileId);
+    dz.addEventListener('click', ()=> input.click());
+    dz.addEventListener('keydown', e=>{ if(e.key==='Enter') input.click(); });
+    dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.style.borderColor='var(--ocean)'; });
+    dz.addEventListener('dragleave', ()=>{ if(!dz.classList.contains('filled')) dz.style.borderColor=''; });
+    dz.addEventListener('drop', e=>{ e.preventDefault(); if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+    input.addEventListener('change', e=>{ if (e.target.files.length) handleFile(e.target.files[0]); });
+    function handleFile(file){
+      const reader = new FileReader();
+      reader.onload = ev => { document.getElementById(labelId).textContent = file.name; dz.classList.add('filled'); onLoaded(ev.target.result); };
+      reader.readAsText(file);
+    }
+  }
+
+  // ================= Rackfile → recipe index =================
+  setupDropzone('dz-rackfile','file-rackfile','dz-rackfile-file', text=>{
+    const rows = parseCSVRaw(text);
+    const hIdx = findHeaderRowIndex(rows, 'displayname');
+    const objs = rowsToObjects(rows, hIdx);
+    const seen = new Set();
+    state.recipeIndex = [];
+    objs.forEach(r=>{
+      const slot = (getField(r,'Recipe')||'').trim();
+      if (!/^\d{2,4}_\d+p$/i.test(slot)) return; // skip box/liner/ice/addon rack positions
+      if (seen.has(slot)) return;
+      seen.add(slot);
+      const sku = (getField(r,'SKU')||'').trim();
+      const displayName = getField(r,'DisplayName') || getField(r,'Ingredient') || sku;
+      const m = displayName.match(/^([A-Za-z]{2,4}\d{3,5}[A-Za-z]?)\s*-\s*/);
+      const internalCode = m ? m[1] : null;
+      const slotNum = slot.replace(/_\d+p$/i,'');
+      state.recipeIndex.push({
+        slot, slotNum, sku, label: displayName || sku, internalCode,
+        proteinGeneral:null, proteinType:'', mealNameEN:'', mealDbFound:false, ambiguousMealDb:false,
+        allergensActual:new Set(), allergensTrace:new Set(), category:'Unknown', categorySource:'guess'
+      });
+    });
+    state.recipeIndex.sort((a,b)=> a.slotNum.localeCompare(b.slotNum, undefined, {numeric:true}));
+    state.recipeBySlot = new Map(state.recipeIndex.map(r=>[r.slot,r]));
+    enrichRecipeIndex();
+    afterCatalogChange();
+  });
+
+  // ================= Box file (P2L) =================
+  setupDropzone('dz-p2l','file-p2l','dz-p2l-file', text=>{
+    const rows = parseCSVRaw(text);
+    const hIdx = findHeaderRowIndex(rows, 'recipes');
+    const header = rows[hIdx].map(h=>(h||'').trim());
+    state.p2lHeader = header;
+    const dataRows = rows.slice(hIdx+1).filter(r=>r.some(c=>c && c.trim()!==''));
+    state.boxes = dataRows.map(r=>{
+      const obj = {};
+      header.forEach((h,i)=> obj[h] = (r[i]!==undefined ? r[i] : '').trim());
+      const boxId = getField(obj,'Box ID','BoxID');
+      const recipesStr = getField(obj,'Recipes');
+      const slots = recipesStr ? recipesStr.split('+').map(s=>s.trim()).filter(Boolean) : [];
+      return { raw: obj, boxId, slots: slots.slice(), originalSlots: slots.slice() };
+    }).filter(b=>b.boxId);
+    state.auditLog = []; state.sessionRuns = []; state.lastRunBatch = []; state.boxTouchCount = new Map();
+    renderStage1Summary();
+    maybeUnlockStage2();
+    renderSessionLog();
+  });
+
+  function rebuildBoxColumns(box){
+    box.raw['Recipes'] = box.slots.join(' + ');
+    if (box.slots.length){
+      const numericParts = box.slots.map(s=> s.replace(/_(\d+p)$/i,''));
+      const unitMatch = box.slots[0].match(/_(\d+p)$/i);
+      const unit = unitMatch ? unitMatch[1] : '1p';
+      box.raw['Box Type'] = '-' + numericParts.join('-') + '-_' + unit;
+    } else {
+      box.raw['Box Type'] = '';
+    }
+  }
+
+  // ================= Meal Database enrichment =================
+  function processMealDbRows(rows){
+    const hIdx = findHeaderRowIndex(rows, 'meal id');
+    const objs = rowsToObjects(rows, hIdx);
+    state.mealDbRows = objs.map(r=>({
+      mealId: getField(r,'Meal ID'),
+      mealName: getField(r,'Meal Name'),
+      proteinGeneral: getField(r,'PROTEIN (GENERAL)'),
+      proteinType: getField(r,'PROTEIN TYPE'),
+      ingredientDeclaration: getField(r,'Ingredient declaration','Ingredient declaration '),
+      mayContainList: getField(r,'May contain list')
+    })).filter(r=>r.mealId);
+    state.mealDbByDigits = new Map();
+    state.mealDbRows.forEach(r=>{
+      const d = digitsOf(r.mealId);
+      if (d===null) return;
+      if (!state.mealDbByDigits.has(d)) state.mealDbByDigits.set(d, []);
+      state.mealDbByDigits.get(d).push(r);
+    });
+    enrichRecipeIndex();
+    afterCatalogChange();
+  }
+  function processMealDbText(text){ processMealDbRows(parseCSVRaw(text)); }
+
+  function enrichRecipeIndex(){
+    state.recipeIndex.forEach(rec=>{
+      const d = digitsOf(rec.internalCode);
+      const candidates = (d!==null && state.mealDbByDigits.get) ? (state.mealDbByDigits.get(d) || []) : [];
+      const dbRow = candidates[0] || null;
+      rec.mealDbFound = !!dbRow;
+      rec.ambiguousMealDb = candidates.length > 1;
+      if (dbRow){
+        rec.proteinGeneral = (dbRow.proteinGeneral||'').toUpperCase() || null;
+        rec.proteinType = dbRow.proteinType || '';
+        rec.mealNameEN = dbRow.mealName || '';
+        const profile = parseAllergenProfile(dbRow.ingredientDeclaration, dbRow.mayContainList);
+        rec.allergensActual = profile.actual;
+        rec.allergensTrace = profile.trace;
+      } else {
+        rec.proteinGeneral = null; rec.proteinType = ''; rec.mealNameEN = '';
+        rec.allergensActual = new Set(); rec.allergensTrace = new Set();
+      }
+      if (rec.proteinGeneral){ rec.category = titleCase(rec.proteinGeneral); rec.categorySource = 'db'; }
+      else { rec.category = guessCategoryFallback(rec.label, rec.sku); rec.categorySource = 'guess'; }
+    });
+  }
+
+  // ================= DE ODL =================
+  function processOdlRows(rows){
+    const hIdx = findHeaderRowIndex(rows, 'box_id');
+    const objs = rowsToObjects(rows, hIdx);
+    state.odlRows = objs.map(r=>({
+      customerId: getField(r,'customer_id'),
+      boxId: getField(r,'box_id')
+    })).filter(r=>r.boxId);
+    state.odlByExact = new Map();
+    state.odlByStripped = new Map();
+    state.odlRows.forEach(r=>{
+      if (!state.odlByExact.has(r.boxId)) state.odlByExact.set(r.boxId, r.customerId);
+      const stripped = stripTrailingLetter(r.boxId);
+      if (!state.odlByStripped.has(stripped)) state.odlByStripped.set(stripped, r.customerId);
+    });
+    renderStage1Summary();
+    maybeUnlockStage2();
+  }
+  function processOdlText(text){ processOdlRows(parseCSVRaw(text)); }
+
+  // ================= Box price =================
+  function buildBoxPriceMap(rows){
+    const hIdx = findHeaderRowIndex(rows, 'box_id');
+    const header = rows[hIdx].map(h=>(h||'').trim().toLowerCase());
+    const iBox = header.indexOf('box_id');
+    const iSize = header.indexOf('productsize');
+    const iVal = header.indexOf('total_order_value');
+    const map = {};
+    rows.slice(hIdx+1).forEach(r=>{
+      if (!r[iBox]) return;
+      map[normalizeBoxId(r[iBox])] = { productsize: iSize>=0?r[iSize]:null, totalOrderValue: iVal>=0?parseFloat(r[iVal]):null };
+    });
+    return map;
+  }
+  function processBoxPriceRows(rows){
+    state.boxPriceMap = buildBoxPriceMap(rows);
+    renderStage1Summary();
+  }
+  function processBoxPriceText(text){ processBoxPriceRows(parseCSVRaw(text)); }
+
+  // manual-upload fallbacks
+  document.getElementById('file-mealdb').addEventListener('change', e=>{
+    if (!e.target.files.length) return;
+    const reader = new FileReader();
+    reader.onload = ev => { processMealDbText(ev.target.result); setLiveStatus('mealdb', 'ok', `Loaded from file — ${e.target.files[0].name}`); };
+    reader.readAsText(e.target.files[0]);
+  });
+  document.getElementById('file-odl').addEventListener('change', e=>{
+    if (!e.target.files.length) return;
+    const reader = new FileReader();
+    reader.onload = ev => { processOdlText(ev.target.result); setLiveStatus('odl', 'ok', `Loaded from file — ${e.target.files[0].name}`); };
+    reader.readAsText(e.target.files[0]);
+  });
+  document.getElementById('file-boxprice').addEventListener('change', e=>{
+    if (!e.target.files.length) return;
+    const reader = new FileReader();
+    reader.onload = ev => { processBoxPriceText(ev.target.result); setLiveStatus('boxprice', 'ok', `Loaded from file — ${e.target.files[0].name}`); };
+    reader.readAsText(e.target.files[0]);
+  });
+
+  // ================= live data via Apps Script (JSONP — CORS-safe) =================
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyZ0jqfnQnWDK3gnsLHJvu68BrT0p3_PIkC2lkdRdcF1LlFn_zhszHUI8elLYNfqYFp6A/exec';
+  const LIVE_TIMEOUT_MS = 45000;
+
+  function jsonpLoad(url, timeoutMs){
+    return new Promise((resolve, reject)=>{
+      const cbName = 'jsonp_cb_' + Math.random().toString(36).slice(2);
+      const script = document.createElement('script');
+      let settled = false;
+      function cleanup(){
+        delete window[cbName];
+        if (script.parentNode) script.parentNode.removeChild(script);
+        clearTimeout(timer);
+        window.removeEventListener('error', onWindowError);
+      }
+      function onWindowError(e){
+        if (settled || !e || !e.filename || e.filename.indexOf('script.google.com') === -1) return;
+        settled = true; cleanup();
+        reject(new Error('the response wasn\'t valid JavaScript — likely an Apps Script error. Open the URL directly in a browser tab to see the real error message'));
+      }
+      window.addEventListener('error', onWindowError);
+      window[cbName] = data => { if (settled) return; settled = true; cleanup(); resolve(data); };
+      const timer = setTimeout(()=>{
+        if (settled) return; settled = true; cleanup();
+        reject(new Error('timed out after 45s — check the Apps Script is deployed with access "Anyone"'));
+      }, timeoutMs || LIVE_TIMEOUT_MS);
+      script.onerror = ()=>{ if (settled) return; settled = true; cleanup(); reject(new Error('script failed to load')); };
+      const sep = url.indexOf('?') >= 0 ? '&' : '?';
+      script.src = url + sep + 'callback=' + cbName;
+      document.head.appendChild(script);
+    });
+  }
+  function valuesToStringRows(values){
+    return (values||[]).map(row => row.map(cell => (cell===null||cell===undefined) ? '' : String(cell)));
+  }
+  function assertNotErrorPayload(values){
+    if (values && !Array.isArray(values) && typeof values === 'object' && values.error){
+      throw new Error(values.error);
+    }
+  }
+  function setLiveStatus(which, status, message){
+    const dot = document.getElementById(which+'-dot');
+    const statusEl = document.getElementById(which+'-status');
+    dot.className = 'live-dot' + (status==='ok' ? ' ok' : status==='error' ? ' error' : '');
+    statusEl.textContent = message;
+    statusEl.title = message;
+  }
+
+  async function fetchLiveMealDb(){
+    setLiveStatus('mealdb', 'loading', 'Fetching… (up to 45s)');
+    try{
+      const values = await jsonpLoad(APPS_SCRIPT_URL + '?sheet=mealdb', LIVE_TIMEOUT_MS);
+      assertNotErrorPayload(values);
+      processMealDbRows(valuesToStringRows(values));
+      setLiveStatus('mealdb', 'ok', `Live — ${state.mealDbRows.length} recipes · ${new Date().toLocaleTimeString()}`);
+    } catch(err){
+      setLiveStatus('mealdb', 'error', `Failed (${err.message}). Upload CSV or Refresh.`);
+    }
+  }
+  async function fetchLiveOdl(){
+    setLiveStatus('odl', 'loading', 'Fetching… (up to 45s)');
+    try{
+      const values = await jsonpLoad(APPS_SCRIPT_URL + '?sheet=deodl', LIVE_TIMEOUT_MS);
+      assertNotErrorPayload(values);
+      const rawRowCount = Array.isArray(values) ? values.length - 1 : 0;
+      processOdlRows(valuesToStringRows(values));
+      if (state.odlRows.length === 0 && rawRowCount > 0){
+        setLiveStatus('odl', 'error', `Connected, 0 usable rows of ${rawRowCount} — check header names.`);
+      } else {
+        setLiveStatus('odl', 'ok', `Live — ${state.odlRows.length} rows · ${new Date().toLocaleTimeString()}`);
+      }
+    } catch(err){
+      setLiveStatus('odl', 'error', `Failed (${err.message}). Upload CSV or Refresh.`);
+    }
+  }
+  async function fetchLiveBoxPrice(){
+    setLiveStatus('boxprice', 'loading', 'Fetching… (up to 45s)');
+    try{
+      const values = await jsonpLoad(APPS_SCRIPT_URL + '?sheet=boxpricetz', LIVE_TIMEOUT_MS);
+      assertNotErrorPayload(values);
+      processBoxPriceRows(valuesToStringRows(values));
+      setLiveStatus('boxprice', 'ok', `Live — ${Object.keys(state.boxPriceMap).length} boxes · ${new Date().toLocaleTimeString()}`);
+    } catch(err){
+      setLiveStatus('boxprice', 'error', `Failed (${err.message}). Upload CSV or Refresh.`);
+    }
+  }
+  document.getElementById('refresh-mealdb').addEventListener('click', fetchLiveMealDb);
+  document.getElementById('refresh-odl').addEventListener('click', fetchLiveOdl);
+  document.getElementById('refresh-boxprice').addEventListener('click', fetchLiveBoxPrice);
+  fetchLiveMealDb();
+  fetchLiveOdl();
+  fetchLiveBoxPrice();
+
+  // ================= stage 1 summary =================
+  function afterCatalogChange(){
+    renderStage1Summary();
+    renderShortageCards();
+    maybeUnlockStage2();
+  }
+
+  function renderStage1Summary(){
+    const el = document.getElementById('stage1-summary');
+    const anyLoaded = state.recipeIndex.length || state.boxes.length || state.mealDbRows.length || state.odlRows.length;
+    if (!anyLoaded){ el.innerHTML=''; return; }
+    let html = '<div class="num-strip">';
+    if (state.recipeIndex.length){
+      const matched = state.recipeIndex.filter(r=>r.mealDbFound).length;
+      html += `<div class="num-card ocean"><div class="n">${state.recipeIndex.length}</div><div class="l">Unique recipe slots</div></div>`;
+      html += `<div class="num-card ${matched===state.recipeIndex.length?'basil':'dijon'}"><div class="n">${matched}/${state.recipeIndex.length}</div><div class="l">Matched to Meal Database</div></div>`;
+    }
+    if (state.odlRows.length){
+      html += `<div class="num-card"><div class="n">${state.odlRows.length}</div><div class="l">DE ODL rows loaded</div></div>`;
+    }
+    if (state.boxes.length){
+      html += `<div class="num-card"><div class="n">${state.boxes.length}</div><div class="l">Boxes in file</div></div>`;
+      const markets = new Set(state.boxes.map(b=>detectMarket(b.boxId)).filter(Boolean));
+      html += `<div class="num-card"><div class="n">${[...markets].join(', ')||'?'}</div><div class="l">Market(s) detected</div></div>`;
+    }
+    if (Object.keys(state.boxPriceMap).length){
+      html += `<div class="num-card"><div class="n">${Object.keys(state.boxPriceMap).length}</div><div class="l">Box prices loaded</div></div>`;
+    }
+    html += '</div>';
+    if (state.recipeIndex.length && state.boxes.length){
+      const boxSlots = new Set(); state.boxes.forEach(b=>b.originalSlots.forEach(s=>boxSlots.add(s)));
+      const masterSlots = new Set(state.recipeIndex.map(r=>r.slot));
+      const overlap = [...boxSlots].filter(s=>masterSlots.has(s)).length;
+      if (overlap < Math.min(boxSlots.size, masterSlots.size) * 0.6){
+        html += `<div class="warn-box">Heads up: only ${overlap} recipe slots appear in both the Rackfile and the Box file. Check both belong to the same DC/week.</div>`;
+      }
+    }
+    if (state.recipeIndex.length && state.mealDbRows.length){
+      const unmatched = state.recipeIndex.filter(r=>!r.mealDbFound);
+      if (unmatched.length){
+        html += `<div class="warn-box">${unmatched.length} recipe(s) couldn't be matched to the Meal Database by internal code — protein/allergen data for those falls back to a name-based guess:
+          <ul>${unmatched.slice(0,10).map(r=>`<li>${escapeHtml(r.label)}</li>`).join('')}${unmatched.length>10?`<li>… and ${unmatched.length-10} more</li>`:''}</ul>
+        </div>`;
+      }
+    }
+    if (state.recipeIndex.length && state.boxes.length && !state.odlRows.length){
+      html += `<div class="warn-box">DE ODL hasn't loaded yet — you can still run resolutions, but Customer ID will be blank in the export until this loads.</div>`;
+    }
+    el.innerHTML = html;
+  }
+
+  function maybeUnlockStage2(){
+    const ready = state.recipeIndex.length && state.boxes.length;
+    document.getElementById('stage2').dataset.disabled = ready ? 'false' : 'true';
+  }
+
+  // ================= compatibility & match tiers =================
+  function computeCompatibility(shortRec, lfRec){
+    if (!shortRec || !lfRec) return null;
+    const bothInDb = shortRec.mealDbFound && lfRec.mealDbFound;
+    const proteinMatch = bothInDb ? (shortRec.proteinGeneral === lfRec.proteinGeneral) : (shortRec.category === lfRec.category && shortRec.category !== 'Unknown');
+    let allergenStatus = 'unknown', newAllergens = [];
+    if (bothInDb){
+      newAllergens = setDiff(lfRec.allergensActual, shortRec.allergensActual);
+      allergenStatus = newAllergens.length ? 'warn' : 'safe';
+    }
+    return { bothInDb, proteinMatch, allergenStatus, newAllergens };
+  }
+  const MATCH_TIER_META = {
+    1:{label:'Best match', cls:'like'},
+    2:{label:'Good match', cls:'like'},
+    3:{label:'Caution', cls:'warnflag'},
+    4:{label:'Cross-swap', cls:'cross'},
+    5:{label:'Cross-swap', cls:'cross'},
+    6:{label:'Avoid', cls:'short'}
+  };
+  function matchTier(compat){
+    if (!compat) return 6;
+    if (compat.proteinMatch && compat.allergenStatus==='safe') return 1;
+    if (compat.proteinMatch && compat.allergenStatus==='unknown') return 2;
+    if (compat.proteinMatch && compat.allergenStatus==='warn') return 3;
+    if (!compat.proteinMatch && compat.allergenStatus==='safe') return 4;
+    if (!compat.proteinMatch && compat.allergenStatus==='unknown') return 5;
+    return 6;
+  }
+
+  // ================= stage 2: shortages =================
+  function updateRunGate(){
+    const ready = state.shortages.some(s=>s.slot && s.qty>0);
+    document.getElementById('stage3').dataset.disabled = ready ? 'false' : 'true';
+  }
+  function renderStrategyVisibility(){
+    document.getElementById('strategy-box').style.display = state.shortages.length > 1 ? 'block' : 'none';
+  }
+  document.querySelectorAll('input[name="impact-strategy"]').forEach(r=>{
+    r.addEventListener('change', e=>{ if (e.target.checked) state.impactStrategy = e.target.value; });
+  });
+
+  function addShortage(){
+    const id = ++shortageSeq;
+    state.shortages.push({id, slot:'', label:'', qty:0, leftovers:[]});
+    renderShortageCards();
+    updateRunGate();
+  }
+  document.getElementById('add-shortage').addEventListener('click', addShortage);
+
+  function renderShortageCards(){
+    const container = document.getElementById('shortage-cards');
+    container.innerHTML = '';
+    state.shortages.forEach(shortage=>{
+      const card = buildShortageCard(shortage);
+      container.appendChild(card);
+      renderLeftoversForCard(shortage);
+      updateShortageCard(shortage);
+    });
+    renderStrategyVisibility();
+  }
+
+  function buildShortageCard(shortage){
+    const idx = state.shortages.indexOf(shortage) + 1;
+    const card = document.createElement('div');
+    card.className = 'shortage-card';
+    card.innerHTML = `
+      <div class="shortage-card-head">
+        <span class="shortage-badge">Shortage ${idx}</span>
+        ${state.shortages.length > 1 ? '<button class="remove-btn remove-shortage-btn">Remove</button>' : ''}
+      </div>
+      <div class="row short">
+        <div><label class="field-label">Recipe short</label><div class="short-combo-mount"></div></div>
+        <div><label class="field-label">Units short</label><input type="number" min="1" class="short-qty-input" placeholder="e.g. 100" value="${shortage.qty||''}"></div>
+      </div>
+      <div class="short-found-hint info-box" style="display:none;margin-top:14px;margin-bottom:0;"></div>
+      <div class="sub-section-label">Which recipes match</div>
+      <div class="match-matrix-mount"></div>
+      <div class="sub-section-label">Substitute Step</div>
+      <div class="leftover-rows-mount"></div>
+      <button class="ghost-btn small add-leftover-btn" type="button">+ Add leftover</button>
+      <div class="coverage-legend" style="margin-top:18px;">
+        <span><span class="dot" style="background:var(--basil)"></span>Like-for-like</span>
+        <span><span class="dot" style="background:var(--ocean)"></span>Cross-swap</span>
+        <span><span class="dot" style="background:var(--cherry)"></span>Remaining shortage</span>
+      </div>
+      <div class="coverage-bar coverage-bar-mount"></div>
+      <div class="coverage-text-mount" style="font-size:12.5px;color:var(--ink-dim);"></div>
+    `;
+    shortage._el = {
+      card,
+      hint: card.querySelector('.short-found-hint'),
+      matrixMount: card.querySelector('.match-matrix-mount'),
+      leftoverMount: card.querySelector('.leftover-rows-mount'),
+      coverageBar: card.querySelector('.coverage-bar-mount'),
+      coverageText: card.querySelector('.coverage-text-mount')
+    };
+
+    const combo = createCombobox({
+      container: card.querySelector('.short-combo-mount'),
+      getOptions: ()=> state.recipeIndex,
+      placeholder: 'Search recipes…',
+      onSelect: rec=>{
+        shortage.slot = rec ? rec.slot : '';
+        shortage.label = rec ? rec.label : '';
+        updateShortageCard(shortage);
+      }
+    });
+    if (shortage.slot) combo.setSelection(shortage.slot);
+
+    card.querySelector('.short-qty-input').addEventListener('input', e=>{
+      shortage.qty = parseInt(e.target.value||'0',10) || 0;
+      renderCoverageForCard(shortage);
+    });
+    card.querySelector('.add-leftover-btn').addEventListener('click', ()=> addLeftoverToShortage(shortage));
+
+    const removeBtn = card.querySelector('.remove-shortage-btn');
+    if (removeBtn) removeBtn.addEventListener('click', ()=>{
+      state.shortages = state.shortages.filter(s=>s.id!==shortage.id);
+      renderShortageCards();
+      updateRunGate();
+    });
+
+    return card;
+  }
+
+  function updateShortageCard(shortage){
+    const { hint } = shortage._el;
+    const r = state.recipeBySlot.get(shortage.slot);
+    if (!r){
+      hint.style.display = 'none';
+      shortage._el.matrixMount.innerHTML = '';
+    } else {
+      const found = state.boxes.reduce((s,b)=> s + b.slots.filter(sl=>sl===r.slot).length, 0);
+      hint.style.display = 'block';
+      const extra = r.mealDbFound
+        ? `Allergens: ${allergenListStr(r.allergensActual)}.`
+        : `Not matched to the Meal Database — protein "${r.category}" is a name-based guess and allergens are unknown.`;
+      hint.innerHTML = `<b>${escapeHtml(r.label)}</b> — recipe slot <b>#${escapeHtml(r.slotNum)}</b>, ${r.mealDbFound?'protein':'guessed protein'} <b>${r.category}</b>. Appears as <b>${found}</b> unit(s) in the loaded box file. ${extra}`;
+      renderMatchMatrixForCard(shortage);
+    }
+    renderLeftoverStatusesForCard(shortage);
+    renderCoverageForCard(shortage);
+    updateRunGate();
+  }
+
+  // ================= match matrix (per shortage card) — this is the allergen callout table =================
+  function renderMatchMatrixForCard(shortage){
+    const container = shortage._el.matrixMount;
+    const shortRec = state.recipeBySlot.get(shortage.slot);
+    if (!shortRec){ container.innerHTML = ''; return; }
+    const ranked = state.recipeIndex
+      .filter(rec => rec.slot !== shortRec.slot)
+      .map(rec => {
+        const compat = computeCompatibility(shortRec, rec);
+        return { rec, compat, tier: matchTier(compat) };
+      })
+      .sort((a,b) => a.tier - b.tier || a.rec.label.localeCompare(b.rec.label));
+
+    let html = `<div class="table-scroll"><table><thead><tr>
+        <th>Recipe</th><th>Protein</th><th>Allergen check</th><th>Match</th><th></th>
+      </tr></thead><tbody>`;
+    ranked.forEach(({rec, compat, tier})=>{
+      const meta = MATCH_TIER_META[tier];
+      const proteinNote = rec.categorySource==='db' ? '' : ' (guess)';
+      const mismatch = !!(compat && compat.bothInDb && compat.allergenStatus==='warn');
+      let allergenText = 'Unknown';
+      if (compat && compat.bothInDb){
+        allergenText = compat.allergenStatus==='safe' ? 'No new allergens' : `Adds: ${compat.newAllergens.join(', ')}`;
+      }
+      const already = shortage.leftovers.some(l=>l.slot===rec.slot);
+      html += `<tr${mismatch ? ' class="row-allergen-mismatch"' : ''}>
+        <td style="font-family:'Plus Jakarta Sans',sans-serif;">${escapeHtml(rec.label)}</td>
+        <td>${escapeHtml(rec.category)}${proteinNote}</td>
+        <td${mismatch ? ' style="color:var(--cherry);font-weight:700;"' : ''}>${escapeHtml(allergenText)}</td>
+        <td><span class="badge ${meta.cls}">${meta.label}</span></td>
+        <td><button class="ghost-btn small match-add-btn" data-slot="${escapeHtml(rec.slot)}" ${already?'disabled':''}>${already?'Added':'+ Add'}</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+    container.querySelectorAll('.match-add-btn').forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        const rec = state.recipeBySlot.get(e.currentTarget.dataset.slot);
+        if (rec) addLeftoverFromMatchToShortage(shortage, rec);
+      });
+    });
+  }
+
+  function addLeftoverFromMatchToShortage(shortage, rec){
+    let lf = shortage.leftovers.find(x=>x.slot===rec.slot);
+    if (!lf){
+      const shortRec = state.recipeBySlot.get(shortage.slot);
+      const compat = computeCompatibility(shortRec, rec);
+      const id = ++leftoverSeq;
+      lf = {id, slot:rec.slot, label:rec.label, qty:0, likeForLike: compat ? !!compat.proteinMatch : false, manualOverride:false};
+      const emptyIdx = shortage.leftovers.findIndex(x=>!x.slot);
+      if (emptyIdx >= 0) shortage.leftovers[emptyIdx] = lf; else shortage.leftovers.push(lf);
+      renderLeftoversForCard(shortage);
+      renderCoverageForCard(shortage);
+      renderMatchMatrixForCard(shortage);
+    }
+    setTimeout(()=>{
+      const inp = shortage._el.leftoverMount.querySelector(`.lf-qty[data-lfid="${lf.id}"]`);
+      if (inp){ inp.focus(); inp.scrollIntoView({behavior:'smooth', block:'center'}); }
+    }, 50);
+  }
+
+  // ================= leftovers / Substitute Step (per shortage card) =================
+  function addLeftoverToShortage(shortage){
+    const id = ++leftoverSeq;
+    shortage.leftovers.push({id, slot:'', label:'', qty:0, likeForLike:false, manualOverride:false});
+    renderLeftoversForCard(shortage);
+  }
+
+  function renderLeftoverStatusInBlock(shortage, lf, block){
+    const box = block.querySelector('.lf-status');
+    const shortRec = state.recipeBySlot.get(shortage.slot);
+    const lfRec = lf.slot ? state.recipeBySlot.get(lf.slot) : null;
+    box.className = 'lf-status empty';
+    box.innerHTML = '';
+    if (!shortRec || !lfRec) return;
+    const compat = computeCompatibility(shortRec, lfRec);
+    if (!compat) return;
+    if (!compat.bothInDb){
+      box.className = 'lf-status unknown';
+      box.innerHTML = 'Allergen/protein data unavailable for this pairing — verify manually.';
+    } else if (compat.allergenStatus === 'warn'){
+      box.className = 'lf-status warn';
+      box.innerHTML = `⚠ Introduces allergen(s) not in the original: <b>${escapeHtml(compat.newAllergens.join(', '))}</b>.`;
+    } else {
+      box.className = 'lf-status safe';
+      box.innerHTML = `✓ No new allergens (${escapeHtml(shortRec.category)} → ${escapeHtml(lfRec.category)}${compat.proteinMatch?', same protein':', different protein'}).`;
+    }
+  }
+  function renderLeftoverStatusesForCard(shortage){
+    const mount = shortage._el.leftoverMount;
+    shortage.leftovers.forEach(lf=>{
+      const block = mount.querySelector(`[data-lfblock="${lf.id}"]`);
+      if (block) renderLeftoverStatusInBlock(shortage, lf, block);
+    });
+  }
+
+  function renderLeftoversForCard(shortage){
+    const mount = shortage._el.leftoverMount;
+    mount.innerHTML = '';
+    shortage.leftovers.forEach(lf=>{
+      const block = document.createElement('div');
+      block.className = 'leftover-block';
+      block.setAttribute('data-lfblock', lf.id);
+      block.innerHTML = `
+        <div class="leftover-row">
+          <div>
+            <label class="field-label">Leftover recipe</label>
+            <div class="lf-combo-mount"></div>
+          </div>
+          <div>
+            <label class="field-label">Units available</label>
+            <input type="number" min="0" class="lf-qty" data-lfid="${lf.id}" value="${lf.qty||''}">
+          </div>
+          <div class="like-toggle ${lf.likeForLike?'on':''}">
+            <input type="checkbox" ${lf.likeForLike?'checked':''} class="lf-like">
+            Like-for-like
+          </div>
+          <button class="remove-btn lf-remove">Remove</button>
+        </div>
+        <div class="lf-status empty"></div>
+      `;
+      mount.appendChild(block);
+
+      const combo = createCombobox({
+        container: block.querySelector('.lf-combo-mount'),
+        getOptions: ()=> state.recipeIndex,
+        placeholder: 'Search recipes…',
+        onSelect: rec=>{
+          lf.slot = rec ? rec.slot : '';
+          lf.label = rec ? rec.label : '';
+          const shortRec = state.recipeBySlot.get(shortage.slot);
+          if (!lf.manualOverride && shortRec && rec){
+            const compat = computeCompatibility(shortRec, rec);
+            lf.likeForLike = compat ? !!compat.proteinMatch : false;
+          }
+          const toggle = block.querySelector('.like-toggle');
+          toggle.classList.toggle('on', !!lf.likeForLike);
+          toggle.querySelector('input').checked = !!lf.likeForLike;
+          renderLeftoverStatusInBlock(shortage, lf, block);
+          renderCoverageForCard(shortage);
+          renderMatchMatrixForCard(shortage);
+        }
+      });
+      if (lf.slot) combo.setSelection(lf.slot);
+      renderLeftoverStatusInBlock(shortage, lf, block);
+
+      block.querySelector('.lf-qty').addEventListener('input', e=>{
+        lf.qty = parseInt(e.target.value||'0',10) || 0;
+        renderCoverageForCard(shortage);
+      });
+      block.querySelector('.lf-like').addEventListener('change', e=>{
+        lf.likeForLike = e.target.checked; lf.manualOverride = true;
+        block.querySelector('.like-toggle').classList.toggle('on', lf.likeForLike);
+        renderCoverageForCard(shortage);
+      });
+      block.querySelector('.lf-remove').addEventListener('click', ()=>{
+        shortage.leftovers = shortage.leftovers.filter(x=>x.id!==lf.id);
+        renderLeftoversForCard(shortage);
+        renderCoverageForCard(shortage);
+        renderMatchMatrixForCard(shortage);
+      });
+    });
+  }
+
+  function renderCoverageForCard(shortage){
+    const qtyVal = shortage.qty || 0;
+    const bar = shortage._el.coverageBar;
+    const text = shortage._el.coverageText;
+    if (!qtyVal){ bar.innerHTML=''; text.textContent=''; updateRunGate(); return; }
+    const ordered = [...shortage.leftovers].filter(l=>l.slot && l.qty>0).sort((a,b)=>(b.likeForLike?1:0)-(a.likeForLike?1:0));
+    let remaining = qtyVal, likeCovered=0, crossCovered=0;
+    ordered.forEach(lf=>{
+      if (remaining<=0) return;
+      const take = Math.min(remaining, lf.qty);
+      if (lf.likeForLike) likeCovered += take; else crossCovered += take;
+      remaining -= take;
+    });
+    const shortRemain = Math.max(0, remaining);
+    const pct = v => (v/qtyVal*100).toFixed(2)+'%';
+    bar.innerHTML = `<div class="coverage-seg" style="width:${pct(likeCovered)};background:var(--basil)"></div><div class="coverage-seg" style="width:${pct(crossCovered)};background:var(--ocean)"></div><div class="coverage-seg" style="width:${pct(shortRemain)};background:var(--cherry)"></div>`;
+    text.innerHTML = `<b>${likeCovered}</b> like-for-like · <b>${crossCovered}</b> cross-swap · <b>${shortRemain}</b> still short of ${qtyVal} units.`;
+    updateRunGate();
+  }
+
+  addShortage();
+
+  // ================= stage 3: run =================
+  function evenStrideSelect(n, k){
+    if (k<=0) return [];
+    if (k>=n) return Array.from({length:n},(_,i)=>i);
+    const out = [];
+    for (let i=0;i<k;i++) out.push(Math.floor(i*n/k));
+    return [...new Set(out)];
+  }
+  function lookupCustomer(boxId){
+    if (state.odlByExact.has(boxId)) return { customerId: state.odlByExact.get(boxId), method:'exact' };
+    const stripped = stripTrailingLetter(boxId);
+    if (state.odlByStripped.has(stripped)) return { customerId: state.odlByStripped.get(stripped), method:'stripped' };
+    return { customerId:'', method:'none' };
+  }
+
+  // Box selection aware of what earlier shortages in this run batch already touched.
+  // 'avoid-overlap': prefer boxes nobody has touched yet, so no customer misses 2 different meals.
+  // 'concentrate': prefer boxes already touched once, capped at 2 touches per box.
+  const CONCENTRATE_CAP = 2;
+  function selectBoxesForShortage(shortRec, qtyNeeded, strategy){
+    const instances = [];
+    state.boxes.forEach((box, bIdx)=>{
+      box.slots.forEach((s, sIdx)=>{ if (s === shortRec.slot) instances.push({bIdx, sIdx, boxId: box.boxId}); });
+    });
+    const totalFound = instances.length;
+    const toProcess = Math.min(qtyNeeded, totalFound);
+    if (toProcess <= 0) return { selected: [], totalFound };
+
+    const touchCountOf = inst => state.boxTouchCount.get(inst.boxId) || 0;
+    let buckets;
+    if (strategy === 'concentrate'){
+      buckets = [
+        instances.filter(i => { const c=touchCountOf(i); return c>=1 && c<CONCENTRATE_CAP; }),
+        instances.filter(i => touchCountOf(i)===0),
+        instances.filter(i => touchCountOf(i)>=CONCENTRATE_CAP)
+      ];
+    } else {
+      buckets = [
+        instances.filter(i => touchCountOf(i)===0),
+        instances.filter(i => touchCountOf(i)>0).sort((a,b)=> touchCountOf(a)-touchCountOf(b))
+      ];
+    }
+
+    let selected = [];
+    for (const bucket of buckets){
+      if (selected.length >= toProcess) break;
+      const need = toProcess - selected.length;
+      if (bucket.length <= need) selected = selected.concat(bucket);
+      else selected = selected.concat(evenStrideSelect(bucket.length, need).map(p=>bucket[p]));
+    }
+    return { selected, totalFound };
+  }
+
+  function processShortage(shortage, runIndex){
+    const shortRec = state.recipeBySlot.get(shortage.slot);
+    const qtyNeeded = shortage.qty || 0;
+    if (!shortRec || !qtyNeeded) return null;
+
+    const { selected, totalFound } = selectBoxesForShortage(shortRec, qtyNeeded, state.impactStrategy);
+    const toProcess = selected.length;
+
+    const ordered = [...shortage.leftovers].filter(l=>l.slot && l.qty>0).sort((a,b)=>(b.likeForLike?1:0)-(a.likeForLike?1:0));
+    let pointer = 0;
+    const allocations = [];
+    for (const lf of ordered){
+      let remaining = lf.qty;
+      while (remaining>0 && pointer<selected.length){
+        allocations.push({bIdx:selected[pointer].bIdx, sIdx:selected[pointer].sIdx, targetSlot: lf.slot, matchType: lf.likeForLike?'like-for-like':'cross-swap'});
+        pointer++; remaining--;
+      }
+      if (pointer>=selected.length) break;
+    }
+    const shortageInstances = selected.slice(pointer);
+
+    selected.forEach(inst=>{
+      state.boxTouchCount.set(inst.boxId, (state.boxTouchCount.get(inst.boxId)||0)+1);
+    });
+
+    const byBox = new Map();
+    allocations.forEach(a=>{
+      if (!byBox.has(a.bIdx)) byBox.set(a.bIdx, {replace:new Map(), remove:new Set()});
+      byBox.get(a.bIdx).replace.set(a.sIdx, a.targetSlot);
+    });
+    shortageInstances.forEach(si=>{
+      if (!byBox.has(si.bIdx)) byBox.set(si.bIdx, {replace:new Map(), remove:new Set()});
+      byBox.get(si.bIdx).remove.add(si.sIdx);
+    });
+
+    const now = new Date().toISOString();
+    const runLabel = `Run ${runIndex}: ${shortRec.label}`;
+    let warnCount = 0, fallbackPriceCount = 0;
+
+    byBox.forEach((info, bIdx)=>{
+      const box = state.boxes[bIdx];
+      const market = detectMarket(box.boxId);
+      const cust = lookupCustomer(box.boxId);
+
+      const targetCounts = {};
+      info.replace.forEach(t=>{ targetCounts[t] = (targetCounts[t]||0)+1; });
+      Object.keys(targetCounts).forEach(targetSlot=>{
+        const targetRec = state.recipeBySlot.get(targetSlot);
+        const compat = computeCompatibility(shortRec, targetRec);
+        const allergenFlag = compat ? compat.allergenStatus : 'unknown';
+        if (allergenFlag === 'warn') warnCount += targetCounts[targetSlot];
+        const lfMatch = ordered.find(l=>l.slot===targetSlot);
+        const matchType = lfMatch && lfMatch.likeForLike ? 'like-for-like' : 'cross-swap';
+        const mcfg = MARKET_CONFIG[market];
+        const perUnit = mcfg ? mcfg.swapAmount : 0;
+        state.auditLog.push({
+          timestamp: now, run: runLabel, boxId: box.boxId, customerId: cust.customerId, customerMatchMethod: cust.method,
+          market, impact: 'SWAP', qty: targetCounts[targetSlot],
+          originalSlotNum: shortRec.slotNum, originalSku: shortRec.sku, originalLabel: shortRec.label,
+          replacementSlotNum: targetRec ? targetRec.slotNum : '', replacementSku: targetRec ? targetRec.sku : '', replacementLabel: targetRec ? (targetRec.mealNameEN || targetRec.label) : '',
+          matchType, allergenFlag,
+          compensation: round2(perUnit * targetCounts[targetSlot])
+        });
+      });
+
+      if (info.remove.size > 0){
+        const shortUnits = info.remove.size;
+        const priceEntry = state.boxPriceMap[normalizeBoxId(box.boxId)];
+        let compAmt = null;
+        if (priceEntry && priceEntry.totalOrderValue){
+          const meals = mealsFromSku(priceEntry.productsize);
+          if (meals) compAmt = round2((priceEntry.totalOrderValue/meals) * shortUnits);
+        }
+        if (compAmt === null){
+          const fallback = parseFloat(document.getElementById('comp-short-fallback').value||'0') || 0;
+          compAmt = round2(fallback * shortUnits);
+          fallbackPriceCount += shortUnits;
+        }
+        state.auditLog.push({
+          timestamp: now, run: runLabel, boxId: box.boxId, customerId: cust.customerId, customerMatchMethod: cust.method,
+          market, impact: 'SHORT', qty: shortUnits,
+          originalSlotNum: shortRec.slotNum, originalSku: shortRec.sku, originalLabel: shortRec.label,
+          replacementSlotNum: '', replacementSku: '', replacementLabel: '',
+          matchType: 'unresolved', allergenFlag: 'n/a',
+          compensation: compAmt
+        });
+      }
+
+      const newSlots = box.slots.map((s,i)=>{
+        if (info.remove.has(i)) return null;
+        if (info.replace.has(i)) return info.replace.get(i);
+        return s;
+      }).filter(s=>s!==null);
+      box.slots = newSlots;
+      rebuildBoxColumns(box);
+    });
+
+    const likeCount = allocations.filter(a=>a.matchType==='like-for-like').length;
+    const crossCount = allocations.filter(a=>a.matchType==='cross-swap').length;
+    const shortCount = shortageInstances.length;
+    const notFoundInFile = Math.max(0, qtyNeeded - totalFound);
+
+    const outcomePerSelected = [];
+    let p2 = 0;
+    for (const lf of ordered){
+      let remaining = lf.qty;
+      while (remaining>0 && p2<selected.length){ outcomePerSelected.push(lf.likeForLike?'like':'cross'); p2++; remaining--; }
+      if (p2>=selected.length) break;
+    }
+    while (outcomePerSelected.length < selected.length) outcomePerSelected.push('short');
+
+    return { shortRec, shortQtyVal: qtyNeeded, totalFound, toProcess, likeCount, crossCount, shortCount, notFoundInFile, warnCount, fallbackPriceCount, strip: outcomePerSelected, runLabel, timestamp: now };
+  }
+
+  document.getElementById('run-btn').addEventListener('click', ()=>{
+    const validShortages = state.shortages.filter(s=>s.slot && s.qty>0);
+    if (!validShortages.length) return;
+    const results = [];
+    validShortages.forEach(s=>{
+      const res = processShortage(s, state.sessionRuns.length + results.length + 1);
+      if (res){
+        results.push(res);
+        state.sessionRuns.push({label:res.runLabel, timestamp:res.timestamp, totalFound:res.totalFound, toProcess:res.toProcess, likeCount:res.likeCount, crossCount:res.crossCount, shortCount:res.shortCount, notFoundInFile:res.notFoundInFile, warnCount:res.warnCount, fallbackPriceCount:res.fallbackPriceCount});
+      }
+    });
+    state.lastRunBatch = results;
+    renderRunResults();
+    renderSessionLog();
+    document.getElementById('stage4').dataset.disabled = 'false';
+    refreshExportGate();
+    state.shortages.forEach(s=>updateShortageCard(s));
+  });
+
+  function renderRunResults(){
+    const batch = state.lastRunBatch;
+    const el = document.getElementById('run-results');
+    if (!batch || !batch.length){ el.innerHTML=''; return; }
+    const totalProcessed = batch.reduce((s,r)=>s+r.toProcess,0);
+    let html = `<div class="success-banner">✓ Run complete — ${batch.length} shortage(s), ${totalProcessed} box(es) updated</div>`;
+    batch.forEach(r=>{
+      html += `<div class="run-result-block">`;
+      html += `<div class="run-result-title">${escapeHtml(r.shortRec.label)}</div>`;
+      html += '<div class="num-strip">';
+      html += `<div class="num-card"><div class="n">${r.totalFound}</div><div class="l">Found in file</div></div>`;
+      html += `<div class="num-card basil"><div class="n">${r.likeCount}</div><div class="l">Like-for-like swap</div></div>`;
+      html += `<div class="num-card ocean"><div class="n">${r.crossCount}</div><div class="l">Cross-swap</div></div>`;
+      html += `<div class="num-card cherry"><div class="n">${r.shortCount}</div><div class="l">Unresolved shortage</div></div>`;
+      html += '</div>';
+      if (r.notFoundInFile>0){
+        html += `<div class="warn-box">${r.notFoundInFile} of the ${r.shortQtyVal} reported units don't show up as boxes in this file.</div>`;
+      }
+      if (r.fallbackPriceCount>0){
+        html += `<div class="warn-box">${r.fallbackPriceCount} shortage unit(s) used the manual fallback credit — no live box price for that box.</div>`;
+      }
+      if (r.warnCount>0){
+        html += `<div class="danger-box">${r.warnCount} swap(s) introduce a potential new allergen. Review before exporting.</div>`;
+      }
+      html += `<div class="seq-wrap"><div class="seq-strip">` + r.strip.map(o=>`<div class="seq-block ${o}"></div>`).join('') + `</div></div>`;
+      html += `</div>`;
+    });
+    el.innerHTML = html;
+  }
+
+  function renderSessionLog(){
+    const el = document.getElementById('session-log');
+    if (!state.sessionRuns.length){ el.innerHTML=''; return; }
+    el.innerHTML = '<label class="field-label">Session log</label>' + state.sessionRuns.map(r=>
+      `<div class="run-log-entry"><b>${escapeHtml(r.label)}</b> — ${r.toProcess} processed (${r.likeCount} like-for-like, ${r.crossCount} cross-swap, ${r.shortCount} short)${r.notFoundInFile? ', '+r.notFoundInFile+' not found in file':''}${r.warnCount?', <span style="color:var(--cherry)">'+r.warnCount+' allergen warning(s)</span>':''}${r.fallbackPriceCount?', '+r.fallbackPriceCount+' fallback-priced':''}</div>`
+    ).join('');
+  }
+
+  // ================= stage 4: export =================
+  const confirmBox = document.getElementById('confirm-allergen');
+  function refreshExportGate(){
+    const ok = confirmBox.checked && state.sessionRuns.length>0;
+    document.getElementById('download-p2l').disabled = !ok;
+    document.getElementById('download-bartender').disabled = !ok;
+  }
+  confirmBox.addEventListener('change', refreshExportGate);
+
+  document.getElementById('download-p2l').addEventListener('click', ()=>{
+    downloadCSV('p2l_modified.csv', state.p2lHeader, state.boxes.map(b=>b.raw));
+  });
+
+  document.getElementById('download-bartender').addEventListener('click', ()=>{
+    const rows = state.auditLog.map(e=>({
+      'customer id': stripLeadingLetters(e.customerId),
+      'box id': stripTrailingLetter(e.boxId),
+      'error category': 'operations_use_only',
+      'error sub category': '_recipes',
+      'complaint': 'internal_production_error_inventory',
+      'additional detail 1': e.impact==='SWAP' ? 'sku_change' : 'missing',
+      'additional detail 2': 'impact_high',
+      'ingredient': '',
+      'recipe name': e.originalLabel,
+      'compensation type': 'credit',
+      'compensation amount': (e.compensation===null||e.compensation===undefined) ? '' : e.compensation.toFixed(2),
+      'recipe index': e.originalSlotNum,
+      'culinary sku': e.originalSku,
+      'comment': e.impact==='SWAP' ? `Swap to ${e.replacementSlotNum}: ${e.replacementLabel}` : 'Shortage'
+    }));
+    downloadCSV('bartender_import.csv',
+      ['customer id','box id','error category','error sub category','complaint','additional detail 1','additional detail 2','ingredient','recipe name','compensation type','compensation amount','recipe index','culinary sku','comment'],
+      rows);
+  });
+
+  document.getElementById('reset-runs').addEventListener('click', ()=>{
+    state.boxes.forEach(b=>{ b.slots = b.originalSlots.slice(); rebuildBoxColumns(b); });
+    state.auditLog = []; state.sessionRuns = []; state.lastRunBatch = []; state.boxTouchCount = new Map();
+    renderRunResults(); renderSessionLog();
+    confirmBox.checked = false;
+    refreshExportGate();
+    state.shortages.forEach(s=>updateShortageCard(s));
+  });
+  refreshExportGate();
+
+})();
+</script>
+</body>
+</html>
