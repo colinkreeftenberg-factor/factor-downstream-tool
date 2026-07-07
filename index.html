@@ -49,7 +49,7 @@
   /* TOOLS SECTION */
   .wrap{max-width:1120px;margin:0 auto;padding:56px 32px 96px;}
   .section-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:10px;}
-  .section-head:not(:first-of-type){margin-top:48px;} /* Spacing between tool sections */
+  .section-head:not(:first-of-type){margin-top:56px;} /* Balanced spacing between grid sections */
   .section-title{font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#5b5b54;}
   .section-count{font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:#8a897d;}
 
@@ -69,7 +69,16 @@
   }
   .tool-card:hover::after{color:var(--carbon); transform:translateX(3px);}
   .tool-index{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#9a998f; letter-spacing:.04em;}
-  .tool-name{font-size:18px; font-weight:800; letter-spacing:-0.01em; max-width:85%;}
+  
+  .tool-name{
+    font-size:16px; font-weight:800; letter-spacing:-0.01em; max-width:85%;
+    text-transform:uppercase; /* Forces all titles into capitals */
+    border-bottom:3px solid var(--saffron); /* Thinner accent line matching page identity */
+    display:inline-block;
+    padding-bottom:4px;
+    align-self:flex-start; /* Keeps the underline accurately bound to the text length */
+  }
+  
   .tool-desc{font-size:13px; color:#5b5b54; line-height:1.55; max-width:90%;}
   .tool-tags{display:flex; gap:6px; flex-wrap:wrap; margin-top:auto;}
   .tag{
@@ -117,12 +126,19 @@
   </div>
   <div class="tool-grid" id="opsToolGrid"></div>
 
+  <div class="section-head">
+    <div class="section-title">Confluence SOP's</div>
+    <div class="section-count" id="sopCount"></div>
+  </div>
+  <div class="tool-grid" id="sopGrid"></div>
+
   <footer>Factor · internal tools · made &amp; maintained by <strong>Colin Kreeftenberg</strong> — questions, edits or new tools go to him.</footer>
 </div>
 
 <script>
 /* =================================================================
-   TOOLS — add a new tool by adding one object here with its category.
+   TOOLS — add items here. Supported categories: 'communication', 
+   'operational', or 'sop'.
 ================================================================= */
 const TOOLS = [
   {
@@ -152,39 +168,45 @@ const TOOLS = [
     href: "https://factor-downstream-tools.vercel.app/tools/factor_compensation_export_builder_3.html",
     tags: ["Ops", "Comp"],
     category: "operational"
+  },
+  {
+    name: "Swap & Shortage - CRM Guide",
+    description: "Official documentation and detailed workflow instructions on Confluence.",
+    href: "https://hellofresh.atlassian.net/wiki/spaces/EUF/pages/6760202365/Swap+Shortage+Tools+User+Guide+BNL+DE-SE-DK",
+    tags: ["SOP", "Wiki"],
+    category: "sop"
   }
 ];
 
 function renderTools(){
   const commTools = TOOLS.filter(t => t.category === 'communication');
   const opsTools = TOOLS.filter(t => t.category === 'operational');
+  const sopTools = TOOLS.filter(t => t.category === 'sop');
 
   // Update Section Counters
   document.getElementById('commToolCount').textContent = commTools.length + (commTools.length === 1 ? ' tool' : ' tools');
   document.getElementById('opsToolCount').textContent = opsTools.length + (opsTools.length === 1 ? ' tool' : ' tools');
+  document.getElementById('sopCount').textContent = sopTools.length + (sopTools.length === 1 ? ' link' : ' links');
 
-  // Render Communication Tools
-  document.getElementById('commToolGrid').innerHTML = commTools.map((t, i) => `
-    <a class="tool-card" href="${t.href}">
+  // Helper macro to generate standard button card structure
+  const createCardHTML = (t, i) => `
+    <a class="tool-card" href="${t.href}" target="${t.href.startsWith('http') ? '_blank' : '_self'}" rel="noopener">
       <div class="tool-index">${String(i+1).padStart(2,'0')}</div>
       <div class="tool-name">${t.name}</div>
       <div class="tool-desc">${t.description}</div>
       <div class="tool-tags">${t.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div>
     </a>
-  `).join('');
+  `;
 
-  // Render Operational Tools (+ Placeholder Card)
-  document.getElementById('opsToolGrid').innerHTML = opsTools.map((t, i) => `
-    <a class="tool-card" href="${t.href}">
-      <div class="tool-index">${String(i+1).padStart(2,'0')}</div>
-      <div class="tool-name">${t.name}</div>
-      <div class="tool-desc">${t.description}</div>
-      <div class="tool-tags">${t.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div>
-    </a>
-  `).join('') + `
+  // Render individual sections
+  document.getElementById('commToolGrid').innerHTML = commTools.map(createCardHTML).join('');
+  document.getElementById('opsToolGrid').innerHTML = opsTools.map(createCardHTML).join('');
+  
+  // Render Confluence links section + placeholder addition card at the very base
+  document.getElementById('sopGrid').innerHTML = sopTools.map(createCardHTML).join('') + `
     <div class="add-card">
       <div class="plus">+</div>
-      <div>New tools show up here — just add an entry to the <code>TOOLS</code> list in this page.</div>
+      <div>New links show up here — just add an entry to the <code>TOOLS</code> list in this page.</div>
     </div>
   `;
 }
