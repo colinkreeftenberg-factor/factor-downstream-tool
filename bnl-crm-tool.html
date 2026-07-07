@@ -294,7 +294,7 @@
    COMMS TEMPLATES — from Swap_Tool_Backend_-_CRM.csv
 --------------------------------------------------------------- */
 const TEMPLATES = {
-  "nl-BE": {
+  "be-NL": {
     "swap": {
       business_unit: "TO",
       subjectline: "We hebben een vervangende maaltijd voor je",
@@ -340,7 +340,7 @@ const TEMPLATES = {
       content: "Door onvoorziene omstandigheden kunnen onze chefs deze week één of meerdere maaltijden niet bereiden volgens onze gebruikelijke hoge standaard. We begrijpen dat dit vervelend kan zijn en bieden onze oprechte excuses aan voor het ongemak. Om ervoor te zorgen dat je alsnog kunt genieten van een heerlijke maaltijd, hebben onze chefs al een passende vervangende maaltijd klaargemaakt voor deze week. <br><br> Controleer wel even de allergenen in de nieuwe maaltijd(en). Als tegemoetkoming ontvang je ook €5 tegoed per getroffen maaltijd, dat automatisch wordt verrekend met je volgende box. <br><br> Heb je vragen of ben je niet tevreden? Neem gerust contact op met onze klantenservice, we helpen je graag verder!"
     }
   },
-  "fr-BE": {
+  "be-FR": {
     "swap": {
       business_unit: "TO",
       subjectline: "Nous avons remplacé un plat",
@@ -365,7 +365,7 @@ const TEMPLATES = {
   }
 };
 
-const LOCALES = ["nl-NL", "nl-BE", "fr-BE"];
+const LOCALES = ["nl-NL", "be-NL", "be-FR"];
 
 /* ---------------------------------------------------------------
    STATE
@@ -375,7 +375,7 @@ let csvHeaders = [];          // header order of the uploaded dashboard export
 let resultByLocale = {};      // locale -> array of output rows
 let stats = {};               // locale -> {swap, short, mixed, generic, multi, total}
 let flags = { unmappedLocale: {}, unrecognized: [] };
-let mealStats = {};           // recipeName -> { "nl-NL": {swap,short}, "nl-BE": {...}, "fr-BE": {...} }
+let mealStats = {};           // recipeName -> { "nl-NL": {swap,short}, "be-NL": {...}, "be-FR": {...} }
 let manualReviewRows = [];    // raw source rows still needing a human (unmapped locale etc.)
 let testAccountsInfo = [];    // which test accounts got appended, and from which email
 
@@ -408,8 +408,8 @@ function ensureMeal(name){
   if (!mealStats[name]){
     mealStats[name] = {
       "nl-NL": { swap: 0, short: 0 },
-      "nl-BE": { swap: 0, short: 0 },
-      "fr-BE": { swap: 0, short: 0 }
+      "be-NL": { swap: 0, short: 0 },
+      "be-FR": { swap: 0, short: 0 }
     };
   }
   return mealStats[name];
@@ -427,7 +427,7 @@ function fileSafe(s){
   return s.replace(/-/g, '_');
 }
 
-/* ----- SWAP copy (Dutch shared for nl-NL/nl-BE, French for fr-BE) ----- */
+/* ----- SWAP copy (Dutch shared for nl-NL/be-NL, French for be-FR) ----- */
 function buildDutchSwapContent(origins, dests){
   const uo = uniqueList(origins), ud = uniqueList(dests);
   const originHtml = asListHtml(uo);
@@ -438,7 +438,7 @@ function buildDutchSwapContent(origins, dests){
   const destSentence = ud.length > 1
     ? `Gelukkig hebben we een alternatief voor je: deze week ontvang je de volgende maaltijden:${destHtml}`
     : `Gelukkig hebben we een alternatief voor je: deze week ontvang je <b>${destHtml}</b>.`;
-  const tail = `<br><br>Controleer wel even de allergenen van deze maaltijd.<br><br>Als klein gebaar voegen we <b>€5 tegoed per maaltijd</b> toe aan je account. Dat kun je gebruiken bij je volgende box.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`;
+  const tail = `<br><br>Controleer wel even de allergenen van deze maaltijd.<br><br>Als goedmakertje voegen we <b>€5 tegoed per maaltijd</b> toe aan je account. Dat kun je gebruiken bij je volgende box.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`;
   return originSentence + "<br><br>" + destSentence + tail;
 }
 
@@ -457,7 +457,7 @@ function buildFrenchSwapContent(origins, dests){
 }
 
 function buildSwapContent(locale, origins, dests){
-  return locale === "fr-BE" ? buildFrenchSwapContent(origins, dests) : buildDutchSwapContent(origins, dests);
+  return locale === "be-FR" ? buildFrenchSwapContent(origins, dests) : buildDutchSwapContent(origins, dests);
 }
 
 /* ----- SHORT copy — single meal (from the sheet), multi-meal is our own extension ----- */
@@ -480,7 +480,7 @@ function buildFrenchShortContent(recipes){
 }
 
 function buildShortContent(locale, recipes){
-  return locale === "fr-BE" ? buildFrenchShortContent(recipes) : buildDutchShortContent(recipes);
+  return locale === "be-FR" ? buildFrenchShortContent(recipes) : buildDutchShortContent(recipes);
 }
 
 /* ----- MIXED copy — customer has both a shortage AND a swap, must be ONE email ----- */
@@ -523,7 +523,7 @@ function buildFrenchMixedContent(shortRecipes, origins, dests){
 }
 
 function buildMixedContent(locale, shortRecipes, origins, dests){
-  return locale === "fr-BE" ? buildFrenchMixedContent(shortRecipes, origins, dests) : buildDutchMixedContent(shortRecipes, origins, dests);
+  return locale === "be-FR" ? buildFrenchMixedContent(shortRecipes, origins, dests) : buildDutchMixedContent(shortRecipes, origins, dests);
 }
 
 /* ---------------------------------------------------------------
@@ -573,11 +573,11 @@ document.getElementById('processBtn').addEventListener('click', () => {
 });
 
 function process(rows){
-  resultByLocale = { "nl-NL": [], "nl-BE": [], "fr-BE": [] };
+  resultByLocale = { "nl-NL": [], "be-NL": [], "be-FR": [] };
   stats = {
     "nl-NL": { swap: 0, short: 0, mixed: 0, generic: 0, multi: 0, total: 0 },
-    "nl-BE": { swap: 0, short: 0, mixed: 0, generic: 0, multi: 0, total: 0 },
-    "fr-BE": { swap: 0, short: 0, mixed: 0, generic: 0, multi: 0, total: 0 }
+    "be-NL": { swap: 0, short: 0, mixed: 0, generic: 0, multi: 0, total: 0 },
+    "be-FR": { swap: 0, short: 0, mixed: 0, generic: 0, multi: 0, total: 0 }
   };
   flags = { unmappedLocale: {}, unrecognized: [] };
   mealStats = {};
@@ -734,8 +734,8 @@ function process(rows){
 // carrying whatever the most complex email generated that run looks like.
 const TEST_ACCOUNTS = [
   { business_unit: "TT", customer_id: "2732029", locale: "nl-NL" },
-  { business_unit: "TO", customer_id: "100021255", locale: "nl-BE" },
-  { business_unit: "TO", customer_id: "100021255", locale: "fr-BE" }
+  { business_unit: "TO", customer_id: "100021255", locale: "be-NL" },
+  { business_unit: "TO", customer_id: "100021255", locale: "be-FR" }
 ];
 
 function difficultyScore(row){
