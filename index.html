@@ -49,6 +49,7 @@
   /* TOOLS SECTION */
   .wrap{max-width:1120px;margin:0 auto;padding:56px 32px 96px;}
   .section-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:10px;}
+  .section-head:not(:first-of-type){margin-top:48px;} /* Spacing between tool sections */
   .section-title{font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#5b5b54;}
   .section-count{font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:#8a897d;}
 
@@ -105,44 +106,75 @@
 
 <div class="wrap">
   <div class="section-head">
-    <div class="section-title">Tools</div>
-    <div class="section-count" id="toolCount"></div>
+    <div class="section-title">Communication Tools</div>
+    <div class="section-count" id="commToolCount"></div>
   </div>
-  <div class="tool-grid" id="toolGrid"></div>
+  <div class="tool-grid" id="commToolGrid"></div>
+
+  <div class="section-head">
+    <div class="section-title">Operational Tools</div>
+    <div class="section-count" id="opsToolCount"></div>
+  </div>
+  <div class="tool-grid" id="opsToolGrid"></div>
 
   <footer>Factor · internal tools · made &amp; maintained by <strong>Colin Kreeftenberg</strong> — questions, edits or new tools go to him.</footer>
 </div>
 
 <script>
 /* =================================================================
-   TOOLS — add a new tool by adding one object here. Nothing else
-   on this page needs to change.
+   TOOLS — add a new tool by adding one object here with its category.
 ================================================================= */
 const TOOLS = [
   {
     name: "BNL CRM Tool- NL/BE",
     description: "Swap & shortage export tool for the Dutch and Belgian market.",
     href: "tools/bnl-crm-tool.html",
-    tags: ["NL", "BE", "FR-BE"]
+    tags: ["NL", "BE", "FR-BE"],
+    category: "communication"
   },
   {
     name: "VE CRM Tool — DE/SE/DK",
     description: "Swap & shortage export tool for the German and Nordics markets.",
     href: "tools/de-se-dk-tool.html",
-    tags: ["DE", "SE", "DK"]
+    tags: ["DE", "SE", "DK"],
+    category: "communication"
   },
   {
     name: "Swap & Shortage Fulfilment Manager",
     description: "Operational manager for tracking and resolving swap & shortage incidents end to end.",
     href: "tools/swap-shortage-manager.html",
-    tags: ["Ops"]
+    tags: ["Ops"],
+    category: "operational"
+  },
+  {
+    name: "Compensation Export Builder",
+    description: "Downstream tool for building and exporting customer compensation profiles.",
+    href: "https://factor-downstream-tools.vercel.app/tools/factor_compensation_export_builder_3.html",
+    tags: ["Ops", "Comp"],
+    category: "operational"
   }
 ];
 
 function renderTools(){
-  const grid = document.getElementById('toolGrid');
-  document.getElementById('toolCount').textContent = TOOLS.length + (TOOLS.length === 1 ? ' tool' : ' tools');
-  grid.innerHTML = TOOLS.map((t, i) => `
+  const commTools = TOOLS.filter(t => t.category === 'communication');
+  const opsTools = TOOLS.filter(t => t.category === 'operational');
+
+  // Update Section Counters
+  document.getElementById('commToolCount').textContent = commTools.length + (commTools.length === 1 ? ' tool' : ' tools');
+  document.getElementById('opsToolCount').textContent = opsTools.length + (opsTools.length === 1 ? ' tool' : ' tools');
+
+  // Render Communication Tools
+  document.getElementById('commToolGrid').innerHTML = commTools.map((t, i) => `
+    <a class="tool-card" href="${t.href}">
+      <div class="tool-index">${String(i+1).padStart(2,'0')}</div>
+      <div class="tool-name">${t.name}</div>
+      <div class="tool-desc">${t.description}</div>
+      <div class="tool-tags">${t.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div>
+    </a>
+  `).join('');
+
+  // Render Operational Tools (+ Placeholder Card)
+  document.getElementById('opsToolGrid').innerHTML = opsTools.map((t, i) => `
     <a class="tool-card" href="${t.href}">
       <div class="tool-index">${String(i+1).padStart(2,'0')}</div>
       <div class="tool-name">${t.name}</div>
