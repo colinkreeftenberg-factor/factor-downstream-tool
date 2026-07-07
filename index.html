@@ -49,12 +49,20 @@
   /* TOOLS SECTION */
   .wrap{max-width:1120px;margin:0 auto;padding:56px 32px 96px;}
   .section-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:10px;}
-  .section-head:not(:first-of-type){margin-top:56px;} /* Balanced spacing between grid sections */
+  .section-head:not(:first-of-type){margin-top:56px;} 
   .section-title{font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#5b5b54;}
   .section-count{font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:#8a897d;}
 
   .tool-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
-  @media (max-width: 860px){.tool-grid{grid-template-columns:1fr;}}
+  
+  /* Compact Grid for SOP Buttons (Prevents full-width stretching) */
+  .mini-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+
+  @media (max-width: 860px){
+    .tool-grid, .mini-grid {grid-template-columns:1fr;}
+  }
 
   .tool-card{
     background:#FBFBF7; border:1px solid var(--line); border-radius:var(--radius);
@@ -72,11 +80,11 @@
   
   .tool-name{
     font-size:16px; font-weight:800; letter-spacing:-0.01em; max-width:85%;
-    text-transform:uppercase; /* Forces all titles into capitals */
-    border-bottom:3px solid var(--saffron); /* Thinner accent line matching page identity */
+    text-transform:uppercase; 
+    border-bottom:3px solid var(--saffron); 
     display:inline-block;
     padding-bottom:4px;
-    align-self:flex-start; /* Keeps the underline accurately bound to the text length */
+    align-self:flex-start; 
   }
   
   .tool-desc{font-size:13px; color:#5b5b54; line-height:1.55; max-width:90%;}
@@ -87,12 +95,50 @@
     padding:3px 9px; border-radius:999px;
   }
 
+  /* TRUE MINI BUTTON VARIANT FOR SOPs */
+  .tool-card.mini-card {
+    padding: 14px 44px 14px 20px;
+    min-height: 0;
+    height: 58px;
+    flex-direction: row;
+    align-items: center;
+    border-radius: var(--radius-sm);
+  }
+  .tool-card.mini-card .tool-name {
+    font-size: 12.5px;
+    padding-bottom: 2px;
+    border-bottom: 2px solid var(--saffron);
+    max-width: 100%;
+  }
+  .tool-card.mini-card::after {
+    top: 50%;
+    transform: translateY(-50%);
+    right: 20px;
+    font-size: 15px;
+  }
+  .tool-card.mini-card:hover::after {
+    transform: translateY(-50%) translateX(3px);
+  }
+
   .add-card{
     border:1.5px dashed #c9c7ba; border-radius:var(--radius); padding:26px;
     display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:6px;
     color:#9a998f; font-size:13px; min-height:100%;
   }
+  /* Matching Mini Add Card */
+  .add-card.mini-card {
+    padding: 14px 20px;
+    min-height: 0;
+    height: 58px;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    justify-content: flex-start;
+    border-radius: var(--radius-sm);
+    font-size: 11.5px;
+  }
   .add-card .plus{font-size:22px; font-weight:700; color:#c9c7ba;}
+  .add-card.mini-card .plus {line-height:1; margin-top:-2px; font-size:18px;}
 
   footer{margin-top:56px; font-size:11.5px; color:#9b9a8f; text-align:center;}
   a.quiet{color:inherit; text-decoration:underline; text-underline-offset:2px;}
@@ -130,7 +176,7 @@
     <div class="section-title">Confluence SOP's</div>
     <div class="section-count" id="sopCount"></div>
   </div>
-  <div class="tool-grid" id="sopGrid"></div>
+  <div class="mini-grid" id="sopGrid"></div>
 
   <footer>Factor · internal tools · made &amp; maintained by <strong>Colin Kreeftenberg</strong> — questions, edits or new tools go to him.</footer>
 </div>
@@ -171,9 +217,9 @@ const TOOLS = [
   },
   {
     name: "Swap & Shortage - CRM Guide",
-    description: "Official documentation and detailed workflow instructions on Confluence.",
+    description: "", 
     href: "https://hellofresh.atlassian.net/wiki/spaces/EUF/pages/6760202365/Swap+Shortage+Tools+User+Guide+BNL+DE-SE-DK",
-    tags: ["SOP", "Wiki"],
+    tags: [],
     category: "sop"
   }
 ];
@@ -188,8 +234,8 @@ function renderTools(){
   document.getElementById('opsToolCount').textContent = opsTools.length + (opsTools.length === 1 ? ' tool' : ' tools');
   document.getElementById('sopCount').textContent = sopTools.length + (sopTools.length === 1 ? ' link' : ' links');
 
-  // Helper macro to generate standard button card structure
-  const createCardHTML = (t, i) => `
+  // Macro for standard layout cards
+  const createStandardCardHTML = (t, i) => `
     <a class="tool-card" href="${t.href}" target="${t.href.startsWith('http') ? '_blank' : '_self'}" rel="noopener">
       <div class="tool-index">${String(i+1).padStart(2,'0')}</div>
       <div class="tool-name">${t.name}</div>
@@ -198,15 +244,22 @@ function renderTools(){
     </a>
   `;
 
+  // Macro for clean, compact mini button cards
+  const createMiniCardHTML = (t) => `
+    <a class="tool-card mini-card" href="${t.href}" target="_blank" rel="noopener">
+      <div class="tool-name">${t.name}</div>
+    </a>
+  `;
+
   // Render individual sections
-  document.getElementById('commToolGrid').innerHTML = commTools.map(createCardHTML).join('');
-  document.getElementById('opsToolGrid').innerHTML = opsTools.map(createCardHTML).join('');
+  document.getElementById('commToolGrid').innerHTML = commTools.map(createStandardCardHTML).join('');
+  document.getElementById('opsToolGrid').innerHTML = opsTools.map(createStandardCardHTML).join('');
   
-  // Render Confluence links section + placeholder addition card at the very base
-  document.getElementById('sopGrid').innerHTML = sopTools.map(createCardHTML).join('') + `
-    <div class="add-card">
+  // Render Confluence links section using the tiny button grid format
+  document.getElementById('sopGrid').innerHTML = sopTools.map(createMiniCardHTML).join('') + `
+    <div class="add-card mini-card">
       <div class="plus">+</div>
-      <div>New links show up here — just add an entry to the <code>TOOLS</code> list in this page.</div>
+      <div>Add links in the <code>TOOLS</code> array.</div>
     </div>
   `;
 }
