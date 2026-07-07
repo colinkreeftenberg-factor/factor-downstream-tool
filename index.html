@@ -50,14 +50,23 @@
   .wrap{max-width:1120px;margin:0 auto;padding:56px 32px 96px;}
   .section-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:10px;}
   .section-head:not(:first-of-type){margin-top:56px;} 
-  .section-title{font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#5b5b54;}
+  
+  /* Section title with yellow accent underline */
+  .section-title{
+    font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#5b5b54;
+    border-bottom:3px solid var(--saffron);
+    display:inline-block;
+    padding-bottom:4px;
+  }
   .section-count{font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:#8a897d;}
 
   .tool-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
   
-  /* Compact Grid for SOP Buttons (Prevents full-width stretching) */
+  /* Compact Grid for Button Lists */
   .mini-grid {
+    display:grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 18px;
   }
 
   @media (max-width: 860px){
@@ -81,10 +90,6 @@
   .tool-name{
     font-size:16px; font-weight:800; letter-spacing:-0.01em; max-width:85%;
     text-transform:uppercase; 
-    border-bottom:3px solid var(--saffron); 
-    display:inline-block;
-    padding-bottom:4px;
-    align-self:flex-start; 
   }
   
   .tool-desc{font-size:13px; color:#5b5b54; line-height:1.55; max-width:90%;}
@@ -95,7 +100,7 @@
     padding:3px 9px; border-radius:999px;
   }
 
-  /* TRUE MINI BUTTON VARIANT FOR SOPs */
+  /* COMPACT MINI BUTTON VARIANT */
   .tool-card.mini-card {
     padding: 14px 44px 14px 20px;
     min-height: 0;
@@ -106,8 +111,6 @@
   }
   .tool-card.mini-card .tool-name {
     font-size: 12.5px;
-    padding-bottom: 2px;
-    border-bottom: 2px solid var(--saffron);
     max-width: 100%;
   }
   .tool-card.mini-card::after {
@@ -125,7 +128,6 @@
     display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:6px;
     color:#9a998f; font-size:13px; min-height:100%;
   }
-  /* Matching Mini Add Card */
   .add-card.mini-card {
     padding: 14px 20px;
     min-height: 0;
@@ -178,13 +180,19 @@
   </div>
   <div class="mini-grid" id="sopGrid"></div>
 
+  <div class="section-head">
+    <div class="section-title">Back up data links</div>
+    <div class="section-count" id="backupCount"></div>
+  </div>
+  <div class="mini-grid" id="backupGrid"></div>
+
   <footer>Factor · internal tools · made &amp; maintained by <strong>Colin Kreeftenberg</strong> — questions, edits or new tools go to him.</footer>
 </div>
 
 <script>
 /* =================================================================
    TOOLS — add items here. Supported categories: 'communication', 
-   'operational', or 'sop'.
+   'operational', 'sop', or 'backup'.
 ================================================================= */
 const TOOLS = [
   {
@@ -209,12 +217,19 @@ const TOOLS = [
     category: "operational"
   },
   {
-    name: "Compensation Export Builder",
+    name: "Verden - Bulk Export Builder",
     description: "Downstream tool for building and exporting customer compensation profiles.",
-    href: "https://factor-downstream-tools.vercel.app/tools/factor_compensation_export_builder_3.html",
+    href: "https://docs.google.com/spreadsheets/d/1NQzhmy1jkfqDoxUQWabxvIV5568eIj4aqsOCaZBozH8/edit",
     tags: ["Ops", "Comp"],
     category: "operational"
   },
+    {
+    name: "BNL -Swap & Shortage",
+    description: "Link to the BNL CC Bartener sheet", 
+    href: "https://hellofresh.atlassian.net/wiki/spaces/EUF/pages/6760202365/Swap+Shortage+Tools+User+Guide+BNL+DE-SE-DK",
+    tags: ["Ops", "BNL"],
+    category: "operational"
+  }
   {
     name: "Swap & Shortage - CRM Guide",
     description: "", 
@@ -228,11 +243,13 @@ function renderTools(){
   const commTools = TOOLS.filter(t => t.category === 'communication');
   const opsTools = TOOLS.filter(t => t.category === 'operational');
   const sopTools = TOOLS.filter(t => t.category === 'sop');
+  const backupTools = TOOLS.filter(t => t.category === 'backup');
 
   // Update Section Counters
   document.getElementById('commToolCount').textContent = commTools.length + (commTools.length === 1 ? ' tool' : ' tools');
   document.getElementById('opsToolCount').textContent = opsTools.length + (opsTools.length === 1 ? ' tool' : ' tools');
   document.getElementById('sopCount').textContent = sopTools.length + (sopTools.length === 1 ? ' link' : ' links');
+  document.getElementById('backupCount').textContent = backupTools.length + (backupTools.length === 1 ? ' link' : ' links');
 
   // Macro for standard layout cards
   const createStandardCardHTML = (t, i) => `
@@ -255,11 +272,19 @@ function renderTools(){
   document.getElementById('commToolGrid').innerHTML = commTools.map(createStandardCardHTML).join('');
   document.getElementById('opsToolGrid').innerHTML = opsTools.map(createStandardCardHTML).join('');
   
-  // Render Confluence links section using the tiny button grid format
+  // Render Confluence links section
   document.getElementById('sopGrid').innerHTML = sopTools.map(createMiniCardHTML).join('') + `
     <div class="add-card mini-card">
       <div class="plus">+</div>
       <div>Add links in the <code>TOOLS</code> array.</div>
+    </div>
+  `;
+
+  // Render Backup section (Currently empty layout)
+  document.getElementById('backupGrid').innerHTML = backupTools.map(createMiniCardHTML).join('') + `
+    <div class="add-card mini-card">
+      <div class="plus">+</div>
+      <div>Add backup links in the <code>TOOLS</code> array.</div>
     </div>
   `;
 }
