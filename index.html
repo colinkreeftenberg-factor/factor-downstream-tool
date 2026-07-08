@@ -33,7 +33,7 @@
     border-bottom:6px solid var(--saffron); display:inline-block; padding-bottom:8px;
   }
   .hero-subtitle{font-size:18px; font-weight:500; color:#c9c8bd; margin:20px 0 0; max-width:420px; line-height:1.5;}
-  .hero-desc{font-size:13.5px; color:#8a897d; margin-top:16px; max-width:420px; line-height:1.6;}
+  .hero-desc{font-size:13.5px; color:#8a897d; margin-top:16px; max-width:460px; line-height:1.6;}
   .hero-photo{
     position:relative; border-radius:var(--radius); overflow:hidden; aspect-ratio:4/3.1;
     background:#e9ddcf;
@@ -60,7 +60,7 @@
   }
   .section-count{font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:#8a897d;}
 
-  .tool-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
+  .tool-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
   
   /* Compact Grid for Button Lists */
   .mini-grid {
@@ -75,30 +75,33 @@
 
   .tool-card{
     background:#FBFBF7; border:1px solid var(--line); border-radius:var(--radius);
-    padding:26px; display:flex; flex-direction:column; gap:14px; text-decoration:none; color:inherit;
-    transition:.15s border-color, .15s transform, .15s box-shadow;
+    padding:20px 22px; display:flex; flex-direction:column; gap:8px; text-decoration:none; color:inherit;
+    transition:.15s border-color, .15s transform, .15s box-shadow, .15s background;
     position:relative; overflow:hidden;
   }
   .tool-card:hover{border-color:var(--carbon); transform:translateY(-2px); box-shadow:0 10px 24px rgba(20,20,20,0.08);}
   .tool-card::after{
-    content:'→'; position:absolute; top:24px; right:26px; font-size:18px; color:#c9c7ba;
+    content:'→'; position:absolute; top:20px; right:22px; font-size:16px; color:#c9c7ba;
     transition:.15s color, .15s transform;
   }
   .tool-card:hover::after{color:var(--carbon); transform:translateX(3px);}
-  .tool-index{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#9a998f; letter-spacing:.04em;}
-  
+
   .tool-name{
-    font-size:16px; font-weight:800; letter-spacing:-0.01em; max-width:85%;
+    font-size:14px; font-weight:800; letter-spacing:-0.01em; max-width:85%;
     text-transform:uppercase; 
   }
   
-  .tool-desc{font-size:13px; color:#5b5b54; line-height:1.55; max-width:90%;}
+  .tool-desc{font-size:12.5px; color:#5b5b54; line-height:1.5; max-width:92%;}
   .tool-tags{display:flex; gap:6px; flex-wrap:wrap; margin-top:auto;}
   .tag{
     font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.03em;
     background:var(--natural-2); border:1px solid var(--line); color:#5b5b54;
     padding:3px 9px; border-radius:999px;
   }
+
+  /* Accent variant — used to sub-group cards within a category without adding extra structure */
+  .tool-card.accent-grey{background:var(--natural-2); border-color:#c9c7ba;}
+  .tool-card.accent-grey .tool-desc{color:#7a7969;}
 
   /* COMPACT MINI BUTTON VARIANT */
   .tool-card.mini-card {
@@ -155,7 +158,7 @@
       <div class="hero-eyebrow">Internal Ops Tooling</div>
       <h1 class="hero-title">FACTOR_EU</h1>
       <div class="hero-subtitle">Swap &amp; Shortage Applications</div>
-      <div class="hero-desc">A small suite of tools to turn production incident data into customer-ready comms exports — across BNL, DE, SE and DK.</div>
+      <div class="hero-desc">A suite of tools to plan, manage and communicate swap &amp; shortage impacts — from production floor to customer-ready comms — across BNL, DE, SE and DK.</div>
     </div>
     <div class="hero-photo"><img src="assets/hero.png" alt="Factor meal box" /></div>
   </div>
@@ -193,58 +196,64 @@
 /* =================================================================
    TOOLS — add items here. Supported categories: 'communication', 
    'operational', 'sop', or 'backup'.
+
+   Optional 'accent' field on operational tools: 'yellow' | 'grey'
+   Use this to visually sub-group related tools within a category
+   without changing the layout structure.
 ================================================================= */
 const TOOLS = [
   {
     name: "BNL CRM Tool- NL/BE",
-    description: "Swap & shortage export tool for the Dutch and Belgian market.",
+    description: "Swap & shortage exports for NL/BE.",
     href: "tools/bnl-crm-tool.html",
     tags: ["NL", "BE", "FR-BE"],
     category: "communication"
   },
   {
     name: "VE CRM Tool — DE/SE/DK",
-    description: "Swap & shortage export tool for the German and Nordics markets.",
+    description: "Swap & shortage exports for DE/SE/DK.",
     href: "tools/de-se-dk-tool.html",
     tags: ["DE", "SE", "DK"],
     category: "communication"
   },
   {
     name: "BNL Proactive Swap & Shortage Manager",
-    description: "Tool to stategically plan shorts and swaps into updated box-files, and directly export bulk-error exports (BENELUX VERSION)",
+    description: "Plan swaps & shortages into box-files, export bulk-errors (BNL).",
     href: "tools/swap-shortage-manager.html",
     tags: ["NL","BE"],
-    category: "operational"
+    category: "operational",
+    accent: "grey"
   },
-    {
+  {
     name: "VE Proactive Swap & Shortage Manager",
-    description: "Tool to stategically plan shorts and swaps into updated box-files, and directly export bulk-error exports (VERDEN VERSION)",
+    description: "Plan swaps & shortages into box-files, export bulk-errors (Verden).",
     href: "tools/swap_shortage_manager_verden_3.html",
     tags: ["SE","DK","DE"],
-    category: "operational"
+    category: "operational",
+    accent: "grey"
   },
-    {
+  {
     name: "VE Retrospective Swap & Shortage Manager",
-    description: "Submit shortages or swaps happening on the line, for further reporting (VERDEN VERSION)",
+    description: "Log line shortages & swaps for reporting (Verden).",
     href: "tools/line-impact-builder_2.html",
     tags: ["SE","DK","DE"],
     category: "operational"
   },
- 
   {
     name: "Verden - Bulk Export Builder",
-    description: "Downstream tool for building and exporting customer compensation profiles.",
+    description: "Build & export customer compensation profiles.",
     href: "tools/factor_compensation_export_builder_3.html",
     tags: ["Ops", "Comp"],
     category: "operational"
   },
   {
     name: "BNL -Swap & Shortage",
-    description: "Link to the BNL CC Bartener sheet", 
+    description: "BNL CC Bartender sheet.", 
     href: "https://docs.google.com/spreadsheets/d/1NQzhmy1jkfqDoxUQWabxvIV5568eIj4aqsOCaZBozH8/edit",
     tags: ["Ops", "BNL"],
-    category: "operational"
-  }, // <--- The missing comma was added here!
+    category: "operational",
+    accent: "grey"
+  },
   {
     name: "Swap & Shortage - CRM Guide",
     description: "", 
@@ -267,9 +276,8 @@ function renderTools(){
   document.getElementById('backupCount').textContent = backupTools.length + (backupTools.length === 1 ? ' link' : ' links');
 
   // Macro for standard layout cards
-  const createStandardCardHTML = (t, i) => `
-    <a class="tool-card" href="${t.href}" target="${t.href.startsWith('http') ? '_blank' : '_self'}" rel="noopener">
-      <div class="tool-index">${String(i+1).padStart(2,'0')}</div>
+  const createStandardCardHTML = (t) => `
+    <a class="tool-card${t.accent ? ' accent-' + t.accent : ''}" href="${t.href}" target="${t.href.startsWith('http') ? '_blank' : '_self'}" rel="noopener">
       <div class="tool-name">${t.name}</div>
       <div class="tool-desc">${t.description}</div>
       <div class="tool-tags">${t.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div>
