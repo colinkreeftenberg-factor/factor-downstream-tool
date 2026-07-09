@@ -1,10 +1,13 @@
 const { GoogleAuth } = require('google-auth-library');
 
-const SHEET_ID = '1CJ7raeP-Ex7eOkQ0ShpbgXKeHi1EJWXE6XNITArW7Do';
+const LINE_SHEET_ID = '1CJ7raeP-Ex7eOkQ0ShpbgXKeHi1EJWXE6XNITArW7Do';
+const BACKEND_SHEET_ID = '1DjYDHfwKLRkQzlEj22whxrBjdk9T36VRQqMGE91l17U';
 
-const TAB_MAP = {
-  bartender: 'Bartender!A1:Z10000',
-  odl: 'ODL!A1:Z10000'
+const SOURCES = {
+  bartender: { spreadsheetId: LINE_SHEET_ID, range: 'Bartender!A:Z' },
+  odl: { spreadsheetId: LINE_SHEET_ID, range: 'ODL!A:Z' },
+  verden: { spreadsheetId: BACKEND_SHEET_ID, range: 'Verden!A:BZ' },
+  boxpricetz: { spreadsheetId: BACKEND_SHEET_ID, range: 'BoxPriceTZ!A:Z' }
 };
 
 let cachedClient = null;
@@ -25,16 +28,16 @@ async function getAuthClient() {
 
 module.exports = async function handler(req, res) {
   const sheet = req.query.sheet;
-  const range = TAB_MAP[sheet];
+  const source = SOURCES[sheet];
 
-  if (!range) {
+  if (!source) {
     res.status(400).json({ error: 'Unknown sheet parameter: ' + sheet });
     return;
   }
 
   try {
     const client = await getAuthClient();
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${source.spreadsheetId}/values/${encodeURIComponent(source.range)}`;
     const response = await client.request({ url });
     res.setHeader('Cache-Control', 's-maxage=30');
     res.status(200).json({ data: response.data.values });
