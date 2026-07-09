@@ -11,6 +11,9 @@ let cachedClient = null;
 
 async function getAuthClient() {
   if (cachedClient) return cachedClient;
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+    throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY env var is missing on this deployment.');
+  }
   const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
   const auth = new GoogleAuth({
     credentials,
