@@ -855,7 +855,33 @@ function buildBulkErrorRows(){
   return groups;
 }
 
-function downloadCsv(filename, columns, rows){
+function driveFilename(baseName){
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  return `${dd}.${mm}-${baseName}`;
+}
+
+async function postToDrive(baseName, content, mimeType, statusElId){
+  const statusEl = statusElId ? document.getElementById(statusElId) : null;
+  const filename = driveFilename(baseName);
+  if(statusEl) statusEl.textContent = 'Posting to Drive…';
+  try{
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename, content, mimeType })
+    });
+    const data = await res.json();
+    if(!res.ok || data.error) throw new Error(data.error || ('HTTP '+res.status));
+    if(statusEl) statusEl.textContent = `Posted to Drive ✓ (${filename})`;
+  } catch(err){
+    if(statusEl) statusEl.textContent = `Drive upload failed: ${err.message}`;
+    console.error('Drive upload failed', err);
+  }
+}
+
+function downloadCsv(filename, columns, rows, driveBaseName, statusElId){
   const csv = Papa.unparse({ fields: columns, data: rows.map(r => columns.map(c => r[c])) });
   const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -863,6 +889,7 @@ function downloadCsv(filename, columns, rows){
   a.href = url; a.download = filename;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  if(driveBaseName) postToDrive(driveBaseName, csv, 'text/csv;charset=utf-8', statusElId);
 }
 
 function renderBulkDownloads(){
@@ -881,13 +908,16 @@ function renderBulkDownloads(){
       <div class="dl-locale">${escapeHtml(marketName)} (${escapeHtml(market)})</div>
       <div class="dl-meta">${rows.length} row${rows.length===1?'':'s'}</div>
       <button class="btn btn-dark" data-market-idx="${i}">Download<br><span class="mono" style="font-weight:500;">${filename}</span></button>
+      <div class="dz-hint" id="drive-status-bulk-${i}"></div>
     </div>`;
   }).join('');
   row.querySelectorAll('button[data-market-idx]').forEach(btn=>{
-    const market = markets[+btn.dataset.marketIdx];
+    const idx = +btn.dataset.marketIdx;
+    const market = markets[idx];
     const rows = groups[market];
     const filename = `f_bulk_error_${todayDDMM()}_${market}.csv`;
-    btn.addEventListener('click', ()=> downloadCsv(filename, OUTPUT_COLUMNS, rows));
+    const driveBaseName = `f_bulk_error_${market}.csv`;
+    btn.addEventListener('click', ()=> downloadCsv(filename, OUTPUT_COLUMNS, rows, driveBaseName, `drive-status-bulk-${idx}`));
   });
 }
 
@@ -971,15 +1001,17 @@ function toTxt(rows){
   rows.forEach(r => lines.push(headers.map(h => (r[h]||"").toString().replace(/\t/g," ").replace(/\r?\n/g," ")).join("\t")));
   return lines.join("\r\n");
 }
-function downloadTxt(loc, rows){
-  const blob = new Blob(["\ufeff" + toTxt(rows)], {type:"text/plain;charset=utf-8"});
+function downloadTxt(loc, rows, statusElId){
+  const text = toTxt(rows);
+  const blob = new Blob(["\ufeff" + text], {type:"text/plain;charset=utf-8"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = `cc_email_${fileSafe(loc)}_${todayDDMM()}.txt`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  postToDrive(`cc_email_${fileSafe(loc)}.txt`, text, 'text/plain;charset=utf-8', statusElId);
 }
-function downloadManualReview(rows){
+function downloadManualReview(rows, statusElId){
   const fields = ['business_unit','customer_id','flag_reason'];
   const csv = Papa.unparse({fields, data: rows});
   const blob = new Blob(["\ufeff"+csv], {type:"text/csv;charset=utf-8"});
@@ -988,6 +1020,7 @@ function downloadManualReview(rows){
   a.href = url; a.download = `cc_email_needs_review.csv`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  postToDrive('cc_email_needs_review.csv', csv, 'text/csv;charset=utf-8', statusElId);
 }
 
 let lastCrmBuild = null;
@@ -1000,19 +1033,22 @@ function renderCrmDownloads(){
     return `<div class="dl-card">
       <div class="dl-locale">${loc}</div><div class="dl-meta">${rows.length} row${rows.length===1?'':'s'}</div>
       <button class="btn btn-dark" data-loc-idx="${i}" ${rows.length===0?'disabled':''}>Download<br><span class="mono" style="font-weight:500;">${filename}</span></button>
+      <div class="dz-hint" id="drive-status-crm-${i}"></div>
     </div>`;
   }).join('') + `<div class="dl-card">
       <div class="dl-locale">Needs review</div><div class="dl-meta">${lastCrmBuild.manualReviewRows.length} row(s)</div>
       <button class="btn btn-dark" id="btn-needs-review" ${lastCrmBuild.manualReviewRows.length===0?'disabled':''}>Download<br><span class="mono" style="font-weight:500;">cc_email_needs_review.csv</span></button>
+      <div class="dz-hint" id="drive-status-review"></div>
     </div>`;
 
   row.querySelectorAll('button[data-loc-idx]').forEach(btn=>{
-    const loc = LOCALES[+btn.dataset.locIdx];
+    const idx = +btn.dataset.locIdx;
+    const loc = LOCALES[idx];
     const rows = lastCrmBuild.resultByLocale[loc] || [];
-    btn.addEventListener('click', ()=> downloadTxt(loc, rows));
+    btn.addEventListener('click', ()=> downloadTxt(loc, rows, `drive-status-crm-${idx}`));
   });
   const reviewBtn = document.getElementById('btn-needs-review');
-  if(reviewBtn) reviewBtn.addEventListener('click', ()=> downloadManualReview(lastCrmBuild.manualReviewRows));
+  if(reviewBtn) reviewBtn.addEventListener('click', ()=> downloadManualReview(lastCrmBuild.manualReviewRows, 'drive-status-review'));
 }
 
 /* =================================================================
