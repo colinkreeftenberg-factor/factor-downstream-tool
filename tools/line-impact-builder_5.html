@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Swap & Shortage During Production</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root{
+    --carbon:#141414; --natural:#F1F1EA; --natural-2:#E7E6DC;
+    --saffron:#FFC800; --line:#D9D7C9; --ok:#206B19; --warn:#C79C00; --err:#9B2629;
+    --radius:22px; --radius-sm:12px; --ink-dim:#5b5b54; --ink-faint:#8a897d;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{ background:var(--natural); color:var(--carbon); font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1040px;margin:0 auto;padding:40px 24px 96px;}
+
+  .app-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:6px;}
+  .app-title{font-weight:600;font-size:26px;letter-spacing:0.01em;text-transform:uppercase;border-bottom:4px solid var(--saffron);padding-bottom:3px;display:inline-block;line-height:1.1;}
+  .app-subtitle{font-weight:400;font-size:14px;color:var(--ink-dim);margin-top:7px;}
+  .app-maker{font-size:11.5px;color:var(--ink-faint);margin-top:6px;}
+  .app-sub{font-weight:500;font-size:13.5px;color:var(--ink-dim);margin:10px 0 0;max-width:680px;line-height:1.5;}
+  .divider{height:1px;background:var(--line);margin:26px 0 30px;}
+
+  .step{ background:#FBFBF7; border:1px solid var(--line); border-radius:var(--radius); padding:24px 26px; margin-bottom:18px; position:relative;}
+  .step[data-disabled="true"]{opacity:0.45;pointer-events:none;}
+  .step-head{display:flex;align-items:baseline;gap:12px;margin-bottom:4px;}
+  .step-num{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:500;background:var(--natural-2);border:1px solid var(--line);padding:2px 9px;border-radius:999px;}
+  .step-title{font-size:16.5px;font-weight:700;letter-spacing:-0.01em;}
+  .step-desc{font-size:13px;color:var(--ink-dim);margin:8px 0 16px;line-height:1.5;max-width:680px;}
+
+  .live-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  @media (max-width:820px){.live-grid{grid-template-columns:repeat(2,1fr);}}
+  .livecard{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;transition:.2s;}
+  .livecard.ok{background:#E9F5E4;border-color:#BFDDB3;}
+  .livecard.warn{background:#FBE3E3;border-color:#E9B7B8;}
+  .lc-label{font-size:11.5px;font-weight:700;}
+  .lc-status{font-size:11px;color:var(--ink-dim);margin-top:3px;}
+  .lc-refresh{margin-top:8px;background:none;border:1px solid var(--line);color:var(--carbon);border-radius:999px;padding:4px 10px;font-size:10.5px;cursor:pointer;font-family:inherit;}
+  .lc-refresh:hover{border-color:var(--carbon);}
+
+  label.field-label{display:block;font-size:11px;color:var(--ink-dim);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+  input[type=text], input[type=number], select{width:100%;background:#fff;border:1px solid var(--line);color:var(--carbon);padding:10px 12px;border-radius:10px;font-size:13.5px;font-family:inherit;}
+  input:focus, select:focus{border-color:var(--carbon);outline:none;}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;}
+  @media (max-width:820px){.form-grid{grid-template-columns:1fr 1fr;}}
+  .btn{appearance:none;border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:13.5px;padding:11px 20px;border-radius:999px;transition:.12s;}
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:var(--saffron);color:var(--carbon);}
+  .btn-primary:hover{box-shadow:0 0 0 3px rgba(255,200,0,.35);}
+  .btn-primary:disabled{background:#E9E6D4;color:#a9a798;cursor:not-allowed;box-shadow:none;}
+  .btn-dark{background:var(--carbon);color:var(--natural);}
+  .btn-dark:hover{box-shadow:0 0 0 3px rgba(20,20,20,.15);}
+  .btn-dark:disabled{background:#cfcfc7;color:#8f8f86;cursor:not-allowed;}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--carbon);}
+  .btn-ghost:hover{border-color:var(--carbon);}
+  .btn-sm{padding:7px 14px;font-size:12px;border-radius:999px;}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;align-items:center;}
+
+  .incident-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-top:14px;}
+  .incident-card.confirmed{border-color:var(--ok);background:#F3F9F1;}
+  .incident-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .incident-title{font-weight:700;font-size:13.5px;}
+  .incident-meta{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);margin-top:2px;}
+  .remove-x{background:none;border:none;cursor:pointer;color:#9b9a8f;font-size:16px;line-height:1;padding:2px;}
+  .remove-x:hover{color:var(--carbon);}
+  .match-summary{margin-top:12px;font-size:12.5px;background:var(--natural);border-radius:10px;padding:10px 12px;}
+  .match-summary b{font-weight:700;}
+  .warn-line{color:var(--err);font-size:12px;margin-top:6px;}
+  .ok-line{color:var(--ok);font-size:12px;margin-top:6px;}
+
+  .combo{position:relative;max-width:360px;margin-top:10px;}
+  .combo-input{cursor:text;}
+  .combo-panel{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:30;background:#fff;border:1px solid var(--line);border-radius:12px;max-height:240px;overflow-y:auto;box-shadow:0 12px 28px rgba(20,20,20,.14);padding:6px;}
+  .combo-option{display:flex;justify-content:space-between;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;}
+  .combo-option:hover, .combo-option.active{background:var(--natural);}
+  .co-meta{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+  .co-idx{font-size:10px;font-family:'IBM Plex Mono',monospace;color:#8A6900;background:rgba(255,200,0,.22);border-radius:5px;padding:1px 5px;font-weight:600;}
+  .combo-empty{padding:14px 10px;font-size:12.5px;color:var(--ink-faint);text-align:center;}
+
+  table{width:100%;border-collapse:collapse;font-size:12px;background:#fff;}
+  thead th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);border-bottom:1px solid var(--line);padding:8px 9px;position:sticky;top:0;background:#fff;}
+  tbody td{padding:8px 9px;border-bottom:1px solid #EFEDE4;vertical-align:top;}
+  .tablewrap{border:1px solid var(--line);border-radius:var(--radius-sm);overflow:auto;max-height:420px;margin-bottom:6px;}
+  .mono{font-family:'IBM Plex Mono',monospace;font-size:11.5px;}
+  .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;}
+  .tag.swap{background:#FFF3CC;color:#8A6A00;}
+  .tag.short{background:#EFEFEF;color:#333;}
+
+  .toggle-switch{position:relative;display:inline-block;width:42px;height:24px;flex:none;}
+  .toggle-switch input{opacity:0;width:0;height:0;}
+  .toggle-slider{position:absolute;cursor:pointer;inset:0;background:#cfcdc0;border-radius:999px;transition:.15s;}
+  .toggle-slider::before{content:"";position:absolute;height:18px;width:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s;}
+  .toggle-switch input:checked + .toggle-slider{background:var(--saffron);}
+  .toggle-switch input:checked + .toggle-slider::before{transform:translateX(18px);}
+
+  .summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+  @media (max-width:760px){.summary-grid{grid-template-columns:1fr;}}
+  .sum-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px;}
+  .sum-locale{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:var(--ink-faint);letter-spacing:.03em;text-transform:uppercase;}
+  .sum-count{font-size:24px;font-weight:800;margin-top:3px;}
+  .sum-bu{font-size:12px;color:var(--ink-faint);margin-top:2px;}
+
+  .download-row{display:flex;gap:12px;flex-wrap:wrap;}
+  .dl-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px;display:flex;flex-direction:column;gap:8px;min-width:220px;flex:1;}
+  .dl-locale{font-weight:800;font-size:14px;}
+  .dl-meta{font-size:11.5px;color:var(--ink-faint);}
+  .dl-card .btn{width:100%;text-align:center;border-radius:12px;padding:9px 10px;font-size:11.5px;white-space:normal;word-break:break-all;}
+  .dl-card .btn:disabled{opacity:.5;}
+  .slack-box{background:var(--carbon);border-radius:var(--radius-sm);padding:16px 18px;}
+  .slack-text{color:var(--natural);font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.7;white-space:pre-wrap;word-break:break-word;margin:0;}
+  footer{margin-top:32px;font-size:12px;color:var(--ink-faint);text-align:center;}
+  a.quiet{color:inherit;text-decoration:underline;text-underline-offset:2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="app-header">
+    <div>
+      <div class="app-title">Swap & Shortage During Production</div>
+      <div class="app-subtitle">Turns boxes impacted by a recipe shortage into files used for swap and shortage communication.</div>
+      <div class="app-maker">Made &amp; maintained by <strong>Colin Kreeftenberg</strong> — questions or edits go to him.</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- STEP 1 -->
+  <div class="step" id="step1">
+    <div class="step-head"><span class="step-num">01</span><span class="step-title">Live data</span></div>
+    <div class="step-desc">Loaded automatically. Refresh manually if a sheet just changed.</div>
+    <div class="live-grid">
+      <div class="livecard" id="lc-bartender">
+        <div class="lc-label">Bartender</div>
+        <div class="lc-status" id="lc-bartender-status">Not loaded yet…</div>
+        <button class="lc-refresh" data-src="bartender">Refresh</button>
+      </div>
+      <div class="livecard" id="lc-odl">
+        <div class="lc-label">ODL</div>
+        <div class="lc-status" id="lc-odl-status">Not loaded yet…</div>
+        <button class="lc-refresh" data-src="odl">Refresh</button>
+      </div>
+      <div class="livecard" id="lc-verden">
+        <div class="lc-label">Meal Database</div>
+        <div class="lc-status" id="lc-verden-status">Not loaded yet…</div>
+        <button class="lc-refresh" data-src="verden">Refresh</button>
+      </div>
+      <div class="livecard" id="lc-boxprice">
+        <div class="lc-label">Box prices (TZ)</div>
+        <div class="lc-status" id="lc-boxprice-status">Not loaded yet…</div>
+        <button class="lc-refresh" data-src="boxprice">Refresh</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step" id="step2">
+    <div class="step-head"><span class="step-num">02</span><span class="step-title">Add incidents</span></div>
+    <div class="step-desc">One row per affected slot. Add as many as you need, then find matches for each.</div>
+
+    <div class="form-grid">
+      <div>
+        <label class="field-label">Line</label>
+        <input type="text" id="in-line" placeholder="ASL4" list="lineOptions">
+        <datalist id="lineOptions"></datalist>
+      </div>
+      <div>
+        <label class="field-label">First box ID</label>
+        <input type="text" id="in-firstbox" placeholder="TZ36092879">
+      </div>
+      <div>
+        <label class="field-label">Last box ID (optional)</label>
+        <input type="text" id="in-lastbox" placeholder="leave blank = rest of run">
+      </div>
+      <div>
+        <label class="field-label">Affected slot</label>
+        <div id="slot-combo-mount"></div>
+      </div>
+    </div>
+
+    <div class="form-grid" style="margin-top:12px;">
+      <div style="grid-column:span 4;">
+        <label class="field-label">Error category (also sets swap/shortage)</label>
+        <select id="in-category"></select>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-add-incident">Add incident</button>
+    </div>
+
+    <div id="incidentList"></div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step" id="step3" data-disabled="true">
+    <div class="step-head"><span class="step-num">03</span><span class="step-title">Review</span></div>
+    <div class="step-desc">Every confirmed customer across all incidents in this session.</div>
+    <div class="step-body" id="reviewBody"></div>
+    <details style="margin-top:6px;">
+      <summary style="cursor:pointer;font-size:12.5px;color:var(--ink-dim);">Show per-customer details</summary>
+      <div class="tablewrap" id="tablewrap" style="display:block;margin-top:10px;">
+        <table>
+          <thead><tr><th>Type</th><th>Market</th><th>Box ID</th><th>Customer ID</th><th>Week</th><th>Slot</th><th>Recipe</th><th>Qty</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </details>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-ghost btn-sm" id="btn-reset">Reset session</button>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step" id="step4" data-disabled="true">
+    <div class="step-head"><span class="step-num">04</span><span class="step-title">Bulk Error Report</span></div>
+    <div class="step-desc">One CSV per market, same format as the other bulk-error tools.</div>
+    <div class="download-row" id="bulkDownloadRow"></div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step" id="step5" data-disabled="true">
+    <div class="step-head"><span class="step-num">05</span><span class="step-title">CRM export</span></div>
+    <div class="step-desc">One text file per locale, plus anything that needs a manual look.</div>
+    <div class="download-row" id="crmDownloadRow"></div>
+  </div>
+
+  <!-- STEP 6 -->
+  <div class="step" id="step6" data-disabled="true">
+    <div class="step-head"><span class="step-num">06</span><span class="step-title">Slack update</span></div>
+    <div class="step-desc">A short summary to post in the ops channel.</div>
+    <div class="step-body" id="slackBody"></div>
+  </div>
+
+  <footer>Factor · internal tool · sourced from the <a class="quiet" href="https://docs.google.com/spreadsheets/d/1CJ7raeP-Ex7eOkQ0ShpbgXKeHi1EJWXE6XNITArW7Do/edit" target="_blank" rel="noopener">Bartender/ODL sheet</a> and the shared Verden backend.</footer>
+
+</div>
+
+<script>
+/* =================================================================
+   STATIC CONFIG
+================================================================= */
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbyZ0jqfnQnWDK3gnsLHJvu68BrT0p3_PIkC2lkdRdcF1LlFn_zhszHUI8elLYNfqYFp6A/exec';
+
+const MARKET_CONFIG = {
+  TZ: { name:'Germany', currency:'EUR', locale:'de-DE', nameKey:'german' },
+  TV: { name:'Sweden',  currency:'SEK', locale:'sv-SE', nameKey:'swedish' },
+  TK: { name:'Denmark', currency:'DKK', locale:'da-DK', nameKey:'danish' }
+};
+const LOCALES = ['de-DE','sv-SE','da-DK'];
+
+const DEFAULT_CATEGORIES = [
+  { issue:'Cooking issues in production', cat:'operations_use_only', sub:'_recipes', complaint:'internal_cooking_error', d1:'missing', d2:'' },
+  { issue:'Verden production issue causes recipe not to be finished', cat:'operations_use_only', sub:'_recipes', complaint:'internal_production_error_inventory', d1:'sku_change', d2:'impact_high' },
+  { issue:'Verden production issue causes recipe not to be finished', cat:'operations_use_only', sub:'_recipes', complaint:'internal_production_error_inventory', d1:'missing', d2:'impact_high' },
+  { issue:'Verden ordering/procurement issue causes recipe not to be finished', cat:'operations_use_only', sub:'_recipes', complaint:'internal_ordering_error', d1:'sku_change', d2:'' },
+  { issue:'Verden ordering/procurement issue causes recipe not to be finished', cat:'operations_use_only', sub:'_recipes', complaint:'internal_ordering_error', d1:'missing', d2:'' },
+  { issue:'Maitre issue with meals', cat:'operations_use_only', sub:'_recipes', complaint:'supplier_short_delivery', d1:'sku_change', d2:'' },
+  { issue:'Maitre issue with meals', cat:'operations_use_only', sub:'_recipes', complaint:'supplier_short_delivery', d1:'missing', d2:'' },
+  { issue:'Meals fail in production due to a food safety issue', cat:'operations_use_only', sub:'_recipes', complaint:'internal_food_safety', d1:'sku_change', d2:'impact_high' },
+  { issue:'Meals fail in production due to a food safety issue', cat:'operations_use_only', sub:'_recipes', complaint:'internal_food_safety', d1:'missing', d2:'impact_high' },
+  { issue:'Verden fulfilment causing late/delayed delivery', cat:'operations_use_only', sub:'logistics', complaint:'courier_network_error', d1:'late_delivery_1_day', d2:'late_departure_at_production' },
+  { issue:'Verden fulfilment causing failed delivery', cat:'operations_use_only', sub:'logistics', complaint:'no_delivery', d1:'courier_network_error', d2:'' }
+];
+const OUTPUT_COLUMNS = ['customer id','box id','error category','error sub category','complaint','additional detail 1','additional detail 2','ingredient','recipe name','compensation type','compensation amount','recipe index','culinary sku','comment'];
+
+const TEMPLATES = {"de-DE": {"swap": {"business_unit": "TZ", "subjectline": "Wir haben eine Ersatzmahlzeit für dich", "preheader": "Wichtige Information zu deiner Factor Box", "content": "Leider können unsere Köche aufgrund unvorhergesehener Umstände <b>[Recipe_Swapped]</b> nicht zubereiten. Entschuldige bitte die Unannehmlichkeiten.<br><br>Zum Glück haben wir eine Alternative für dich: Diese Woche erhältst du <b>[Recipe_Swapped_to]</b>.<br><br>Bitte überprüfe die Allergene dieser Mahlzeit.<br><br>Als kleine Geste schreiben wir dir <b>5 € Gutschrift pro Mahlzeit</b> auf deinem Konto gut. Diesen kannst du bei deiner nächsten Box einlösen.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam."}, "swap_multiple": {"business_unit": "TZ", "subjectline": "Wir haben eine Ersatzmahlzeit für dich", "preheader": "Wichtige Information zu deiner Factor Box", "content": "Leider können unsere Köche aufgrund unvorhergesehener Umstände die folgenden Mahlzeiten nicht zubereiten:[Recipe_Swapped]Entschuldige bitte die Unannehmlichkeiten.<br><br>Zum Glück haben wir eine Alternative für dich: Diese Woche erhältst du die folgenden Mahlzeiten:[Recipe_Swapped_to]<br><br>Bitte überprüfe die Allergene dieser Mahlzeiten.<br><br>Als kleine Geste schreiben wir dir <b>5 € Gutschrift pro Mahlzeit</b> auf deinem Konto gut. Diesen kannst du bei deiner nächsten Box einlösen.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam."}, "short": {"business_unit": "TZ", "subjectline": "Entschuldigung... wir können nicht alles liefern", "preheader": "Es fehlt eine Mahlzeit in deiner Factor Box", "content": "Diese Woche fehlt eine Mahlzeit in deiner Box: <b>[Recipe_Missing]</b>. Leider ist es uns nicht rechtzeitig gelungen, diese Mahlzeit durch eine passende Alternative zu ersetzen, die unseren hohen Qualitätsstandards entspricht. Entschuldige bitte die Unannehmlichkeiten.<br><br>Selbstverständlich schreiben wir dir den Betrag als Guthaben auf deinem Konto gut, das du bei deiner nächsten Box als Rabatt einlösen kannst. Und nicht zu vergessen: Genieße die Mahlzeiten, die wir dir liefern konnten."}, "short_multiple": {"business_unit": "TZ", "subjectline": "Entschuldigung... wir können nicht alles liefern", "preheader": "Es fehlt eine Mahlzeit in deiner Factor Box", "content": "Diese Woche fehlen mehrere Mahlzeiten in deiner Box:[Recipe_Missing]Leider ist es uns nicht rechtzeitig gelungen, diese Mahlzeiten durch passende Alternativen zu ersetzen, die unseren hohen Qualitätsstandards entsprechen. Entschuldige bitte die Unannehmlichkeiten.<br><br>Selbstverständlich schreiben wir dir den Betrag als Guthaben auf deinem Konto gut, das du bei deiner nächsten Box als Rabatt einlösen kannst. Und nicht zu vergessen: Genieße die Mahlzeiten, die wir dir liefern konnten."}, "mixed": {"business_unit": "TZ", "subjectline": "Ein paar Anpassungen in deiner Factor Box", "preheader": "Wichtige Information zu deiner Factor Box", "content": "Diese Woche läuft nicht alles nach Plan mit deiner Factor Box.<br><br>Für <b>[Recipe_Missing]</b> konnten wir leider keine passende Alternative finden, die unseren hohen Qualitätsstandards entspricht — diese Mahlzeit fehlt daher in deiner Lieferung.<br><br>Außerdem mussten wir <b>[Recipe_Swapped]</b> ersetzen: Dafür erhältst du <b>[Recipe_Swapped_to]</b>. Bitte überprüfe die Allergene dieser Mahlzeit.<br><br>Entschuldige bitte die Unannehmlichkeiten. Selbstverständlich verrechnen wir alles ordentlich als Guthaben auf deinem Konto.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam."}, "mixed_multiple": {"business_unit": "TZ", "subjectline": "Ein paar Anpassungen in deiner Factor Box", "preheader": "Wichtige Information zu deiner Factor Box", "content": "Diese Woche läuft nicht alles nach Plan mit deiner Factor Box.<br><br>Für die folgenden Mahlzeiten konnten wir leider keine passende Alternative finden, die unseren hohen Qualitätsstandards entspricht — sie fehlen daher in deiner Lieferung:[Recipe_Missing]Außerdem mussten wir die folgenden Mahlzeiten ersetzen:[Recipe_Swapped]Dafür erhältst du:[Recipe_Swapped_to]Bitte überprüfe die Allergene dieser Mahlzeiten.<br><br>Entschuldige bitte die Unannehmlichkeiten. Selbstverständlich verrechnen wir alles ordentlich als Guthaben auf deinem Konto.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam."}, "generic": {"business_unit": "TZ", "subjectline": "Wir haben eine Ersatzmahlzeit für dich", "preheader": "Wichtige Information zu deiner Factor Box", "content": "Aufgrund unvorhergesehener Umstände können unsere Köche diese Woche eine oder mehrere Mahlzeiten nicht nach unserem gewohnt hohen Standard zubereiten. Wir verstehen, dass das ärgerlich sein kann, und entschuldigen uns aufrichtig für die Unannehmlichkeiten. Damit du trotzdem eine leckere Mahlzeit genießen kannst, haben unsere Köche bereits eine passende Ersatzmahlzeit für diese Woche vorbereitet. <br><br> Bitte überprüfe die Allergene in der/den neuen Mahlzeit(en). Als Entschädigung erhältst du außerdem 5 € Gutschrift pro betroffener Mahlzeit, die automatisch mit deiner nächsten Box verrechnet wird. <br><br> Hast du Fragen oder bist du nicht zufrieden? Wende dich gerne an unseren Kundenservice, wir helfen dir gerne weiter!"}}, "sv-SE": {"swap": {"business_unit": "TV", "subjectline": "Vi har en ersättningsmåltid till dig", "preheader": "Viktig information om din Factor Box", "content": "Tyvärr har våra kockar på grund av oförutsedda omständigheter inte kunnat tillaga <b>[Recipe_Swapped]</b>. Vi ber om ursäkt för besväret.<br><br>Som tur är har vi ett alternativ till dig: den här veckan får du <b>[Recipe_Swapped_to]</b> istället.<br><br>Kontrollera gärna allergenerna för den här måltiden.<br><br>Som en liten gest lägger vi till <b>120 SEK tillgodo per måltid</b> på ditt konto. Det kan du använda till din nästa box.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam."}, "swap_multiple": {"business_unit": "TV", "subjectline": "Vi har en ersättningsmåltid till dig", "preheader": "Viktig information om din Factor Box", "content": "Tyvärr har våra kockar på grund av oförutsedda omständigheter inte kunnat tillaga följande måltider:[Recipe_Swapped]Vi ber om ursäkt för besväret.<br><br>Som tur är har vi ett alternativ till dig: den här veckan får du följande måltider istället:[Recipe_Swapped_to]<br><br>Kontrollera gärna allergenerna för dessa måltider.<br><br>Som en liten gest lägger vi till <b>120 SEK tillgodo per måltid</b> på ditt konto. Det kan du använda till din nästa box.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam."}, "short": {"business_unit": "TV", "subjectline": "Vi är ledsna... vi kan inte leverera allt", "preheader": "Det saknas en måltid i din Factor Box", "content": "Den här veckan saknas det en måltid i din box: <b>[Recipe_Missing]</b>. Tyvärr lyckades vi inte i tid hitta ett lämpligt alternativ som uppfyller våra höga kvalitetsstandarder. Vi ber om ursäkt för besväret.<br><br>Vi lägger så klart till beloppet som tillgodo på ditt konto, så att du kan använda det som rabatt på din nästa box. Och glöm inte att njuta av de måltider som faktiskt levererades."}, "short_multiple": {"business_unit": "TV", "subjectline": "Vi är ledsna... vi kan inte leverera allt", "preheader": "Det saknas en måltid i din Factor Box", "content": "Den här veckan saknas det flera måltider i din box:[Recipe_Missing]Tyvärr lyckades vi inte i tid hitta lämpliga alternativ som uppfyller våra höga kvalitetsstandarder. Vi ber om ursäkt för besväret.<br><br>Vi lägger så klart till beloppet som tillgodo på ditt konto, så att du kan använda det som rabatt på din nästa box. Och glöm inte att njuta av de måltider som faktiskt levererades."}, "mixed": {"business_unit": "TV", "subjectline": "Några ändringar i din Factor Box", "preheader": "Viktig information om din Factor Box", "content": "Den här veckan går inte allt enligt plan med din Factor Box.<br><br>För <b>[Recipe_Missing]</b> kunde vi tyvärr inte hitta ett lämpligt alternativ som uppfyller våra höga kvalitetsstandarder — den här måltiden saknas därför i din leverans.<br><br>Dessutom har vi behövt byta ut <b>[Recipe_Swapped]</b>: istället får du <b>[Recipe_Swapped_to]</b>. Kontrollera gärna allergenerna för den här måltiden.<br><br>Vi ber om ursäkt för besväret. Vi ser givetvis till att allt kompenseras korrekt som tillgodo på ditt konto.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam."}, "mixed_multiple": {"business_unit": "TV", "subjectline": "Några ändringar i din Factor Box", "preheader": "Viktig information om din Factor Box", "content": "Den här veckan går inte allt enligt plan med din Factor Box.<br><br>För följande måltider kunde vi tyvärr inte hitta lämpliga alternativ som uppfyller våra höga kvalitetsstandarder — de saknas därför i din leverans:[Recipe_Missing]Dessutom har vi behövt byta ut följande måltider:[Recipe_Swapped]Istället får du:[Recipe_Swapped_to]Kontrollera gärna allergenerna för dessa måltider.<br><br>Vi ber om ursäkt för besväret. Vi ser givetvis till att allt kompenseras korrekt som tillgodo på ditt konto.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam."}, "generic": {"business_unit": "TV", "subjectline": "Vi har en ersättningsmåltid till dig", "preheader": "Viktig information om din Factor Box", "content": "På grund av oförutsedda omständigheter kan våra kockar den här veckan inte tillaga en eller flera måltider enligt vår vanliga höga standard. Vi förstår att det kan vara tråkigt och ber uppriktigt om ursäkt för besväret. För att du ändå ska kunna njuta av en god måltid har våra kockar redan förberett ett lämpligt alternativ till den här veckan. <br><br> Kontrollera gärna allergenerna i den/de nya måltiden/måltiderna. Som kompensation får du också 120 SEK tillgodo per berörd måltid, vilket automatiskt dras av på din nästa box. <br><br> Har du frågor eller är du inte nöjd? Hör gärna av dig till vår kundtjänst, vi hjälper dig gärna vidare!"}}, "da-DK": {"swap": {"business_unit": "TK", "subjectline": "Vi har fundet en erstatningsret til dig", "preheader": "Vigtig information om din Factor Box", "content": "Desværre har vores kokke på grund af uforudsete omstændigheder ikke kunnet tilberede <b>[Recipe_Swapped]</b>. Undskyld ulejligheden.<br><br>Heldigvis har vi et alternativ til dig: denne uge modtager du <b>[Recipe_Swapped_to]</b> i stedet.<br><br>Husk at tjekke allergenerne for denne ret.<br><br>Som en lille kompensation tilføjer vi <b>120 DKK til gode pr. ret</b> på din konto. Det kan du bruge på din næste box.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam."}, "swap_multiple": {"business_unit": "TK", "subjectline": "Vi har fundet en erstatningsret til dig", "preheader": "Vigtig information om din Factor Box", "content": "Desværre har vores kokke på grund af uforudsete omstændigheder ikke kunnet tilberede følgende retter:[Recipe_Swapped]Undskyld ulejligheden.<br><br>Heldigvis har vi et alternativ til dig: denne uge modtager du følgende retter i stedet:[Recipe_Swapped_to]<br><br>Husk at tjekke allergenerne for disse retter.<br><br>Som en lille kompensation tilføjer vi <b>120 DKK til gode pr. ret</b> på din konto. Det kan du bruge på din næste box.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam."}, "short": {"business_unit": "TK", "subjectline": "Beklager... vi kan ikke levere det hele", "preheader": "Der mangler en ret i din Factor Box", "content": "Der mangler en ret i din box denne uge: <b>[Recipe_Missing]</b>. Desværre lykkedes det os ikke i tide at finde et passende alternativ, der lever op til vores høje kvalitetsstandarder. Undskyld ulejligheden.<br><br>Selvfølgelig tilføjer vi beløbet som tilgodehavende på din konto, så du kan bruge det som rabat på din næste box. Og glem ikke at nyde de retter, der rent faktisk blev leveret."}, "short_multiple": {"business_unit": "TK", "subjectline": "Beklager... vi kan ikke levere det hele", "preheader": "Der mangler en ret i din Factor Box", "content": "Der mangler flere retter i din box denne uge:[Recipe_Missing]Desværre lykkedes det os ikke i tide at finde passende alternativer, der lever op til vores høje kvalitetsstandarder. Undskyld ulejligheden.<br><br>Selvfølgelig tilføjer vi beløbet som tilgodehavende på din konto, så du kan bruge det som rabat på din næste box. Og glem ikke at nyde de retter, der rent faktisk blev leveret."}, "mixed": {"business_unit": "TK", "subjectline": "Et par ændringer i din Factor Box", "preheader": "Vigtig information om din Factor Box", "content": "Denne uge går ikke alt efter planen med din Factor Box.<br><br>For <b>[Recipe_Missing]</b> har vi desværre ikke kunnet finde et passende alternativ, der lever op til vores høje kvalitetsstandarder — denne ret mangler derfor i din levering.<br><br>Derudover har vi været nødt til at erstatte <b>[Recipe_Swapped]</b>: i stedet modtager du <b>[Recipe_Swapped_to]</b>. Husk at tjekke allergenerne for denne ret.<br><br>Undskyld ulejligheden. Vi sørger selvfølgelig for, at alt bliver godtgjort som tilgodehavende på din konto.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam."}, "mixed_multiple": {"business_unit": "TK", "subjectline": "Et par ændringer i din Factor Box", "preheader": "Vigtig information om din Factor Box", "content": "Denne uge går ikke alt efter planen med din Factor Box.<br><br>For følgende retter har vi desværre ikke kunnet finde passende alternativer, der lever op til vores høje kvalitetsstandarder — de mangler derfor i din levering:[Recipe_Missing]Derudover har vi været nødt til at erstatte følgende retter:[Recipe_Swapped]I stedet modtager du:[Recipe_Swapped_to]Husk at tjekke allergenerne for disse retter.<br><br>Undskyld ulejligheden. Vi sørger selvfølgelig for, at alt bliver godtgjort som tilgodehavende på din konto.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam."}, "generic": {"business_unit": "TK", "subjectline": "Vi har fundet en erstatningsret til dig", "preheader": "Vigtig information om din Factor Box", "content": "På grund af uforudsete omstændigheder kan vores kokke denne uge ikke tilberede en eller flere retter efter vores sædvanlige høje standard. Vi forstår, at det kan være ærgerligt, og vi undskylder oprigtigt for ulejligheden. For at du alligevel kan nyde en lækker ret, har vores kokke allerede tilberedt et passende alternativ til denne uge. <br><br> Husk at tjekke allergenerne i den/de nye ret(ter). Som kompensation modtager du også 120 DKK til gode pr. berørt ret, som automatisk bliver modregnet i din næste box. <br><br> Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores kundeservice - vi hjælper dig gerne videre!"}}};
+
+/* =================================================================
+   STATE
+================================================================= */
+const state = {
+  bartenderByLine: new Map(),
+  odlByBoxNorm: new Map(),
+  recipeByKey: new Map(),       // "WEEK|SLOT" -> {code, german, swedish, danish}
+  weekSlotOptions: new Map(),   // "WEEK" -> [{slot, code, german, swedish, danish}]
+  boxPriceMap: {},
+  incidents: [],
+  incidentSeq: 0,
+  auditLog: []
+};
+
+/* =================================================================
+   HELPERS
+================================================================= */
+function round2(n){ if(n===null||n===undefined||isNaN(n)) return null; return Math.round((n+Number.EPSILON)*100)/100; }
+function fmt2(n){ return (n===null||n===undefined) ? '' : n.toFixed(2); }
+function stripLeadingLetters(v){ return v==null ? '' : String(v).replace(/^[A-Za-z]+/, ''); }
+function stripTrailingLetters(v){ return v==null ? '' : String(v).replace(/[A-Za-z]+$/, ''); }
+function normalizeBoxId(id){ if(!id) return ''; const m = String(id).trim().toUpperCase().match(/^([A-Z]{2}\d+)/); return m ? m[1] : String(id).trim().toUpperCase(); }
+function detectMarket(boxId){ if(!boxId) return null; const p = String(boxId).trim().slice(0,2).toUpperCase(); return MARKET_CONFIG[p] ? p : null; }
+function mealsFromSku(sku){ if(!sku) return null; const p = String(sku).split('-'); const n = parseInt(p[2],10); return isNaN(n) ? null : n; }
+function weekKey(raw){ if(!raw) return ''; const s = String(raw).trim(); const m = s.match(/W\d+/i); return m ? m[0].toUpperCase() : s; }
+function todayDDMM(){ const d = new Date(); return String(d.getDate()).padStart(2,'0') + String(d.getMonth()+1).padStart(2,'0'); }
+function fileSafe(s){ return s.replace(/-/g,'_'); }
+function escapeHtml(s){ return (s==null?'':String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function htmlList(items){ return '<ul>' + items.map(n=>`<li>${escapeHtml(n)}</li>`).join('') + '</ul>'; }
+
+/* =================================================================
+   JSONP LOADER
+================================================================= */
+function loadViaJsonp(url, timeoutMs){
+  timeoutMs = timeoutMs || 45000;
+  return new Promise((resolve, reject) => {
+    const cbName = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const timeout = setTimeout(() => { cleanup(); reject(new Error('Timed out (cold starts can take up to 45s — try again).')); }, timeoutMs);
+    function cleanup(){ clearTimeout(timeout); delete window[cbName]; if(script.parentNode) script.parentNode.removeChild(script); }
+    window[cbName] = function(data){
+      cleanup();
+      if(data && data.error){ reject(new Error(data.error)); return; }
+      resolve(data);
+    };
+    const script = document.createElement('script');
+    script.src = url + (url.indexOf('?')>=0 ? '&' : '?') + 'callback=' + cbName + '&t=' + Date.now();
+    script.onerror = () => { cleanup(); reject(new Error('Network error loading the source.')); };
+    document.body.appendChild(script);
+  });
+}
+
+/* =================================================================
+   BUILDERS
+================================================================= */
+function buildBartenderIndex(rows){
+  const header = rows[0].map(h=>(h||'').toString().trim());
+  const idx = {
+    boxId: header.indexOf('physical_box_id'),
+    line: header.indexOf('assembly_line_id'),
+    firstPick: header.indexOf('first_pick_time'),
+    day: header.indexOf('production_day')
+  };
+  const byLine = new Map();
+  for(let i=1;i<rows.length;i++){
+    const r = rows[i];
+    if(!r || !r[idx.boxId]) continue;
+    const boxIdRaw = r[idx.boxId].toString().trim();
+    const line = (r[idx.line]||'').toString().trim().toUpperCase();
+    const rec = { boxIdRaw, boxIdNorm: normalizeBoxId(boxIdRaw), line, firstPick: r[idx.firstPick], productionDay: (r[idx.day]||'').toString().trim() };
+    if(!byLine.has(line)) byLine.set(line, []);
+    byLine.get(line).push(rec);
+  }
+  byLine.forEach(arr => arr.sort((a,b)=> new Date(a.firstPick) - new Date(b.firstPick)));
+  return byLine;
+}
+
+function buildOdlIndex(rows){
+  const header = rows[0].map(h=>(h||'').toString().trim());
+  const idx = {
+    week: header.indexOf('HF Week'),
+    boxId: header.indexOf('Box ID'),
+    boxId2: header.indexOf('Box ID 2'),
+    customerId: header.indexOf('Customer ID'),
+    mealSwap: header.indexOf('Meal Swap')
+  };
+  const map = new Map();
+  for(let i=1;i<rows.length;i++){
+    const r = rows[i];
+    if(!r) continue;
+    const boxId2 = idx.boxId2>=0 ? (r[idx.boxId2]||'').toString().trim() : '';
+    const boxId = idx.boxId>=0 ? (r[idx.boxId]||'').toString().trim() : '';
+    const key = normalizeBoxId(boxId2 || boxId);
+    if(!key) continue;
+    const mealSwapRaw = idx.mealSwap>=0 ? (r[idx.mealSwap]||'').toString().trim() : '';
+    const parsed = new Map();
+    mealSwapRaw.split(/\s+/).forEach(tok=>{ const m = tok.match(/^(\d+):(\d+)$/); if(m) parsed.set(m[1], parseInt(m[2],10)); });
+    map.set(key, {
+      week: idx.week>=0 ? (r[idx.week]||'').toString().trim() : '',
+      boxIdClean: boxId || stripTrailingLetters(boxId2),
+      customerId: idx.customerId>=0 ? (r[idx.customerId]||'').toString().trim() : '',
+      mealSwapRaw, mealSwapParsed: parsed
+    });
+  }
+  return map;
+}
+
+function buildRecipeIndex(rows){
+  let headerIdx = -1;
+  for(let i=0;i<Math.min(rows.length,5);i++){
+    if(rows[i].some(c => (c||'').toString().trim()==='Slot GER')){ headerIdx = i; break; }
+  }
+  if(headerIdx===-1) throw new Error('Could not find a header row containing "Slot GER".');
+  const header = rows[headerIdx].map(h=>(h||'').toString().trim());
+  const idx = { week:0, slotGer: header.indexOf('Slot GER'), code: header.indexOf('Code'),
+    german: header.indexOf('German Name'), swedish: header.indexOf('Swedish Name'), danish: header.indexOf('Danish Name') };
+  const byKey = new Map();
+  const byWeek = new Map();
+  for(let i=headerIdx+1;i<rows.length;i++){
+    const r = rows[i];
+    if(!r || !r[idx.week]) continue;
+    const wk = weekKey(r[idx.week]);
+    const slot = (r[idx.slotGer]||'').toString().trim();
+    if(!slot) continue;
+    const entry = {
+      slot,
+      code: idx.code>=0 ? (r[idx.code]||'').toString().trim() : '',
+      german: idx.german>=0 ? (r[idx.german]||'').toString().trim() : '',
+      swedish: idx.swedish>=0 ? (r[idx.swedish]||'').toString().trim() : '',
+      danish: idx.danish>=0 ? (r[idx.danish]||'').toString().trim() : ''
+    };
+    byKey.set(wk+'|'+slot, entry);
+    if(!byWeek.has(wk)) byWeek.set(wk, []);
+    byWeek.get(wk).push(entry);
+  }
+  return { byKey, byWeek };
+}
+
+function buildBoxPriceMap(rows){
+  let headerIdx = -1;
+  for(let i=0;i<Math.min(rows.length,5);i++){
+    if(rows[i].some(c => (c||'').toString().trim().toLowerCase()==='box_id')){ headerIdx = i; break; }
+  }
+  if(headerIdx===-1) throw new Error('Could not find a header row containing "box_id".');
+  const header = rows[headerIdx].map(h=>(h||'').toString().trim().toLowerCase());
+  const iBox = header.indexOf('box_id'), iSize = header.indexOf('productsize'), iVal = header.indexOf('total_order_value');
+  const map = {}; let count = 0;
+  for(let i=headerIdx+1;i<rows.length;i++){
+    const r = rows[i];
+    if(!r || !r[iBox]) continue;
+    map[normalizeBoxId(r[iBox])] = { productsize: iSize>=0?r[iSize]:null, totalOrderValue: iVal>=0?parseFloat(r[iVal]):null };
+    count++;
+  }
+  return { map, count };
+}
+
+/* =================================================================
+   LIVE SOURCE LOADING
+================================================================= */
+function setLc(src, html, kind){
+  document.getElementById('lc-'+src).className = 'livecard' + (kind==='ok'?' ok':kind==='warn'?' warn':'');
+  document.getElementById('lc-'+src+'-status').innerHTML = html;
+}
+
+async function loadSource(src){
+  setLc(src, 'Loading…', 'pending');
+  try{
+    if(src==='bartender'){
+      const payload = await loadJson('/api/data?sheet=bartender');
+      const rows = payload.data;
+      state.bartenderByLine = buildBartenderIndex(rows);
+      const lines = Array.from(state.bartenderByLine.keys());
+      document.getElementById('lineOptions').innerHTML = lines.map(l=>`<option value="${l}">`).join('');
+      setLc(src, `Loaded · ${rows.length-1} rows · ${lines.length} line(s)`, 'ok');
+    } else if(src==='odl'){
+      const payload = await loadJson('/api/data?sheet=odl');
+      const rows = payload.data;
+      state.odlByBoxNorm = buildOdlIndex(rows);
+      setLc(src, `Loaded · ${rows.length-1} rows`, 'ok');
+    } else if(src==='verden'){
+      const rows = await loadViaJsonp(BACKEND_URL + '?sheet=verden');
+      const built = buildRecipeIndex(rows);
+      state.recipeByKey = built.byKey; state.weekSlotOptions = built.byWeek;
+      setLc(src, `Loaded · ${state.recipeByKey.size} slot/week rows`, 'ok');
+    } else if(src==='boxprice'){
+      const rows = await loadViaJsonp(BACKEND_URL + '?sheet=boxpricetz');
+      const built = buildBoxPriceMap(rows);
+      state.boxPriceMap = built.map;
+      setLc(src, `Loaded · ${built.count} boxes`, 'ok');
+    }
+  } catch(err){
+    setLc(src, `Failed: ${err.message}`, 'warn');
+    console.error(src, err);
+  }
+}
+
+async function loadJson(url, timeoutMs){
+  timeoutMs = timeoutMs || 20000;
+  const controller = new AbortController();
+  const timeout = setTimeout(()=>controller.abort(), timeoutMs);
+  try{
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    const data = await res.json();
+    if(data && data.error) throw new Error(data.error);
+    return data;
+  } catch(err){
+    clearTimeout(timeout);
+    if(err.name === 'AbortError') throw new Error('Timed out.');
+    throw err;
+  }
+}
+
+document.querySelectorAll('.lc-refresh').forEach(btn=>{
+  btn.addEventListener('click', ()=> loadSource(btn.dataset.src));
+});
+window.addEventListener('load', ()=>{
+  loadSource('bartender'); loadSource('odl'); loadSource('verden'); loadSource('boxprice');
+});
+
+/* =================================================================
+   CATEGORY DROPDOWN
+================================================================= */
+const categorySelect = document.getElementById('in-category');
+const RECIPE_CATEGORIES = DEFAULT_CATEGORIES
+  .map((c, originalIndex) => Object.assign({ originalIndex }, c))
+  .filter(c => c.sub === '_recipes');
+function labelForD1(d1){
+  if(d1 === 'missing') return 'SHORT';
+  if(d1 === 'sku_change') return 'SWAP';
+  return d1;
+}
+function typeForD1(d1){
+  return d1 === 'missing' ? 'SHORTAGE' : 'SWAP';
+}
+categorySelect.innerHTML = RECIPE_CATEGORIES.map((c,i)=>`<option value="${i}">${escapeHtml(c.issue)} — ${escapeHtml(labelForD1(c.d1))}</option>`).join('');
+
+/* =================================================================
+   INCIDENT TYPE — derived from the selected error category
+================================================================= */
+function getCurrentType(){
+  const idx = parseInt(categorySelect.value, 10);
+  const cat = RECIPE_CATEGORIES[idx];
+  return cat ? typeForD1(cat.d1) : 'SWAP';
+}
+
+/* =================================================================
+   COMBOBOX (substitute meal picker)
+================================================================= */
+function createCombobox({container, getOptions, placeholder, onSelect, allowFreeText}){
+  container.innerHTML = `<div class="combo"><input type="text" class="combo-input" placeholder="${escapeHtml(placeholder||'Search recipes…')}" autocomplete="off"><div class="combo-panel" style="display:none;"></div></div>`;
+  const wrap = container.querySelector('.combo');
+  const input = wrap.querySelector('.combo-input');
+  const panel = wrap.querySelector('.combo-panel');
+  let currentSlot = '', activeIndex = -1, currentList = [];
+  function displayFor(rec){ return rec.code ? `${rec.label} (${rec.code})` : rec.label; }
+  function renderOptions(filter){
+    const opts = getOptions();
+    const f = (filter||'').toLowerCase().trim();
+    const filtered = f ? opts.filter(o => o.label.toLowerCase().includes(f) || String(o.slot).includes(f) || (o.code||'').toLowerCase().includes(f)) : opts;
+    currentList = filtered;
+    if(!opts.length){ panel.innerHTML = `<div class="combo-empty">${allowFreeText ? 'No meal list yet — you can still type a slot number' : 'No recipes for this week yet'}</div>`; return; }
+    if(!filtered.length){ panel.innerHTML = `<div class="combo-empty">No matching recipes${allowFreeText ? ' — typed value will be used as-is' : ''}</div>`; return; }
+    panel.innerHTML = filtered.map((o,i)=>`<div class="combo-option" data-idx="${i}"><span>${escapeHtml(o.label)}</span><span class="co-meta"><span class="co-idx">#${escapeHtml(o.slot)}</span>${o.code?`<span class="co-idx">${escapeHtml(o.code)}</span>`:''}</span></div>`).join('');
+  }
+  function openPanel(){ renderOptions(''); panel.style.display='block'; activeIndex=-1; }
+  function closePanel(){ panel.style.display='none'; activeIndex=-1; }
+  function updateActive(){
+    panel.querySelectorAll('.combo-option').forEach((it,i)=> it.classList.toggle('active', i===activeIndex));
+  }
+  function select(rec){
+    currentSlot = rec ? rec.slot : (allowFreeText ? input.value.trim() : '');
+    input.value = rec ? displayFor(rec) : input.value;
+    closePanel();
+    onSelect(rec, currentSlot);
+  }
+  input.addEventListener('focus', ()=>{ input.select(); openPanel(); });
+  input.addEventListener('input', ()=>{
+    renderOptions(input.value);
+    panel.style.display='block'; activeIndex=-1;
+    if(allowFreeText) currentSlot = input.value.trim();
+  });
+  input.addEventListener('keydown', e=>{
+    if(panel.style.display==='none') return;
+    if(e.key==='ArrowDown'){ e.preventDefault(); activeIndex=Math.min(activeIndex+1, currentList.length-1); updateActive(); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); activeIndex=Math.max(activeIndex-1,0); updateActive(); }
+    else if(e.key==='Enter'){ e.preventDefault(); if(activeIndex>=0 && currentList[activeIndex]) select(currentList[activeIndex]); }
+    else if(e.key==='Escape'){ closePanel(); input.blur(); }
+  });
+  panel.addEventListener('mousedown', e=>{
+    const opt = e.target.closest('.combo-option');
+    if(!opt) return;
+    e.preventDefault();
+    select(currentList[+opt.dataset.idx]);
+  });
+  input.addEventListener('blur', ()=>{
+    setTimeout(()=>{
+      closePanel();
+      if(!allowFreeText){
+        const rec = getOptions().find(o=>o.slot===currentSlot);
+        input.value = rec ? displayFor(rec) : '';
+        if(!rec) currentSlot = '';
+      } else {
+        const typed = input.value.trim();
+        const rec = getOptions().find(o=> o.label===typed || String(o.slot)===typed || displayFor(o)===typed);
+        if(rec){ currentSlot = rec.slot; input.value = displayFor(rec); }
+        else { currentSlot = typed; }
+      }
+    }, 120);
+  });
+  return {
+    getSlot: ()=>currentSlot,
+    setPlaceholder: p=>{ input.placeholder = p; },
+    setValue: (slot, label, code)=>{ currentSlot = slot || ''; input.value = slot ? displayFor({label, code}) : ''; }
+  };
+}
+
+/* =================================================================
+   AFFECTED-SLOT COMBO — populated once the first box resolves to a
+   week (via ODL) and a market (via box prefix). Falls back to free
+   typing if the box isn't found yet (e.g. ODL still loading).
+================================================================= */
+let slotComboRef = null;
+function getSlotOptionsFor(week, market){
+  const cfg = MARKET_CONFIG[market];
+  if(!week || !cfg) return [];
+  return (state.weekSlotOptions.get(weekKey(week))||[])
+    .filter(o=> o[cfg.nameKey] && o[cfg.nameKey] !== '#N/A')
+    .map(o=> ({ slot:o.slot, label:o[cfg.nameKey], code:o.code }))
+    .sort((a,b)=> a.slot.localeCompare(b.slot, undefined, {numeric:true}));
+}
+function mountSlotCombo(week, market){
+  const mount = document.getElementById('slot-combo-mount');
+  const options = getSlotOptionsFor(week, market);
+  slotComboRef = createCombobox({
+    container: mount,
+    getOptions: ()=> options,
+    placeholder: options.length ? 'Search meal or type slot #…' : 'Type slot number (or fill in first box above)',
+    allowFreeText: true,
+    onSelect: ()=>{}
+  });
+}
+mountSlotCombo(null, null);
+
+function refreshSlotOptionsFromFirstBox(){
+  const firstBoxVal = document.getElementById('in-firstbox').value.trim();
+  if(!firstBoxVal){ mountSlotCombo(null, null); return; }
+  const market = detectMarket(firstBoxVal);
+  const odlRow = state.odlByBoxNorm.get(normalizeBoxId(firstBoxVal));
+  const week = odlRow ? odlRow.week : null;
+  mountSlotCombo(week, market);
+}
+document.getElementById('in-firstbox').addEventListener('blur', refreshSlotOptionsFromFirstBox);
+document.getElementById('btn-add-incident').addEventListener('click', ()=>{
+  const line = document.getElementById('in-line').value.trim();
+  const firstBox = document.getElementById('in-firstbox').value.trim();
+  const lastBox = document.getElementById('in-lastbox').value.trim();
+  const slot = slotComboRef ? slotComboRef.getSlot() : '';
+  const categoryIndex = parseInt(categorySelect.value, 10);
+  if(!line || !firstBox || !slot){ alert('Line, first box ID and affected slot are required.'); return; }
+  const type = getCurrentType();
+  state.incidentSeq++;
+  state.incidents.push({
+    id: state.incidentSeq, line, firstBox, lastBox: lastBox || null, slot, type, categoryIndex,
+    status: 'draft', matched: [], warnings: [], week: null, market: null,
+    recipeName: null, recipeCode: null, substituteSlot: null, substituteRecipeName: null, substituteRecipeCode: null,
+    checkedCount: 0, notInOdl: 0, notImpacted: 0
+  });
+  document.getElementById('in-firstbox').value = '';
+  document.getElementById('in-lastbox').value = '';
+  mountSlotCombo(null, null);
+  renderIncidents();
+});
+
+function findMatches(incident){
+  incident.warnings = [];
+  const lineKey = incident.line.trim().toUpperCase();
+  const lineRows = state.bartenderByLine.get(lineKey) || [];
+  if(!lineRows.length){ incident.warnings.push(`No Bartender rows found for line "${incident.line}".`); incident.status='error'; return; }
+
+  const firstNorm = normalizeBoxId(incident.firstBox);
+  const firstIdxAll = lineRows.findIndex(r=>r.boxIdNorm===firstNorm);
+  if(firstIdxAll===-1){ incident.warnings.push(`First box ${incident.firstBox} not found on line ${incident.line}.`); incident.status='error'; return; }
+
+  const day = lineRows[firstIdxAll].productionDay;
+  const dayRows = lineRows.filter(r=>r.productionDay===day);
+  const firstIdx = dayRows.findIndex(r=>r.boxIdNorm===firstNorm);
+  let endIdx = dayRows.length - 1;
+  if(incident.lastBox){
+    const lastNorm = normalizeBoxId(incident.lastBox);
+    const lastIdx = dayRows.findIndex((r,i)=> i>=firstIdx && r.boxIdNorm===lastNorm);
+    if(lastIdx===-1){ incident.warnings.push('Last box not found after the first box — using the rest of the run instead.'); }
+    else { endIdx = lastIdx; }
+  }
+  const candidateBoxes = dayRows.slice(firstIdx, endIdx+1);
+
+  const matched = []; let notInOdl=0, notImpacted=0;
+  candidateBoxes.forEach(box=>{
+    const odlRow = state.odlByBoxNorm.get(box.boxIdNorm);
+    if(!odlRow){ notInOdl++; return; }
+    const qty = odlRow.mealSwapParsed.get(String(incident.slot));
+    if(!qty){ notImpacted++; return; }
+    matched.push({
+      boxIdRaw: box.boxIdRaw, boxIdClean: odlRow.boxIdClean || stripTrailingLetters(box.boxIdRaw),
+      customerId: odlRow.customerId, week: odlRow.week, market: detectMarket(box.boxIdRaw), qty
+    });
+  });
+
+  incident.matched = matched;
+  incident.checkedCount = candidateBoxes.length;
+  incident.notInOdl = notInOdl; incident.notImpacted = notImpacted;
+
+  const weekCounts = {}; matched.forEach(m=>{ weekCounts[m.week]=(weekCounts[m.week]||0)+1; });
+  incident.week = Object.keys(weekCounts).sort((a,b)=>weekCounts[b]-weekCounts[a])[0] || null;
+  const marketCounts = {}; matched.forEach(m=>{ marketCounts[m.market]=(marketCounts[m.market]||0)+1; });
+  incident.market = Object.keys(marketCounts).sort((a,b)=>marketCounts[b]-marketCounts[a])[0] || detectMarket(incident.firstBox);
+
+  const cfg = MARKET_CONFIG[incident.market];
+  const wk = weekKey(incident.week);
+  const entry = state.recipeByKey.get(wk+'|'+String(incident.slot));
+  if(entry && cfg){
+    incident.recipeCode = entry.code;
+    incident.recipeName = (entry[cfg.nameKey] && entry[cfg.nameKey]!=='#N/A') ? entry[cfg.nameKey] : null;
+    if(!incident.recipeName) incident.warnings.push(`No recipe name for slot ${incident.slot} / week ${incident.week||'?'}.`);
+  } else {
+    incident.warnings.push(`Could not resolve recipe data for slot ${incident.slot} (week ${incident.week||'unknown'}).`);
+  }
+
+  if(!matched.length) incident.warnings.push(`No customers in this range actually had slot ${incident.slot} in their order.`);
+  incident.status = matched.length ? 'matched' : 'empty';
+}
+
+function renderIncidents(){
+  const wrap = document.getElementById('incidentList');
+  wrap.innerHTML = state.incidents.map(inc => renderIncidentCard(inc)).join('');
+
+  state.incidents.forEach(inc=>{
+    const btnFind = document.getElementById('find-'+inc.id);
+    if(btnFind) btnFind.addEventListener('click', ()=>{ findMatches(inc); renderIncidents(); });
+    const btnRemove = document.getElementById('remove-'+inc.id);
+    if(btnRemove) btnRemove.addEventListener('click', ()=>{ state.incidents = state.incidents.filter(x=>x.id!==inc.id); renderIncidents(); });
+    const btnConfirm = document.getElementById('confirm-'+inc.id);
+    if(btnConfirm) btnConfirm.addEventListener('click', ()=>{ confirmIncident(inc); });
+
+    if(inc.status==='matched' && inc.type==='SWAP'){
+      const mount = document.getElementById('combo-'+inc.id);
+      if(mount){
+        const wk = weekKey(inc.week);
+        const cfg = MARKET_CONFIG[inc.market];
+        const comboInstance = createCombobox({
+          container: mount,
+          getOptions: ()=> (state.weekSlotOptions.get(wk)||[])
+            .filter(o=> o.slot !== String(inc.slot) && cfg && o[cfg.nameKey] && o[cfg.nameKey] !== '#N/A')
+            .map(o=> ({ slot:o.slot, label: cfg ? o[cfg.nameKey] : o.german, code:o.code }))
+            .sort((a,b)=> a.slot.localeCompare(b.slot, undefined, {numeric:true})),
+          placeholder: 'Search substitute recipe…',
+          onSelect: rec=>{
+            inc.substituteSlot = rec ? rec.slot : null;
+            inc.substituteRecipeCode = rec ? rec.code : null;
+            inc.substituteRecipeName = rec ? rec.label : null;
+            renderIncidents();
+          }
+        });
+        if(inc.substituteSlot) comboInstance.setValue(inc.substituteSlot, inc.substituteRecipeName, inc.substituteRecipeCode);
+      }
+    }
+  });
+}
+
+function renderIncidentCard(inc){
+  const cfg = MARKET_CONFIG[inc.market];
+  const typeTag = inc.type==='SWAP' ? '<span class="tag swap">Swap</span>' : '<span class="tag short">Shortage</span>';
+  let body = `
+    <div class="incident-head">
+      <div>
+        <div class="incident-title">#${inc.id} — Line ${escapeHtml(inc.line)} · Slot ${escapeHtml(inc.slot)} ${typeTag}</div>
+        <div class="incident-meta">${escapeHtml(inc.firstBox)}${inc.lastBox ? ' → '+escapeHtml(inc.lastBox) : ' → rest of run'}</div>
+      </div>
+      ${inc.status!=='confirmed' ? `<button class="remove-x" id="remove-${inc.id}">✕</button>` : ''}
+    </div>`;
+
+  if(inc.status==='draft'){
+    body += `<div class="btn-row"><button class="btn btn-ghost btn-sm" id="find-${inc.id}">Find matches</button></div>`;
+  } else if(inc.status==='error'){
+    body += inc.warnings.map(w=>`<div class="warn-line">${escapeHtml(w)}</div>`).join('');
+    body += `<div class="btn-row"><button class="btn btn-ghost btn-sm" id="find-${inc.id}">Try again</button></div>`;
+  } else if(inc.status==='empty' || inc.status==='matched'){
+    body += `<div class="match-summary">
+      Checked <b>${inc.checkedCount}</b> box(es) on this line/day &middot;
+      <b>${inc.matched.length}</b> customer(s) actually had slot ${escapeHtml(inc.slot)}
+      ${inc.notInOdl ? ` &middot; ${inc.notInOdl} not found in ODL` : ''}
+      ${inc.notImpacted ? ` &middot; ${inc.notImpacted} didn't order this slot` : ''}
+      <br>Week <b>${escapeHtml(inc.week||'?')}</b> &middot; Market <b>${escapeHtml(inc.market||'?')}</b> &middot; Recipe: <b>${escapeHtml(inc.recipeName||'Unknown')}</b>
+    </div>`;
+    inc.warnings.forEach(w=> body += `<div class="warn-line">${escapeHtml(w)}</div>`);
+
+    if(inc.type==='SWAP' && inc.status==='matched'){
+      body += `<label class="field-label" style="margin-top:12px;">Substitute recipe (week ${escapeHtml(inc.week||'?')})</label>`;
+      body += `<div id="combo-${inc.id}"></div>`;
+      if(inc.substituteRecipeName) body += `<div class="ok-line">Selected: ${escapeHtml(inc.substituteRecipeName)} (#${escapeHtml(inc.substituteSlot)})</div>`;
+    }
+
+    const canConfirm = inc.status==='matched' && inc.matched.length>0 && (inc.type==='SHORTAGE' || inc.substituteSlot);
+    body += `<div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-ghost btn-sm" id="find-${inc.id}">Re-check</button>
+      <button class="btn btn-primary btn-sm" id="confirm-${inc.id}" ${canConfirm?'':'disabled'}>Confirm incident</button>
+    </div>`;
+  } else if(inc.status==='confirmed'){
+    body += `<div class="match-summary">
+      Confirmed &middot; <b>${inc.matched.length}</b> customer(s) added to session &middot; Week ${escapeHtml(inc.week||'?')} &middot; Recipe: <b>${escapeHtml(inc.recipeName||'Unknown')}</b>
+      ${inc.type==='SWAP' ? ` → <b>${escapeHtml(inc.substituteRecipeName||'Unknown')}</b>` : ''}
+    </div>`;
+  }
+
+  return `<div class="incident-card ${inc.status==='confirmed'?'confirmed':''}">${body}</div>`;
+}
+
+function confirmIncident(inc){
+  inc.matched.forEach(m=>{
+    state.auditLog.push({
+      incidentId: inc.id, customerId: m.customerId, boxId: m.boxIdClean, market: m.market, week: m.week, qty: m.qty,
+      type: inc.type, slot: inc.slot, recipeName: inc.recipeName, recipeCode: inc.recipeCode,
+      substituteSlot: inc.substituteSlot, substituteRecipeName: inc.substituteRecipeName, substituteRecipeCode: inc.substituteRecipeCode,
+      categoryIndex: inc.categoryIndex
+    });
+  });
+  inc.status = 'confirmed';
+  renderIncidents();
+  unlockSession();
+}
+
+/* =================================================================
+   SESSION UNLOCK / REVIEW
+================================================================= */
+function unlockSession(){
+  ['step3','step4','step5','step6'].forEach(id=> document.getElementById(id).removeAttribute('data-disabled'));
+  renderReview();
+  renderBulkDownloads();
+  renderCrmDownloads();
+  renderSlack();
+}
+
+function renderReview(){
+  const rows = state.auditLog;
+
+  const swaps = rows.filter(r=>r.type==='SWAP').length;
+  const shorts = rows.filter(r=>r.type==='SHORTAGE').length;
+
+  document.getElementById('reviewBody').innerHTML = `
+    <div class="summary-grid">
+      <div class="sum-card"><div class="sum-locale">Customers</div><div class="sum-count">${rows.length}</div><div class="sum-bu">confirmed across all incidents</div></div>
+      <div class="sum-card"><div class="sum-locale">Swaps / Shorts</div><div class="sum-count">${swaps} / ${shorts}</div><div class="sum-bu">by type</div></div>
+    </div>`;
+
+  document.getElementById('tbody').innerHTML = rows.map(r=>`
+    <tr>
+      <td>${r.type==='SWAP'?'<span class="tag swap">Swap</span>':'<span class="tag short">Shortage</span>'}</td>
+      <td>${escapeHtml(r.market||'?')}</td>
+      <td class="mono">${escapeHtml(r.boxId)}</td>
+      <td class="mono">${escapeHtml(r.customerId)}</td>
+      <td>${escapeHtml(r.week||'?')}</td>
+      <td class="mono">${escapeHtml(r.slot)}</td>
+      <td>${escapeHtml(r.recipeName||'Unknown')}${r.type==='SWAP' ? ' → '+escapeHtml(r.substituteRecipeName||'Unknown') : ''}</td>
+      <td>${r.qty}</td>
+    </tr>`).join('');
+  document.getElementById('tablewrap').style.display = 'block';
+}
+
+document.getElementById('btn-reset').addEventListener('click', ()=>{
+  state.incidents = []; state.auditLog = [];
+  renderIncidents();
+  ['step3','step4','step5','step6'].forEach(id=> document.getElementById(id).setAttribute('data-disabled','true'));
+});
+
+/* =================================================================
+   BULK ERROR EXPORT
+================================================================= */
+function buildBulkErrorRows(){
+  const groups = {};
+  state.auditLog.forEach(r=>{
+    if(r.categoryIndex===null || r.categoryIndex===undefined || isNaN(r.categoryIndex)) return;
+    const cat = RECIPE_CATEGORIES[r.categoryIndex];
+    const row = {
+      'customer id': stripLeadingLetters(r.customerId),
+      'box id': stripTrailingLetters(r.boxId),
+      'error category': cat.cat,
+      'error sub category': cat.sub,
+      'complaint': cat.complaint,
+      'additional detail 1': cat.d1,
+      'additional detail 2': cat.d2,
+      'ingredient': '',
+      'recipe name': r.recipeName || 'Unknown',
+      'compensation type': 'credit',
+      'compensation amount': '',
+      'recipe index': r.slot,
+      'culinary sku': r.recipeCode || '',
+      'comment': r.type==='SWAP' ? `Swap to ${r.substituteSlot}: ${r.substituteRecipeName||'Unknown'}` : 'Shortage'
+    };
+    const market = r.market || 'UNKNOWN';
+    (groups[market] = groups[market] || []).push(row);
+  });
+  return groups;
+}
+
+function downloadCsv(filename, columns, rows){
+  const csv = Papa.unparse({ fields: columns, data: rows.map(r => columns.map(c => r[c])) });
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function renderBulkDownloads(){
+  const groups = buildBulkErrorRows();
+  const markets = Object.keys(groups);
+  const row = document.getElementById('bulkDownloadRow');
+  if(!markets.length){
+    row.innerHTML = `<div class="dl-card"><div class="dl-locale">Bulk error report</div><div class="dl-meta">0 rows</div><button class="btn btn-dark" disabled>Download</button></div>`;
+    return;
+  }
+  row.innerHTML = markets.map((market,i)=>{
+    const rows = groups[market];
+    const marketName = MARKET_CONFIG[market]?.name || market;
+    const filename = `f_bulk_error_${todayDDMM()}_${market}.csv`;
+    return `<div class="dl-card">
+      <div class="dl-locale">${escapeHtml(marketName)} (${escapeHtml(market)})</div>
+      <div class="dl-meta">${rows.length} row${rows.length===1?'':'s'}</div>
+      <button class="btn btn-dark" data-market-idx="${i}">Download<br><span class="mono" style="font-weight:500;">${filename}</span></button>
+    </div>`;
+  }).join('');
+  row.querySelectorAll('button[data-market-idx]').forEach(btn=>{
+    const market = markets[+btn.dataset.marketIdx];
+    const rows = groups[market];
+    const filename = `f_bulk_error_${todayDDMM()}_${market}.csv`;
+    btn.addEventListener('click', ()=> downloadCsv(filename, OUTPUT_COLUMNS, rows));
+  });
+}
+
+/* =================================================================
+   CRM EXPORT
+================================================================= */
+function resolveRecipeForCrm(week, slot, nameKey){
+  const entry = state.recipeByKey.get(weekKey(week)+'|'+String(slot));
+  if(!entry) return { known:false, name:null };
+  const name = entry[nameKey];
+  if(!name || name==='#N/A') return { known:false, name:null };
+  return { known:true, name };
+}
+
+function buildCrmRows(){
+  const byCustomer = {};
+  state.auditLog.forEach(r=>{
+    const cfg = MARKET_CONFIG[r.market];
+    if(!cfg) return;
+    if(!byCustomer[r.customerId]) byCustomer[r.customerId] = { customerId:r.customerId, market:r.market, week:r.week, swaps:[], missing:[] };
+    if(r.type==='SWAP'){
+      byCustomer[r.customerId].swaps.push({ a:r.slot, s:r.substituteSlot });
+    } else {
+      byCustomer[r.customerId].missing.push(r.slot);
+    }
+  });
+
+  const resultByLocale = { 'de-DE':[], 'sv-SE':[], 'da-DK':[] };
+  const resultRows = [];
+  const manualReviewRows = [];
+  let genericCount = 0, mixedCount = 0;
+
+  Object.values(byCustomer).forEach(cust=>{
+    const cfg = MARKET_CONFIG[cust.market];
+    if(!cust.week){ manualReviewRows.push({business_unit:cust.market, customer_id:cust.customerId, flag_reason:'no week found'}); return; }
+
+    let allKnown = true;
+    const swapNames = cust.swaps.map(pair=>{
+      const from = resolveRecipeForCrm(cust.week, pair.a, cfg.nameKey);
+      const to = resolveRecipeForCrm(cust.week, pair.s, cfg.nameKey);
+      if(!from.known || !to.known) allKnown = false;
+      return { from, to };
+    });
+    const missingNames = cust.missing.map(slot=>{
+      const r = resolveRecipeForCrm(cust.week, slot, cfg.nameKey);
+      if(!r.known) allKnown = false;
+      return r;
+    });
+
+    const swapCount = swapNames.length, missingCount = missingNames.length;
+    if(swapCount===0 && missingCount===0) return;
+
+    let reason;
+    if(!allKnown){ reason = 'generic'; genericCount++; }
+    else if(swapCount>0 && missingCount>0){ reason = (swapCount+missingCount>2) ? 'mixed_multiple' : 'mixed'; mixedCount++; }
+    else if(swapCount>0){ reason = swapCount>1 ? 'swap_multiple' : 'swap'; }
+    else { reason = missingCount>1 ? 'short_multiple' : 'short'; }
+
+    const tpl = (TEMPLATES[cfg.locale]||{})[reason];
+    if(!tpl){ manualReviewRows.push({business_unit:cust.market, customer_id:cust.customerId, flag_reason:`no template for ${reason}`}); return; }
+
+    let content = tpl.content;
+    if(reason!=='generic'){
+      if(swapCount===1) content = content.replace('[Recipe_Swapped]', swapNames[0].from.name).replace('[Recipe_Swapped_to]', swapNames[0].to.name);
+      else if(swapCount>1) content = content.replace('[Recipe_Swapped]', htmlList(swapNames.map(s=>s.from.name))).replace('[Recipe_Swapped_to]', htmlList(swapNames.map(s=>s.to.name)));
+      if(missingCount===1) content = content.replace('[Recipe_Missing]', missingNames[0].name);
+      else if(missingCount>1) content = content.replace('[Recipe_Missing]', htmlList(missingNames.map(m=>m.name)));
+    }
+
+    const outRow = { business_unit: tpl.business_unit, customer_id: cust.customerId, locale: cfg.locale, content, subjectline: tpl.subjectline, preheader: tpl.preheader, voucher:'' };
+    resultByLocale[cfg.locale].push(outRow);
+    resultRows.push({ market:cust.market, customerId:cust.customerId, week:cust.week, locale:cfg.locale, reason });
+  });
+
+  return { resultByLocale, resultRows, manualReviewRows, genericCount, mixedCount };
+}
+
+function toTxt(rows){
+  const headers = ["business_unit","customer_id","locale","content","subjectline","preheader","voucher"];
+  const lines = [headers.join("\t")];
+  rows.forEach(r => lines.push(headers.map(h => (r[h]||"").toString().replace(/\t/g," ").replace(/\r?\n/g," ")).join("\t")));
+  return lines.join("\r\n");
+}
+function downloadTxt(loc, rows){
+  const blob = new Blob(["\ufeff" + toTxt(rows)], {type:"text/plain;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `cc_email_${fileSafe(loc)}_${todayDDMM()}.txt`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function downloadManualReview(rows){
+  const fields = ['business_unit','customer_id','flag_reason'];
+  const csv = Papa.unparse({fields, data: rows});
+  const blob = new Blob(["\ufeff"+csv], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `cc_email_needs_review.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+let lastCrmBuild = null;
+function renderCrmDownloads(){
+  lastCrmBuild = buildCrmRows();
+  const row = document.getElementById('crmDownloadRow');
+  row.innerHTML = LOCALES.map((loc,i)=>{
+    const rows = lastCrmBuild.resultByLocale[loc] || [];
+    const filename = `cc_email_${fileSafe(loc)}_${todayDDMM()}.txt`;
+    return `<div class="dl-card">
+      <div class="dl-locale">${loc}</div><div class="dl-meta">${rows.length} row${rows.length===1?'':'s'}</div>
+      <button class="btn btn-dark" data-loc-idx="${i}" ${rows.length===0?'disabled':''}>Download<br><span class="mono" style="font-weight:500;">${filename}</span></button>
+    </div>`;
+  }).join('') + `<div class="dl-card">
+      <div class="dl-locale">Needs review</div><div class="dl-meta">${lastCrmBuild.manualReviewRows.length} row(s)</div>
+      <button class="btn btn-dark" id="btn-needs-review" ${lastCrmBuild.manualReviewRows.length===0?'disabled':''}>Download<br><span class="mono" style="font-weight:500;">cc_email_needs_review.csv</span></button>
+    </div>`;
+
+  row.querySelectorAll('button[data-loc-idx]').forEach(btn=>{
+    const loc = LOCALES[+btn.dataset.locIdx];
+    const rows = lastCrmBuild.resultByLocale[loc] || [];
+    btn.addEventListener('click', ()=> downloadTxt(loc, rows));
+  });
+  const reviewBtn = document.getElementById('btn-needs-review');
+  if(reviewBtn) reviewBtn.addEventListener('click', ()=> downloadManualReview(lastCrmBuild.manualReviewRows));
+}
+
+/* =================================================================
+   SLACK SUMMARY
+================================================================= */
+function renderSlack(){
+  const crm = lastCrmBuild || buildCrmRows();
+  const bulkGroups = buildBulkErrorRows();
+  const lines = ['📦 *Line Impact Builder — session summary*', ''];
+
+  LOCALES.forEach(loc=>{
+    const relevant = crm.resultRows.filter(r=>r.locale===loc);
+    if(!relevant.length) return;
+    const byReason = {};
+    relevant.forEach(r=> byReason[r.reason] = (byReason[r.reason]||0)+1);
+    lines.push(`*${loc}*: ${relevant.length} customer(s) — ` + Object.keys(byReason).map(k=>`${byReason[k]}x ${k}`).join(', '));
+  });
+  lines.push('');
+  lines.push(`Total customers messaged: ${crm.resultRows.length}`);
+  if(crm.mixedCount) lines.push(`↳ includes ${crm.mixedCount} customer(s) with both a swap and a shortage`);
+  if(crm.genericCount) lines.push(`⚠️ ${crm.genericCount} customer(s) got the generic fallback — check the Meal Database`);
+  if(crm.manualReviewRows.length) lines.push(`⚠️ ${crm.manualReviewRows.length} customer(s) excluded — see needs-review export`);
+
+  Object.keys(bulkGroups).forEach(market=>{
+    const rows = bulkGroups[market];
+    lines.push(`Bulk error (${market}): ${rows.length} row(s)`);
+  });
+
+  const msg = lines.join('\n').trim();
+  document.getElementById('slackBody').innerHTML = `
+    <div class="slack-box"><pre class="slack-text" id="slackText"></pre></div>
+    <div class="btn-row"><button class="btn btn-primary btn-sm" id="copySlackBtn">Copy for Slack</button></div>`;
+  document.getElementById('slackText').textContent = msg;
+  document.getElementById('copySlackBtn').addEventListener('click', ()=>{
+    navigator.clipboard.writeText(msg).then(()=>{
+      const btn = document.getElementById('copySlackBtn');
+      const orig = btn.textContent; btn.textContent = 'Copied ✓';
+      setTimeout(()=>{ btn.textContent = orig; }, 1800);
+    });
+  });
+}
+
+renderIncidents();
+</script>
+</body>
+</html>
