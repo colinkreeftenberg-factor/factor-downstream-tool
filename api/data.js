@@ -7,7 +7,9 @@ const SOURCES = {
   bartender: { spreadsheetId: LINE_SHEET_ID, range: 'Bartender!A:Z' },
   odl: { spreadsheetId: LINE_SHEET_ID, range: 'ODL!A:Z' },
   verden: { spreadsheetId: BACKEND_SHEET_ID, range: 'Verden!A:BZ' },
-  boxpricetz: { spreadsheetId: BACKEND_SHEET_ID, range: 'BoxPriceTZ!A:Z' }
+  boxpricetz: { spreadsheetId: BACKEND_SHEET_ID, range: 'BoxPriceTZ!A:Z' },
+  mealdb: { spreadsheetId: BACKEND_SHEET_ID, range: "'Meal Database'!A:Z" },
+  deodl: { spreadsheetId: BACKEND_SHEET_ID, range: "'DE ODL'!A:Z" }
 };
 
 let cachedClient = null;
