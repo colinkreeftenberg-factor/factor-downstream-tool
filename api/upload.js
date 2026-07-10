@@ -34,8 +34,10 @@ module.exports = async function handler(req, res) {
     const client = await getAuthClient();
 
     // Step 1: create the file entry in the target Drive folder
+    // supportsAllDrives is required if this folder lives inside a Shared Drive —
+    // without it, Drive API v3 can't see the folder at all and returns "File not found".
     const createRes = await client.request({
-      url: 'https://www.googleapis.com/drive/v3/files',
+      url: 'https://www.googleapis.com/drive/v3/files?supportsAllDrives=true',
       method: 'POST',
       data: { name: filename, parents: [FOLDER_ID] }
     });
@@ -43,7 +45,7 @@ module.exports = async function handler(req, res) {
 
     // Step 2: upload the actual file content
     await client.request({
-      url: `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+      url: `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media&supportsAllDrives=true`,
       method: 'PATCH',
       data: content,
       headers: { 'Content-Type': mimeType || 'text/plain; charset=utf-8' }
