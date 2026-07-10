@@ -165,145 +165,293 @@
 </div>
 
 <div class="wrap">
-  <div class="section-head">
-    <div class="section-title">Communication Tools</div>
-    <div class="section-count" id="commToolCount"></div>
-  </div>
-  <div class="tool-grid" id="commToolGrid"></div>
 
-  <div class="section-head">
-    <div class="section-title">Operational Tools</div>
-    <div class="section-count" id="opsToolCount"></div>
-  </div>
-  <div class="tool-grid" id="opsToolGrid"></div>
+  <!-- Categories are generated dynamically from the TOOLS array -->
+  <div id="toolSections"></div>
 
-  <div class="section-head">
-    <div class="section-title">Confluence SOP's</div>
-    <div class="section-count" id="sopCount"></div>
-  </div>
-  <div class="mini-grid" id="sopGrid"></div>
+  <footer>
+    Factor · internal tools · made &amp; maintained by <strong>Colin Kreeftenberg</strong> — questions, edits or new tools go to him.
+  </footer>
 
-  <div class="section-head">
-    <div class="section-title">Back up data links</div>
-    <div class="section-count" id="backupCount"></div>
-  </div>
-  <div class="mini-grid" id="backupGrid"></div>
+</div>
+
+  <!-- Categories are generated dynamically from the TOOLS array -->
+
+  <div id="toolSections"></div>
+
+  <footer>
+
+    Factor · internal tools · made &amp; maintained by <strong>Colin Kreeftenberg</strong> — questions, edits or new tools go to him.
+
+  </footer>
+
+</div>
 
   <footer>Factor · internal tools · made &amp; maintained by <strong>Colin Kreeftenberg</strong> — questions, edits or new tools go to him.</footer>
 </div>
 
 <script>
-/* =================================================================
-   TOOLS — add items here. Supported categories: 'communication', 
-   'operational', 'sop', or 'backup'.
 
-   Optional 'accent' field on operational tools: 'yellow' | 'grey'
-   Use this to visually sub-group related tools within a category
-   without changing the layout structure.
+/* =================================================================
+
+   TOOLS — add items here.
+
+   Categories are created automatically from the category field.
+
 ================================================================= */
+
 const TOOLS = [
-    {
+
+  {
+
     name: "De Kas - Proactive Swap & Shortage Manager",
+
     description: "Before production: plan swaps & shortages into box-files",
+
     href: "tools/swap-shortage-manager.html",
+
     tags: ["NL","BE"],
+
     category: "Stratgic Swapping - Box Files",
+
   },
-    {
+
+  {
+
     name: "Verden - Proactive Swap & Shortage Manager",
+
     description: "Before production: plan swaps & shortages into box-files",
+
     href: "tools/swap_shortage_manager_verden_3.html",
+
     tags: ["SE","DK","DE"],
+
     category: "Stratgic Swapping - Box Files"
+
   },
+
   {
+
     name: "De Kas - Swap & Shorts",
+
     description: "Used by Downstream Team for Comms and Compensations",
+
     href: "tools/bnl-swaps-after-production.html",
+
     tags: ["NL", "BE", "FR-BE"],
+
     category: "Downstream Comps and Coms",
+
     accent: "grey"
+
   },
+
   {
+
     name: "Verden - Swap & Shorts",
+
     description: "Used by Downstream Team for Comms and Compensations",
+
     href: "tools/line-impact-builder_5.html",
+
     tags: ["DE", "SE", "DK"],
+
     category: "Downstream Comps and Coms",
+
     accent: "grey"
+
   },
+
   {
+
     name: "Swap & Shortage - CRM Guide",
-    description: "", 
+
+    description: "",
+
     href: "https://hellofresh.atlassian.net/wiki/spaces/EUF/pages/6760202365/Swap+Shortage+Tools+User+Guide+BNL+DE-SE-DK",
+
     tags: [],
-    category: "sop"
+
+    category: "Confluence SOP's"
+
   },
+
   {
+
     name: "Backend sheet",
-    description: "", 
+
+    description: "",
+
     href: "https://docs.google.com/spreadsheets/d/1DjYDHfwKLRkQzlEj22whxrBjdk9T36VRQqMGE91l17U/edit?gid=0#gid=0",
+
     tags: [],
-    category: "sop"
+
+    category: "Back up data links"
+
   },
-    {
+
+  {
+
     name: "Verden - Bulk Export Builder",
+
     description: "Build & export customer compensation profiles.",
+
     href: "tools/factor_compensation_export_builder_3.html",
+
     tags: ["Ops", "Comp"],
+
     category: "Archived Tools"
+
   },
+
 ];
 
-function renderTools(){
-  const commTools = TOOLS.filter(t => t.category === 'communication');
-  const opsTools = TOOLS.filter(t => t.category === 'operational');
-  const sopTools = TOOLS.filter(t => t.category === 'sop');
-  const backupTools = TOOLS.filter(t => t.category === 'backup');
+function renderTools() {
 
-  // Update Section Counters
-  document.getElementById('commToolCount').textContent = commTools.length + (commTools.length === 1 ? ' tool' : ' tools');
-  document.getElementById('opsToolCount').textContent = opsTools.length + (opsTools.length === 1 ? ' tool' : ' tools');
-  document.getElementById('sopCount').textContent = sopTools.length + (sopTools.length === 1 ? ' link' : ' links');
-  document.getElementById('backupCount').textContent = backupTools.length + (backupTools.length === 1 ? ' link' : ' links');
+  const container = document.getElementById("toolSections");
 
-  // Macro for standard layout cards
-  const createStandardCardHTML = (t) => `
-    <a class="tool-card${t.accent ? ' accent-' + t.accent : ''}" href="${t.href}" target="${t.href.startsWith('http') ? '_blank' : '_self'}" rel="noopener">
-      <div class="tool-name">${t.name}</div>
-      <div class="tool-desc">${t.description}</div>
-      <div class="tool-tags">${t.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div>
-    </a>
-  `;
+  // Group tools by category
 
-  // Macro for clean, compact mini button cards
-  const createMiniCardHTML = (t) => `
-    <a class="tool-card mini-card" href="${t.href}" target="_blank" rel="noopener">
-      <div class="tool-name">${t.name}</div>
-    </a>
-  `;
+  const groupedTools = TOOLS.reduce((groups, tool) => {
 
-  // Render individual sections
-  document.getElementById('commToolGrid').innerHTML = commTools.map(createStandardCardHTML).join('');
-  document.getElementById('opsToolGrid').innerHTML = opsTools.map(createStandardCardHTML).join('');
-  
-  // Render Confluence links section
-  document.getElementById('sopGrid').innerHTML = sopTools.map(createMiniCardHTML).join('') + `
-    <div class="add-card mini-card">
-      <div class="plus">+</div>
-      <div>Add links in the <code>TOOLS</code> array.</div>
-    </div>
-  `;
+    if (!groups[tool.category]) {
 
-  // Render Backup section (Currently empty layout)
-  document.getElementById('backupGrid').innerHTML = backupTools.map(createMiniCardHTML).join('') + `
-    <div class="add-card mini-card">
-      <div class="plus">+</div>
-      <div>Add backup links in the <code>TOOLS</code> array.</div>
-    </div>
-  `;
+      groups[tool.category] = [];
+
+    }
+
+    groups[tool.category].push(tool);
+
+    return groups;
+
+  }, {});
+
+  // Create HTML for every category
+
+  container.innerHTML = Object.entries(groupedTools)
+
+    .map(([category, tools]) => {
+
+      const isMiniSection = 
+
+        category.includes("SOP") ||
+
+        category.includes("links");
+
+      const cards = tools.map(tool => {
+
+        if (isMiniSection) {
+
+          return `
+
+            <a 
+
+              class="tool-card mini-card"
+
+              href="${tool.href}"
+
+              target="_blank"
+
+              rel="noopener"
+
+            >
+
+              <div class="tool-name">${tool.name}</div>
+
+            </a>
+
+          `;
+
+        }
+
+        return `
+
+          <a 
+
+            class="tool-card${tool.accent ? ' accent-' + tool.accent : ''}"
+
+            href="${tool.href}"
+
+            target="${tool.href.startsWith('http') ? '_blank' : '_self'}"
+
+            rel="noopener"
+
+          >
+
+            <div class="tool-name">${tool.name}</div>
+
+            <div class="tool-desc">
+
+              ${tool.description || ""}
+
+            </div>
+
+            <div class="tool-tags">
+
+              ${
+
+                tool.tags
+
+                  .map(tag => `<span class="tag">${tag}</span>`)
+
+                  .join("")
+
+              }
+
+            </div>
+
+          </a>
+
+        `;
+
+      }).join("");
+
+      return `
+
+        <div class="section-head">
+
+          <div class="section-title">
+
+            ${category}
+
+          </div>
+
+          <div class="section-count">
+
+            ${tools.length} ${tools.length === 1 ? "tool" : "tools"}
+
+          </div>
+
+        </div>
+
+        <div class="${isMiniSection ? "mini-grid" : "tool-grid"}">
+
+          ${cards}
+
+          <div class="add-card ${isMiniSection ? "mini-card" : ""}">
+
+            <div class="plus">+</div>
+
+            <div>
+
+              Add items in the <code>TOOLS</code> array.
+
+            </div>
+
+          </div>
+
+        </div>
+
+      `;
+
+    })
+
+    .join("");
+
 }
+
 renderTools();
+
 </script>
 
 </body>
