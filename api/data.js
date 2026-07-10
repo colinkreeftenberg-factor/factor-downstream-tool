@@ -2,6 +2,7 @@ const { GoogleAuth } = require('google-auth-library');
 
 const LINE_SHEET_ID = '1CJ7raeP-Ex7eOkQ0ShpbgXKeHi1EJWXE6XNITArW7Do';
 const BACKEND_SHEET_ID = '1DjYDHfwKLRkQzlEj22whxrBjdk9T36VRQqMGE91l17U';
+const BNL_PRODUCTION_SHEET_ID = '1NQzhmy1jkfqDoxUQWabxvIV5568eIj4aqsOCaZBozH8';
 
 const SOURCES = {
   bartender: { spreadsheetId: LINE_SHEET_ID, range: 'Bartender!A:Z' },
@@ -11,7 +12,12 @@ const SOURCES = {
   mealdb: { spreadsheetId: BACKEND_SHEET_ID, range: "'Meal Database'!A:Z" },
   deodl: { spreadsheetId: BACKEND_SHEET_ID, range: "'DE ODL'!A:Z" },
   kitcontent: { spreadsheetId: BACKEND_SHEET_ID, range: 'Kitcontent!A:Z' },
-  bnlodl: { spreadsheetId: BACKEND_SHEET_ID, range: "'BNL ODL'!A:Z" }
+  bnlodl: { spreadsheetId: BACKEND_SHEET_ID, range: "'BNL ODL'!A:Z" },
+
+  // BNL Swap & Shortage During Production — new production sheet
+  bnl_kitcontent: { spreadsheetId: BNL_PRODUCTION_SHEET_ID, range: 'Kitcontent!A:M' },
+  bnl_mealdb: { spreadsheetId: BNL_PRODUCTION_SHEET_ID, range: 'MealDatabase!A:AJ' },
+  bnl_production: { spreadsheetId: BNL_PRODUCTION_SHEET_ID, range: 'source_timestamps_enriched!A:P' }
 };
 
 let cachedClient = null;
