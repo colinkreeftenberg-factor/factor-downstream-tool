@@ -213,8 +213,10 @@
       </div>
     </details>
     <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-primary" id="btn-post-all-drive">Post to Drive &amp; continue</button>
       <button class="btn btn-ghost btn-sm" id="btn-reset">Reset session</button>
     </div>
+    <div class="dz-hint" id="post-all-status" style="margin-top:8px;"></div>
   </div>
 
   <!-- STEP 4 -->
@@ -855,33 +857,7 @@ function buildBulkErrorRows(){
   return groups;
 }
 
-function driveFilename(baseName){
-  const d = new Date();
-  const dd = String(d.getDate()).padStart(2,'0');
-  const mm = String(d.getMonth()+1).padStart(2,'0');
-  return `${dd}.${mm}-${baseName}`;
-}
-
-async function postToDrive(baseName, content, mimeType, statusElId){
-  const statusEl = statusElId ? document.getElementById(statusElId) : null;
-  const filename = driveFilename(baseName);
-  if(statusEl) statusEl.textContent = 'Posting to Drive…';
-  try{
-    const res = await fetch('/api/upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filename, content, mimeType })
-    });
-    const data = await res.json();
-    if(!res.ok || data.error) throw new Error(data.error || ('HTTP '+res.status));
-    if(statusEl) statusEl.textContent = `Posted to Drive ✓ (${filename})`;
-  } catch(err){
-    if(statusEl) statusEl.textContent = `Drive upload failed: ${err.message}`;
-    console.error('Drive upload failed', err);
-  }
-}
-
-function downloadCsv(filename, columns, rows, driveBaseName, statusElId){
+function downloadCsv(filename, columns, rows){
   const csv = Papa.unparse({ fields: columns, data: rows.map(r => columns.map(c => r[c])) });
   const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -889,7 +865,6 @@ function downloadCsv(filename, columns, rows, driveBaseName, statusElId){
   a.href = url; a.download = filename;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  if(driveBaseName) postToDrive(driveBaseName, csv, 'text/csv;charset=utf-8', statusElId);
 }
 
 function renderBulkDownloads(){
@@ -908,16 +883,13 @@ function renderBulkDownloads(){
       <div class="dl-locale">${escapeHtml(marketName)} (${escapeHtml(market)})</div>
       <div class="dl-meta">${rows.length} row${rows.length===1?'':'s'}</div>
       <button class="btn btn-dark" data-market-idx="${i}">Download<br><span class="mono" style="font-weight:500;">${filename}</span></button>
-      <div class="dz-hint" id="drive-status-bulk-${i}"></div>
     </div>`;
   }).join('');
   row.querySelectorAll('button[data-market-idx]').forEach(btn=>{
-    const idx = +btn.dataset.marketIdx;
-    const market = markets[idx];
+    const market = markets[+btn.dataset.marketIdx];
     const rows = groups[market];
     const filename = `f_bulk_error_${todayDDMM()}_${market}.csv`;
-    const driveBaseName = `f_bulk_error_${market}.csv`;
-    btn.addEventListener('click', ()=> downloadCsv(filename, OUTPUT_COLUMNS, rows, driveBaseName, `drive-status-bulk-${idx}`));
+    btn.addEventListener('click', ()=> downloadCsv(filename, OUTPUT_COLUMNS, rows));
   });
 }
 
@@ -1001,17 +973,15 @@ function toTxt(rows){
   rows.forEach(r => lines.push(headers.map(h => (r[h]||"").toString().replace(/\t/g," ").replace(/\r?\n/g," ")).join("\t")));
   return lines.join("\r\n");
 }
-function downloadTxt(loc, rows, statusElId){
-  const text = toTxt(rows);
-  const blob = new Blob(["\ufeff" + text], {type:"text/plain;charset=utf-8"});
+function downloadTxt(loc, rows){
+  const blob = new Blob(["\ufeff" + toTxt(rows)], {type:"text/plain;charset=utf-8"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = `cc_email_${fileSafe(loc)}_${todayDDMM()}.txt`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  postToDrive(`cc_email_${fileSafe(loc)}.txt`, text, 'text/plain;charset=utf-8', statusElId);
 }
-function downloadManualReview(rows, statusElId){
+function downloadManualReview(rows){
   const fields = ['business_unit','customer_id','flag_reason'];
   const csv = Papa.unparse({fields, data: rows});
   const blob = new Blob(["\ufeff"+csv], {type:"text/csv;charset=utf-8"});
@@ -1020,7 +990,6 @@ function downloadManualReview(rows, statusElId){
   a.href = url; a.download = `cc_email_needs_review.csv`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  postToDrive('cc_email_needs_review.csv', csv, 'text/csv;charset=utf-8', statusElId);
 }
 
 let lastCrmBuild = null;
@@ -1033,23 +1002,97 @@ function renderCrmDownloads(){
     return `<div class="dl-card">
       <div class="dl-locale">${loc}</div><div class="dl-meta">${rows.length} row${rows.length===1?'':'s'}</div>
       <button class="btn btn-dark" data-loc-idx="${i}" ${rows.length===0?'disabled':''}>Download<br><span class="mono" style="font-weight:500;">${filename}</span></button>
-      <div class="dz-hint" id="drive-status-crm-${i}"></div>
     </div>`;
   }).join('') + `<div class="dl-card">
       <div class="dl-locale">Needs review</div><div class="dl-meta">${lastCrmBuild.manualReviewRows.length} row(s)</div>
       <button class="btn btn-dark" id="btn-needs-review" ${lastCrmBuild.manualReviewRows.length===0?'disabled':''}>Download<br><span class="mono" style="font-weight:500;">cc_email_needs_review.csv</span></button>
-      <div class="dz-hint" id="drive-status-review"></div>
     </div>`;
 
   row.querySelectorAll('button[data-loc-idx]').forEach(btn=>{
-    const idx = +btn.dataset.locIdx;
-    const loc = LOCALES[idx];
+    const loc = LOCALES[+btn.dataset.locIdx];
     const rows = lastCrmBuild.resultByLocale[loc] || [];
-    btn.addEventListener('click', ()=> downloadTxt(loc, rows, `drive-status-crm-${idx}`));
+    btn.addEventListener('click', ()=> downloadTxt(loc, rows));
   });
   const reviewBtn = document.getElementById('btn-needs-review');
-  if(reviewBtn) reviewBtn.addEventListener('click', ()=> downloadManualReview(lastCrmBuild.manualReviewRows, 'drive-status-review'));
+  if(reviewBtn) reviewBtn.addEventListener('click', ()=> downloadManualReview(lastCrmBuild.manualReviewRows));
 }
+
+/* =================================================================
+   POST EVERYTHING TO DRIVE — one deliberate action from Step 3,
+   instead of relying on individual download clicks.
+================================================================= */
+function driveFilename(baseName){
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  return `${dd}.${mm}-${baseName}`;
+}
+
+async function uploadOneToDrive(baseName, content, mimeType){
+  const filename = driveFilename(baseName);
+  const res = await fetch('/api/upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename, content, mimeType })
+  });
+  const data = await res.json();
+  if(!res.ok || data.error) throw new Error(data.error || ('HTTP '+res.status));
+  return filename;
+}
+
+async function postAllToDrive(){
+  const btn = document.getElementById('btn-post-all-drive');
+  const statusEl = document.getElementById('post-all-status');
+
+  const jobs = [];
+  const bulkGroups = buildBulkErrorRows();
+  Object.keys(bulkGroups).forEach(market=>{
+    const rows = bulkGroups[market];
+    if(!rows.length) return;
+    const csv = Papa.unparse({ fields: OUTPUT_COLUMNS, data: rows.map(r => OUTPUT_COLUMNS.map(c => r[c])) });
+    jobs.push({ baseName: `f_bulk_error_${market}.csv`, content: csv, mimeType: 'text/csv;charset=utf-8' });
+  });
+
+  const crm = buildCrmRows();
+  LOCALES.forEach(loc=>{
+    const rows = crm.resultByLocale[loc] || [];
+    if(!rows.length) return;
+    jobs.push({ baseName: `cc_email_${fileSafe(loc)}.txt`, content: toTxt(rows), mimeType: 'text/plain;charset=utf-8' });
+  });
+  if(crm.manualReviewRows.length){
+    const csv = Papa.unparse({ fields:['business_unit','customer_id','flag_reason'], data: crm.manualReviewRows });
+    jobs.push({ baseName: 'cc_email_needs_review.csv', content: csv, mimeType: 'text/csv;charset=utf-8' });
+  }
+
+  if(!jobs.length){
+    statusEl.textContent = 'Nothing to post yet — confirm at least one incident first.';
+    return;
+  }
+
+  btn.disabled = true;
+  statusEl.textContent = `Posting ${jobs.length} file(s) to Drive…`;
+  let okCount = 0;
+  const failures = [];
+  for(const job of jobs){
+    try{
+      await uploadOneToDrive(job.baseName, job.content, job.mimeType);
+      okCount++;
+    } catch(err){
+      failures.push(`${job.baseName}: ${err.message}`);
+      console.error('Drive upload failed for', job.baseName, err);
+    }
+  }
+  btn.disabled = false;
+
+  if(failures.length){
+    statusEl.innerHTML = `Posted ${okCount}/${jobs.length} file(s) to Drive. Failed: ${failures.map(escapeHtml).join(' · ')}`;
+  } else {
+    statusEl.textContent = `Posted ${okCount} file(s) to Drive ✓`;
+  }
+
+  document.getElementById('step4').scrollIntoView({behavior:'smooth', block:'start'});
+}
+document.getElementById('btn-post-all-drive').addEventListener('click', postAllToDrive);
 
 /* =================================================================
    SLACK SUMMARY
