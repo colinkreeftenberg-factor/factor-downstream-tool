@@ -202,56 +202,34 @@
    without changing the layout structure.
 ================================================================= */
 const TOOLS = [
-  {
-    name: "BNL CRM Tool- NL/BE",
-    description: "Swap & shortage exports for NL/BE.",
-    href: "tools/bnl-crm-tool.html",
-    tags: ["NL", "BE", "FR-BE"],
-    category: "communication"
-  },
-  {
-    name: "VE CRM Tool — DE/SE/DK",
-    description: "Swap & shortage exports for DE/SE/DK.",
-    href: "tools/de-se-dk-tool.html",
-    tags: ["DE", "SE", "DK"],
-    category: "communication"
-  },
-  {
-    name: "BNL Proactive Swap & Shortage Manager",
-    description: "Plan swaps & shortages into box-files, export bulk-errors (BNL).",
+    {
+    name: "De Kas - Proactive Swap & Shortage Manager",
+    description: "Before production: plan swaps & shortages into box-files",
     href: "tools/swap-shortage-manager.html",
     tags: ["NL","BE"],
-    category: "operational",
-    accent: "grey"
+    category: "Stratgic Swapping - Box Files",
   },
-  {
-    name: "VE Proactive Swap & Shortage Manager",
-    description: "Plan swaps & shortages into box-files, export bulk-errors (Verden).",
+    {
+    name: "Verden - Proactive Swap & Shortage Manager",
+    description: "Before production: plan swaps & shortages into box-files",
     href: "tools/swap_shortage_manager_verden_3.html",
     tags: ["SE","DK","DE"],
-    category: "operational",
+    category: "Stratgic Swapping - Box Files"
+  },
+  {
+    name: "De Kas - Swap & Shorts",
+    description: "Used by Downstream Team for Comms and Compensations",
+    href: "tools/bnl-swaps-after-production.html",
+    tags: ["NL", "BE", "FR-BE"],
+    category: "Downstream Comps and Coms",
     accent: "grey"
   },
   {
-    name: "VE Retrospective Swap & Shortage Manager",
-    description: "Log line shortages & swaps for reporting (Verden).",
+    name: "Verden - Swap & Shorts",
+    description: "Used by Downstream Team for Comms and Compensations",
     href: "tools/line-impact-builder_5.html",
-    tags: ["SE","DK","DE"],
-    category: "operational"
-  },
-  {
-    name: "Verden - Bulk Export Builder",
-    description: "Build & export customer compensation profiles.",
-    href: "tools/factor_compensation_export_builder_3.html",
-    tags: ["Ops", "Comp"],
-    category: "operational"
-  },
-  {
-    name: "BNL -Swap & Shortage",
-    description: "BNL CC Bartender sheet.", 
-    href: "https://docs.google.com/spreadsheets/d/1NQzhmy1jkfqDoxUQWabxvIV5568eIj4aqsOCaZBozH8/edit",
-    tags: ["Ops", "BNL"],
-    category: "operational",
+    tags: ["DE", "SE", "DK"],
+    category: "Downstream Comps and Coms",
     accent: "grey"
   },
   {
@@ -267,7 +245,14 @@ const TOOLS = [
     href: "https://docs.google.com/spreadsheets/d/1DjYDHfwKLRkQzlEj22whxrBjdk9T36VRQqMGE91l17U/edit?gid=0#gid=0",
     tags: [],
     category: "sop"
-  }
+  },
+    {
+    name: "Verden - Bulk Export Builder",
+    description: "Build & export customer compensation profiles.",
+    href: "tools/factor_compensation_export_builder_3.html",
+    tags: ["Ops", "Comp"],
+    category: "Archived Tools"
+  },
 ];
 
 function renderTools(){
