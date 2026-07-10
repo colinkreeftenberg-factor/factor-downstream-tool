@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BNL Swap &amp; Shortage During Production</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root{
+    --carbon:#141414; --natural:#F1F1EA; --natural-2:#E7E6DC;
+    --saffron:#FFC800; --line:#D9D7C9; --ok:#206B19; --warn:#C79C00; --err:#9B2629;
+    --radius:22px; --radius-sm:12px; --ink-dim:#5b5b54; --ink-faint:#8a897d;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{ background:var(--natural); color:var(--carbon); font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1040px;margin:0 auto;padding:40px 24px 96px;}
+
+  .app-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:6px;}
+  .logo-mark{width:40px;height:40px;border-radius:10px;overflow:hidden;flex:none;box-shadow:0 1px 0 rgba(20,20,20,.06);margin-top:2px;}
+  .logo-mark img{width:100%;height:100%;display:block;object-fit:cover;}
+  .app-title{font-weight:600;font-size:26px;letter-spacing:0.01em;text-transform:uppercase;border-bottom:4px solid var(--saffron);padding-bottom:3px;display:inline-block;line-height:1.1;}
+  .app-subtitle{font-weight:400;font-size:14px;color:var(--ink-dim);margin-top:7px;}
+  .app-maker{font-size:11.5px;color:var(--ink-faint);margin-top:6px;}
+  .divider{height:1px;background:var(--line);margin:26px 0 30px;}
+
+  .step{ background:#FBFBF7; border:1px solid var(--line); border-radius:var(--radius); padding:24px 26px; margin-bottom:18px; position:relative;}
+  .step[data-disabled="true"]{opacity:0.45;pointer-events:none;}
+  .step-head{display:flex;align-items:baseline;gap:12px;margin-bottom:4px;}
+  .step-num{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:500;background:var(--natural-2);border:1px solid var(--line);padding:2px 9px;border-radius:999px;}
+  .step-title{font-size:16.5px;font-weight:700;letter-spacing:-0.01em;}
+  .step-desc{font-size:13px;color:var(--ink-dim);margin:8px 0 16px;line-height:1.5;max-width:680px;}
+
+  .live-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  @media (max-width:820px){.live-grid{grid-template-columns:repeat(2,1fr);}}
+  .livecard{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;transition:.2s;}
+  .livecard.ok{background:#E9F5E4;border-color:#BFDDB3;}
+  .livecard.warn{background:#FBE3E3;border-color:#E9B7B8;}
+  .lc-label{font-size:11.5px;font-weight:700;}
+  .lc-status{font-size:11px;color:var(--ink-dim);margin-top:3px;}
+  .lc-refresh{margin-top:8px;background:none;border:1px solid var(--line);color:var(--carbon);border-radius:999px;padding:4px 10px;font-size:10.5px;cursor:pointer;font-family:inherit;}
+  .lc-refresh:hover{border-color:var(--carbon);}
+
+  label.field-label{display:block;font-size:11px;color:var(--ink-dim);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+  input[type=text], input[type=number], select{width:100%;background:#fff;border:1px solid var(--line);color:var(--carbon);padding:10px 12px;border-radius:10px;font-size:13.5px;font-family:inherit;}
+  input:focus, select:focus{border-color:var(--carbon);outline:none;}
+  .form-grid{display:grid;grid-template-columns:1fr 0.9fr 0.9fr 1.6fr;gap:12px;}
+  @media (max-width:820px){.form-grid{grid-template-columns:1fr 1fr;}}
+  .btn{appearance:none;border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:13.5px;padding:11px 20px;border-radius:999px;transition:.12s;}
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:var(--saffron);color:var(--carbon);}
+  .btn-primary:hover{box-shadow:0 0 0 3px rgba(255,200,0,.35);}
+  .btn-primary:disabled{background:#E9E6D4;color:#a9a798;cursor:not-allowed;box-shadow:none;}
+  .btn-dark{background:var(--carbon);color:var(--natural);}
+  .btn-dark:hover{box-shadow:0 0 0 3px rgba(20,20,20,.15);}
+  .btn-dark:disabled{background:#cfcfc7;color:#8f8f86;cursor:not-allowed;}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--carbon);}
+  .btn-ghost:hover{border-color:var(--carbon);}
+  .btn-sm{padding:7px 14px;font-size:12px;border-radius:999px;}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;align-items:center;}
+
+  .incident-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-top:14px;}
+  .incident-card.confirmed{border-color:var(--ok);background:#F3F9F1;}
+  .incident-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .incident-title{font-weight:700;font-size:13.5px;}
+  .incident-meta{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-dim);margin-top:2px;}
+  .remove-x{background:none;border:none;cursor:pointer;color:#9b9a8f;font-size:16px;line-height:1;padding:2px;}
+  .remove-x:hover{color:var(--carbon);}
+  .match-summary{margin-top:12px;font-size:12.5px;background:var(--natural);border-radius:10px;padding:10px 12px;}
+  .match-summary b{font-weight:700;}
+  .warn-line{color:var(--err);font-size:12px;margin-top:6px;}
+  .ok-line{color:var(--ok);font-size:12px;margin-top:6px;}
+
+  .combo{position:relative;max-width:360px;margin-top:10px;}
+  .combo-input{cursor:text;}
+  .combo-panel{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:30;background:#fff;border:1px solid var(--line);border-radius:12px;max-height:240px;overflow-y:auto;box-shadow:0 12px 28px rgba(20,20,20,.14);padding:6px;}
+  .combo-option{display:flex;justify-content:space-between;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;}
+  .combo-option:hover, .combo-option.active{background:var(--natural);}
+  .co-meta{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+  .co-idx{font-size:10px;font-family:'IBM Plex Mono',monospace;color:#8A6900;background:rgba(255,200,0,.22);border-radius:5px;padding:1px 5px;font-weight:600;}
+  .combo-empty{padding:14px 10px;font-size:12.5px;color:var(--ink-faint);text-align:center;}
+
+  table{width:100%;border-collapse:collapse;font-size:12px;background:#fff;}
+  thead th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);border-bottom:1px solid var(--line);padding:8px 9px;position:sticky;top:0;background:#fff;}
+  tbody td{padding:8px 9px;border-bottom:1px solid #EFEDE4;vertical-align:top;}
+  .tablewrap{border:1px solid var(--line);border-radius:var(--radius-sm);overflow:auto;max-height:420px;margin-bottom:6px;}
+  .mono{font-family:'IBM Plex Mono',monospace;font-size:11.5px;}
+  .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;}
+  .tag.swap{background:#FFF3CC;color:#8A6A00;}
+  .tag.short{background:#EFEFEF;color:#333;}
+
+  .summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+  @media (max-width:760px){.summary-grid{grid-template-columns:1fr;}}
+  .sum-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px;}
+  .sum-locale{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:var(--ink-faint);letter-spacing:.03em;text-transform:uppercase;}
+  .sum-count{font-size:24px;font-weight:800;margin-top:3px;}
+  .sum-bu{font-size:12px;color:var(--ink-faint);margin-top:2px;}
+
+  .download-row{display:flex;gap:12px;flex-wrap:wrap;}
+  .dl-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px;display:flex;flex-direction:column;gap:8px;min-width:220px;flex:1;}
+  .dl-locale{font-weight:800;font-size:14px;}
+  .dl-meta{font-size:11.5px;color:var(--ink-faint);}
+  .dl-card .btn{width:100%;text-align:center;border-radius:12px;padding:9px 10px;font-size:11.5px;white-space:normal;word-break:break-all;}
+  .dl-card .btn:disabled{opacity:.5;}
+  .slack-box{background:var(--carbon);border-radius:var(--radius-sm);padding:16px 18px;}
+  .slack-text{color:var(--natural);font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.7;white-space:pre-wrap;word-break:break-word;margin:0;}
+  footer{margin-top:32px;font-size:12px;color:var(--ink-faint);text-align:center;}
+  a.quiet{color:inherit;text-decoration:underline;text-underline-offset:2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="app-header">
+    <div class="logo-mark"><img src="data:image/png;base64,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gZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJ/B+kcJIuf3GHbQAAAABJRU5ErkJggg==" alt="Factor" /></div>
+    <div>
+      <div class="app-title">BNL Swap &amp; Shortage During Production</div>
+      <div class="app-subtitle">Turns boxes impacted by a recipe shortage into files used for swap and shortage communication.</div>
+      <div class="app-maker">Made &amp; maintained by <strong>Colin Kreeftenberg</strong> — questions or edits go to him.</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- STEP 1 -->
+  <div class="step" id="step1">
+    <div class="step-head"><span class="step-num">01</span><span class="step-title">Live data</span></div>
+    <div class="step-desc">Loaded automatically. Refresh manually if a sheet just changed.</div>
+    <div class="live-grid">
+      <div class="livecard" id="lc-kitcontent">
+        <div class="lc-label">Kitcontent (this week)</div>
+        <div class="lc-status" id="lc-kitcontent-status">Not loaded yet…</div>
+        <button class="lc-refresh" data-src="kitcontent">Refresh</button>
+      </div>
+      <div class="livecard" id="lc-mealdb">
+        <div class="lc-label">Meal Database</div>
+        <div class="lc-status" id="lc-mealdb-status">Not loaded yet…</div>
+        <button class="lc-refresh" data-src="mealdb">Refresh</button>
+      </div>
+      <div class="livecard" id="lc-production">
+        <div class="lc-label">Production feed</div>
+        <div class="lc-status" id="lc-production-status">Not loaded yet…</div>
+        <button class="lc-refresh" data-src="production">Refresh</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step" id="step2">
+    <div class="step-head"><span class="step-num">02</span><span class="step-title">Add incidents</span></div>
+    <div class="step-desc">One row per affected slot. Pick the production date first — box order is only meaningful within a single day's run.</div>
+
+    <div class="form-grid">
+      <div>
+        <label class="field-label">Production date</label>
+        <select id="in-date"><option value="">Loading dates…</option></select>
+      </div>
+      <div>
+        <label class="field-label">First box ID</label>
+        <input type="text" id="in-firstbox" placeholder="TT36349848A">
+      </div>
+      <div>
+        <label class="field-label">Last box ID (optional)</label>
+        <input type="text" id="in-lastbox" placeholder="leave blank = rest of run">
+      </div>
+      <div>
+        <label class="field-label">Meal Impacted</label>
+        <div id="slot-combo-mount"></div>
+      </div>
+    </div>
+
+    <div class="form-grid" style="margin-top:12px;">
+      <div style="grid-column:span 4;">
+        <label class="field-label">Root Cause (what happened)</label>
+        <select id="in-category"></select>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-add-incident">Add incident</button>
+    </div>
+
+    <div id="incidentList"></div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step" id="step3" data-disabled="true">
+    <div class="step-head"><span class="step-num">03</span><span class="step-title">Review</span></div>
+    <div class="step-desc">Every confirmed customer across all incidents in this session.</div>
+    <div class="step-body" id="reviewBody"></div>
+    <details style="margin-top:6px;">
+      <summary style="cursor:pointer;font-size:12.5px;color:var(--ink-dim);">Show per-customer details</summary>
+      <div class="tablewrap" id="tablewrap" style="display:block;margin-top:10px;">
+        <table>
+          <thead><tr><th>Type</th><th>Locale</th><th>Box ID</th><th>Customer ID</th><th>Slot</th><th>Recipe</th><th>Qty</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </details>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-primary" id="btn-post-all-drive">Post to Drive &amp; continue</button>
+      <button class="btn btn-ghost btn-sm" id="btn-reset">Reset session</button>
+    </div>
+    <div class="dz-hint" id="post-all-status" style="margin-top:8px;"></div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step" id="step4" data-disabled="true">
+    <div class="step-head"><span class="step-num">04</span><span class="step-title">Bulk Error Report</span></div>
+    <div class="step-desc">One CSV for the De Kas bulk-error import.</div>
+    <div class="download-row" id="bulkDownloadRow"></div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step" id="step5" data-disabled="true">
+    <div class="step-head"><span class="step-num">05</span><span class="step-title">CRM export</span></div>
+    <div class="step-desc">One text file per locale, plus anything that needs a manual look.</div>
+    <div class="download-row" id="crmDownloadRow"></div>
+  </div>
+
+  <!-- STEP 6 -->
+  <div class="step" id="step6" data-disabled="true">
+    <div class="step-head"><span class="step-num">06</span><span class="step-title">Slack update</span></div>
+    <div class="step-desc">A short summary to post in the ops channel.</div>
+    <div class="step-body" id="slackBody"></div>
+  </div>
+
+  <footer>Factor · internal tool · sourced from the <a class="quiet" href="https://docs.google.com/spreadsheets/d/1NQzhmy1jkfqDoxUQWabxvIV5568eIj4aqsOCaZBozH8/edit" target="_blank" rel="noopener">BNL production sheet</a> via the service account.</footer>
+
+</div>
+<script>
+/* =================================================================
+   STATIC CONFIG
+================================================================= */
+const NEW_SHEET_ID = '1NQzhmy1jkfqDoxUQWabxvIV5568eIj4aqsOCaZBozH8';
+
+const LOCALE_CONFIG = {
+  'nl-NL': { name:'Netherlands', currency:'EUR', nameKey:'dutchName', businessUnit:'TT' },
+  'be-NL': { name:'Belgium (NL)', currency:'EUR', nameKey:'dutchName', businessUnit:'TO' },
+  'be-FR': { name:'Belgium (FR)', currency:'EUR', nameKey:'frenchName', businessUnit:'TO' }
+};
+const LOCALES = ['nl-NL','be-NL','be-FR'];
+
+const DEFAULT_CATEGORIES = [
+  { issue:'Cooking issues in production', cat:'operations_use_only', sub:'_recipes', complaint:'internal_cooking_error', d1:'missing', d2:'' },
+  { issue:'Verden production issue causes recipe not to be finished', cat:'operations_use_only', sub:'_recipes', complaint:'internal_production_error_inventory', d1:'sku_change', d2:'impact_high' },
+  { issue:'Verden production issue causes recipe not to be finished', cat:'operations_use_only', sub:'_recipes', complaint:'internal_production_error_inventory', d1:'missing', d2:'impact_high' },
+  { issue:'Verden ordering/procurement issue causes recipe not to be finished', cat:'operations_use_only', sub:'_recipes', complaint:'internal_ordering_error', d1:'sku_change', d2:'' },
+  { issue:'Verden ordering/procurement issue causes recipe not to be finished', cat:'operations_use_only', sub:'_recipes', complaint:'internal_ordering_error', d1:'missing', d2:'' },
+  { issue:'Maitre issue with meals', cat:'operations_use_only', sub:'_recipes', complaint:'supplier_short_delivery', d1:'sku_change', d2:'' },
+  { issue:'Maitre issue with meals', cat:'operations_use_only', sub:'_recipes', complaint:'supplier_short_delivery', d1:'missing', d2:'' },
+  { issue:'Meals fail in production due to a food safety issue', cat:'operations_use_only', sub:'_recipes', complaint:'internal_food_safety', d1:'sku_change', d2:'impact_high' },
+  { issue:'Meals fail in production due to a food safety issue', cat:'operations_use_only', sub:'_recipes', complaint:'internal_food_safety', d1:'missing', d2:'impact_high' },
+  { issue:'Verden fulfilment causing late/delayed delivery', cat:'operations_use_only', sub:'logistics', complaint:'courier_network_error', d1:'late_delivery_1_day', d2:'late_departure_at_production' },
+  { issue:'Verden fulfilment causing failed delivery', cat:'operations_use_only', sub:'logistics', complaint:'no_delivery', d1:'courier_network_error', d2:'' }
+];
+const OUTPUT_COLUMNS = ['customer id','box id','error category','error sub category','complaint','additional detail 1','additional detail 2','ingredient','recipe name','compensation type','compensation amount','recipe index','culinary sku','comment'];
+
+/* =================================================================
+   CRM TEMPLATES — copied from BNL CRM Tool (nl-NL / be-NL / be-FR)
+================================================================= */
+const TEMPLATES = {
+  "nl-NL": {
+    "swap": {
+      business_unit: "TT",
+      subjectline: `We hebben een vervangende maaltijd voor je`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Helaas lukt het onze chefs door onvoorziene omstandigheden niet om {{ORIGIN}} te bereiden. Sorry voor het ongemak.<br><br>Gelukkig hebben we een alternatief voor je: deze week ontvang je {{DEST}}.<br><br>Controleer wel even de allergenen van deze maaltijd.<br><br>Als goedmakertje voegen we <b>€5 tegoed per maaltijd</b> toe aan je account. Dat kun je gebruiken bij je volgende box.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "swap_multiple": {
+      business_unit: "TT",
+      subjectline: `We hebben een vervangende maaltijd voor je`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Helaas lukt het onze chefs door onvoorziene omstandigheden niet om de volgende maaltijden te bereiden:{{ORIGIN}}<br>Sorry voor het ongemak.<br><br>Gelukkig hebben we een alternatief voor je: deze week ontvang je de volgende maaltijden:{{DEST}}<br><br>Controleer wel even de allergenen van deze maaltijd.<br><br>Als goedmakertje voegen we <b>€5 tegoed per maaltijd</b> toe aan je account. Dat kun je gebruiken bij je volgende box.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "short": {
+      business_unit: "TT",
+      subjectline: `Sorry... we kunnen niet alles leveren`,
+      preheader: `Er mist een maaltijd in jouw Factor Box`,
+      content: `Er mist deze week een maaltijd in jouw box: {{SHORT}}. Helaas is het ons niet op tijd gelukt om de maaltijd met een passend alternatief dat aan onze hoge kwaliteitsstandaarden voldoet, te vervangen. Sorry voor het ongemak.<br><br>Natuurlijk voegen we het bedrag als tegoed aan je account toe, zodat je het op je volgende box als korting kunt inzetten. En niet te vergeten: geniet van de maaltijden die wél zijn thuisbezorgd.`
+    },
+    "short_multiple": {
+      business_unit: "TT",
+      subjectline: `Sorry... we kunnen niet alles leveren`,
+      preheader: `Er mist een maaltijd in jouw Factor Box`,
+      content: `Er missen deze week meerdere maaltijden in jouw box:{{SHORT}}<br>Helaas is het ons niet op tijd gelukt om deze maaltijden met een passend alternatief dat aan onze hoge kwaliteitsstandaarden voldoet, te vervangen. Sorry voor het ongemak.<br><br>Natuurlijk voegen we het bedrag als tegoed aan je account toe, zodat je het op je volgende box als korting kunt inzetten. En niet te vergeten: geniet van de maaltijden die wél zijn thuisbezorgd.`
+    },
+    "mixed": {
+      business_unit: "TT",
+      subjectline: `Een paar aanpassingen in je Factor Box`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Deze week gaat niet alles volgens plan met je Factor Box.<br><br>Voor {{SHORT}} hebben we helaas geen passend alternatief kunnen vinden dat aan onze hoge kwaliteitsstandaarden voldoet — deze maaltijd ontbreekt in je levering.<br><br>Daarnaast hebben we {{ORIGIN}} moeten vervangen: hiervoor ontvang je {{DEST}}. Controleer wel even de allergenen van deze maaltijd.<br><br>Sorry voor het ongemak. Uiteraard verrekenen we alles netjes als tegoed in je account.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "mixed_multiple": {
+      business_unit: "TT",
+      subjectline: `Een paar aanpassingen in je Factor Box`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Deze week gaat niet alles volgens plan met je Factor Box.<br><br>Voor de volgende maaltijden hebben we helaas geen passend alternatief kunnen vinden dat aan onze hoge kwaliteitsstandaarden voldoet — ze ontbreken in je levering:{{SHORT}}<br>Daarnaast hebben we de volgende maaltijden moeten vervangen:{{ORIGIN}}<br>Hiervoor ontvang je:{{DEST}}<br>Controleer wel even de allergenen van deze maaltijden.<br><br>Sorry voor het ongemak. Uiteraard verrekenen we alles netjes als tegoed in je account.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "generic": {
+      business_unit: "TT",
+      subjectline: `We hebben een vervangende maaltijd voor je`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Door onvoorziene omstandigheden kunnen onze chefs deze week één of meerdere maaltijden niet bereiden volgens onze gebruikelijke hoge standaard. We begrijpen dat dit vervelend kan zijn en bieden onze oprechte excuses aan voor het ongemak. Om ervoor te zorgen dat je alsnog kunt genieten van een heerlijke maaltijd, hebben onze chefs al een passende vervangende maaltijd klaargemaakt voor deze week. <br><br> Controleer wel even de allergenen in de nieuwe maaltijd(en). Als tegemoetkoming ontvang je ook €5 tegoed per getroffen maaltijd, dat automatisch wordt verrekend met je volgende box. <br><br> Heb je vragen of ben je niet tevreden? Neem gerust contact op met onze klantenservice, we helpen je graag verder!`
+    }
+  },
+  "be-NL": {
+    "swap": {
+      business_unit: "TO",
+      subjectline: `We hebben een vervangende maaltijd voor je`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Helaas lukt het onze chefs door onvoorziene omstandigheden niet om {{ORIGIN}} te bereiden. Sorry voor het ongemak.<br><br>Gelukkig hebben we een alternatief voor je: deze week ontvang je {{DEST}}.<br><br>Controleer wel even de allergenen van deze maaltijd.<br><br>Als goedmakertje voegen we <b>€5 tegoed per maaltijd</b> toe aan je account. Dat kun je gebruiken bij je volgende box.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "swap_multiple": {
+      business_unit: "TO",
+      subjectline: `We hebben een vervangende maaltijd voor je`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Helaas lukt het onze chefs door onvoorziene omstandigheden niet om de volgende maaltijden te bereiden:{{ORIGIN}}<br>Sorry voor het ongemak.<br><br>Gelukkig hebben we een alternatief voor je: deze week ontvang je de volgende maaltijden:{{DEST}}<br><br>Controleer wel even de allergenen van deze maaltijd.<br><br>Als goedmakertje voegen we <b>€5 tegoed per maaltijd</b> toe aan je account. Dat kun je gebruiken bij je volgende box.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "short": {
+      business_unit: "TO",
+      subjectline: `Sorry... we kunnen niet alles leveren`,
+      preheader: `Er mist een maaltijd in jouw Factor Box`,
+      content: `Er mist deze week een maaltijd in jouw box: {{SHORT}}. Helaas is het ons niet op tijd gelukt om de maaltijd met een passend alternatief dat aan onze hoge kwaliteitsstandaarden voldoet, te vervangen. Sorry voor het ongemak.<br><br>Natuurlijk voegen we het bedrag als tegoed aan je account toe, zodat je het op je volgende box als korting kunt inzetten. En niet te vergeten: geniet van de maaltijden die wél zijn thuisbezorgd.`
+    },
+    "short_multiple": {
+      business_unit: "TO",
+      subjectline: `Sorry... we kunnen niet alles leveren`,
+      preheader: `Er mist een maaltijd in jouw Factor Box`,
+      content: `Er missen deze week meerdere maaltijden in jouw box:{{SHORT}}<br>Helaas is het ons niet op tijd gelukt om deze maaltijden met een passend alternatief dat aan onze hoge kwaliteitsstandaarden voldoet, te vervangen. Sorry voor het ongemak.<br><br>Natuurlijk voegen we het bedrag als tegoed aan je account toe, zodat je het op je volgende box als korting kunt inzetten. En niet te vergeten: geniet van de maaltijden die wél zijn thuisbezorgd.`
+    },
+    "mixed": {
+      business_unit: "TO",
+      subjectline: `Een paar aanpassingen in je Factor Box`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Deze week gaat niet alles volgens plan met je Factor Box.<br><br>Voor {{SHORT}} hebben we helaas geen passend alternatief kunnen vinden dat aan onze hoge kwaliteitsstandaarden voldoet — deze maaltijd ontbreekt in je levering.<br><br>Daarnaast hebben we {{ORIGIN}} moeten vervangen: hiervoor ontvang je {{DEST}}. Controleer wel even de allergenen van deze maaltijd.<br><br>Sorry voor het ongemak. Uiteraard verrekenen we alles netjes als tegoed in je account.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "mixed_multiple": {
+      business_unit: "TO",
+      subjectline: `Een paar aanpassingen in je Factor Box`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Deze week gaat niet alles volgens plan met je Factor Box.<br><br>Voor de volgende maaltijden hebben we helaas geen passend alternatief kunnen vinden dat aan onze hoge kwaliteitsstandaarden voldoet — ze ontbreken in je levering:{{SHORT}}<br>Daarnaast hebben we de volgende maaltijden moeten vervangen:{{ORIGIN}}<br>Hiervoor ontvang je:{{DEST}}<br>Controleer wel even de allergenen van deze maaltijden.<br><br>Sorry voor het ongemak. Uiteraard verrekenen we alles netjes als tegoed in je account.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "generic": {
+      business_unit: "TO",
+      subjectline: `We hebben een vervangende maaltijd voor je`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Door onvoorziene omstandigheden kunnen onze chefs deze week één of meerdere maaltijden niet bereiden volgens onze gebruikelijke hoge standaard. We begrijpen dat dit vervelend kan zijn en bieden onze oprechte excuses aan voor het ongemak. Om ervoor te zorgen dat je alsnog kunt genieten van een heerlijke maaltijd, hebben onze chefs al een passende vervangende maaltijd klaargemaakt voor deze week. <br><br> Controleer wel even de allergenen in de nieuwe maaltijd(en). Als tegemoetkoming ontvang je ook €5 tegoed per getroffen maaltijd, dat automatisch wordt verrekend met je volgende box. <br><br> Heb je vragen of ben je niet tevreden? Neem gerust contact op met onze klantenservice, we helpen je graag verder!`
+    }
+  },
+  "be-FR": {
+    "swap": {
+      business_unit: "TO",
+      subjectline: `Nous avons remplacé un plat`,
+      preheader: `Information importante concernant votre box`,
+      content: `Malheureusement, en raison de circonstances imprévues, nos chefs ne parviennent pas à préparer {{ORIGIN}}. Désolé pour ce désagrément.<br><br>Heureusement, nous avons une alternative pour vous : cette semaine, vous recevrez {{DEST}}.<br><br>Veuillez tout de même vérifier les allergènes de ce repas.<br><br>Pour nous excuser, nous ajoutons <b>5 € de crédit par repas</b> sur votre compte. Vous pourrez l’utiliser lors de votre prochaine box.<br><br>Si vous avez des questions ou si vous n’êtes pas satisfait, n’hésitez pas à contacter notre équipe du service client.`
+    },
+    "swap_multiple": {
+      business_unit: "TO",
+      subjectline: `Nous avons remplacé un plat`,
+      preheader: `Information importante concernant votre box`,
+      content: `Malheureusement, en raison de circonstances imprévues, nos chefs ne parviennent pas à préparer les plats suivants :{{ORIGIN}}<br>Désolé pour ce désagrément.<br><br>Heureusement, nous avons une alternative pour vous : cette semaine, vous recevrez les plats suivants :{{DEST}}<br><br>Veuillez tout de même vérifier les allergènes de ce repas.<br><br>Pour nous excuser, nous ajoutons <b>5 € de crédit par repas</b> sur votre compte. Vous pourrez l’utiliser lors de votre prochaine box.<br><br>Si vous avez des questions ou si vous n’êtes pas satisfait, n’hésitez pas à contacter notre équipe du service client.`
+    },
+    "short": {
+      business_unit: "TO",
+      subjectline: `Petit imprévu dans la livraison`,
+      preheader: `Votre box est arrivée… avec un petit changement.`,
+      content: `Vous aviez sélectionné ce plat dans votre box cette semaine : {{SHORT}}. Malheureusement, nos chefs n’ont pas pu le préparer, ni trouver d’alternative à la hauteur de nos standards à temps.<br><br>Veuillez nous excuser pour ce contretemps. Nous avons crédité votre compte. Vous pourrez utiliser ce montant comme réduction lors de votre prochaine commande.<br><br>Bon appétit !`
+    },
+    "short_multiple": {
+      business_unit: "TO",
+      subjectline: `Petit imprévu dans la livraison`,
+      preheader: `Votre box est arrivée… avec un petit changement.`,
+      content: `Vous aviez sélectionné ces plats dans votre box cette semaine :{{SHORT}}<br>Malheureusement, nos chefs n’ont pas pu les préparer, ni trouver d’alternative à la hauteur de nos standards à temps.<br><br>Veuillez nous excuser pour ce contretemps. Nous avons crédité votre compte. Vous pourrez utiliser ce montant comme réduction lors de votre prochaine commande.<br><br>Bon appétit !`
+    },
+    "mixed": {
+      business_unit: "TO",
+      subjectline: `Quelques ajustements dans votre Factor Box`,
+      preheader: `Information importante concernant votre box`,
+      content: `Cette semaine, tout ne s’est pas déroulé comme prévu avec votre Factor Box.<br><br>Pour {{SHORT}}, nous n’avons malheureusement pas pu trouver d’alternative répondant à nos standards de qualité élevés — ce plat est absent de votre livraison.<br><br>Par ailleurs, nous avons dû remplacer {{ORIGIN}} : vous recevrez à la place {{DEST}}. Pensez à vérifier les allergènes de ce plat.<br><br>Désolé pour ce désagrément. Bien entendu, nous créditerons tout cela correctement sur votre compte.<br><br>Si vous avez des questions ou n’êtes pas satisfait, n’hésitez pas à contacter notre service client.`
+    },
+    "mixed_multiple": {
+      business_unit: "TO",
+      subjectline: `Quelques ajustements dans votre Factor Box`,
+      preheader: `Information importante concernant votre box`,
+      content: `Cette semaine, tout ne s’est pas déroulé comme prévu avec votre Factor Box.<br><br>Pour les plats suivants, nous n’avons malheureusement pas pu trouver d’alternative répondant à nos standards de qualité élevés — ils sont absents de votre livraison :{{SHORT}}<br>Par ailleurs, nous avons dû remplacer les plats suivants :{{ORIGIN}}<br>Vous recevrez à la place :{{DEST}}<br>Pensez à vérifier les allergènes de ces plats.<br><br>Désolé pour ce désagrément. Bien entendu, nous créditerons tout cela correctement sur votre compte.<br><br>Si vous avez des questions ou n’êtes pas satisfait, n’hésitez pas à contacter notre service client.`
+    },
+    "generic": {
+      business_unit: "TO",
+      subjectline: `Nous avons remplacé un plat`,
+      preheader: `Information importante concernant votre box`,
+      content: `En raison de circonstances imprévues, nos chefs n’ont pas pu préparer un ou plusieurs des repas que vous aviez sélectionné cette semaine. Nous sommes désolés pour ce désagrément. <br><br> Rassurez-vous : nos chefs ont soigneusement sélectionné un ou plusieurs plats de remplacement, préparés avec la même exigence et la même qualité que d’habitude.<br><br> Nous vous invitons à vérifier les allergènes présents dans ces nouveaux plats. En compensation, un crédit de 5 € par repas concerné sera automatiquement appliqué à votre prochaine box. <br><br> Si vous avez la moindre question, notre service client se fera un plaisir de vous aider.`
+    }
+  }
+};
+
+/* =================================================================
+   STATE
+================================================================= */
+const state = {
+  kitcontentBySlot: new Map(),   // slot -> {receptcode, ingredientnaam, etiketnaam, sku}
+  mealDbBySku: new Map(),        // sku -> [{mealId, dutchName, frenchName}]
+  productionRows: [],            // flat array of box records
+  availableDates: [],            // sorted unique production_date strings (desc)
+  incidents: [],
+  incidentSeq: 0,
+  auditLog: []
+};
+
+/* =================================================================
+   HELPERS
+================================================================= */
+function stripLeadingLetters(v){ return v==null ? '' : String(v).replace(/^[A-Za-z]+/, ''); }
+function stripTrailingLetters(v){ return v==null ? '' : String(v).replace(/[A-Za-z]+$/, ''); }
+function normalizeBoxId(id){ if(!id) return ''; const m = String(id).trim().toUpperCase().match(/^([A-Z]{2}\d+)/); return m ? m[1] : String(id).trim().toUpperCase(); }
+function todayDDMM(){ const d = new Date(); return String(d.getDate()).padStart(2,'0') + String(d.getMonth()+1).padStart(2,'0'); }
+function fileSafe(s){ return (s||'').replace(/-/g,'_'); }
+function escapeHtml(s){ return (s==null?'':String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function clean(s){ return (s || "").toString().replace(/\s+/g, " ").trim(); }
+// Dedupe a list of strings, preserving first-seen order
+function uniqueList(items){
+  const unique = [];
+  items.forEach(v => { if (v && !unique.includes(v)) unique.push(v); });
+  return unique;
+}
+// Every meal name renders bold + italic. Multiple names separated by <br> — CRM tool limitation.
+function asListHtml(unique){
+  if (unique.length === 0) return "";
+  return unique.map(v => `<b><i>${escapeHtml(v)}</i></b>`).join("<br>");
+}
+function parseTs(s){
+  // "2026-07-10 7:42:16.673" or "2026-07-10 7:42:16" -> zero-padded, parseable Date
+  const str = (s||'').toString().trim();
+  const m = str.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{1,2}):(\d{2}):(\d{2})(\.\d+)?$/);
+  if(!m) return new Date(str);
+  const hh = m[2].padStart(2,'0');
+  return new Date(`${m[1]}T${hh}:${m[3]}:${m[4]}`);
+}
+function parseSlots(desc){
+  return (desc||'').split('|').map(s=>s.trim()).filter(s=>/^\d+$/.test(s));
+}
+
+/* =================================================================
+   BUILDERS
+================================================================= */
+function buildKitcontentIndex(rows){
+  let headerIdx = -1;
+  for(let i=0;i<Math.min(rows.length,6);i++){
+    if(rows[i].some(c => (c||'').toString().trim()==='Receptcode')){ headerIdx = i; break; }
+  }
+  if(headerIdx===-1) throw new Error('Could not find a header row containing "Receptcode" in Kitcontent.');
+  const header = rows[headerIdx].map(h=>(h||'').toString().trim());
+  const idx = {
+    receptcode: header.indexOf('Receptcode'),
+    ingredientnaam: header.indexOf('Ingredientnaam'),
+    etiketnaam: header.indexOf('Etiketnaam'),
+    sku: header.indexOf('SKU nummer')
+  };
+  const map = new Map();
+  let count = 0;
+  for(let i=headerIdx+1;i<rows.length;i++){
+    const r = rows[i];
+    if(!r || idx.receptcode<0 || !r[idx.receptcode]) continue;
+    const receptcode = r[idx.receptcode].toString().trim();
+    const slot = receptcode.split('-')[0].trim();
+    if(!slot || map.has(slot)) continue; // keep first occurrence
+    map.set(slot, {
+      receptcode,
+      ingredientnaam: idx.ingredientnaam>=0 ? (r[idx.ingredientnaam]||'').toString().trim() : '',
+      etiketnaam: idx.etiketnaam>=0 ? (r[idx.etiketnaam]||'').toString().trim() : '',
+      sku: idx.sku>=0 ? (r[idx.sku]||'').toString().trim() : ''
+    });
+    count++;
+  }
+  return { map, count };
+}
+
+function buildMealDatabaseIndex(rows){
+  const header = rows[0].map(h=>(h||'').toString().trim());
+  const idx = {
+    mealId: header.indexOf('Meal ID'),
+    sku: header.indexOf('Internal SKU (Dutch)'),
+    dutchName: header.indexOf('Dutch name'),
+    frenchName: header.indexOf('French Name')
+  };
+  const map = new Map();
+  let count = 0;
+  for(let i=1;i<rows.length;i++){
+    const r = rows[i];
+    if(!r || idx.sku<0 || !r[idx.sku]) continue;
+    const sku = r[idx.sku].toString().trim();
+    const entry = {
+      mealId: idx.mealId>=0 ? (r[idx.mealId]||'').toString().trim() : '',
+      dutchName: idx.dutchName>=0 ? (r[idx.dutchName]||'').toString().trim() : '',
+      frenchName: idx.frenchName>=0 ? (r[idx.frenchName]||'').toString().trim() : ''
+    };
+    if(entry.dutchName==='#N/A') entry.dutchName='';
+    if(entry.frenchName==='#N/A') entry.frenchName='';
+    if(!map.has(sku)) map.set(sku, []);
+    map.get(sku).push(entry);
+    count++;
+  }
+  return { map, count };
+}
+
+function buildProductionIndex(rows){
+  const header = rows[0].map(h=>(h||'').toString().trim());
+  const idx = {
+    prodDate: header.indexOf('production_date'),
+    prodDay: header.indexOf('production_day'),
+    ts: header.indexOf('event_timestamp_local'),
+    boxId: header.indexOf('box_id'),
+    logistics: header.indexOf('logistics_order_description'),
+    customerId: header.indexOf('customer_id'),
+    locale: header.indexOf('locale')
+  };
+  const missing = Object.keys(idx).filter(k=>idx[k]<0);
+  if(missing.length) throw new Error('Production feed is missing expected column(s): ' + missing.join(', '));
+  const records = [];
+  for(let i=1;i<rows.length;i++){
+    const r = rows[i];
+    if(!r || !r[idx.boxId]) continue;
+    records.push({
+      boxIdRaw: r[idx.boxId].toString().trim(),
+      boxIdNorm: normalizeBoxId(r[idx.boxId]),
+      productionDate: (r[idx.prodDate]||'').toString().trim(),
+      productionDay: (r[idx.prodDay]||'').toString().trim(),
+      ts: (r[idx.ts]||'').toString().trim(),
+      customerId: (r[idx.customerId]||'').toString().trim(),
+      locale: (r[idx.locale]||'').toString().trim(),
+      slots: parseSlots(r[idx.logistics])
+    });
+  }
+  return records;
+}
+
+function resolveRecipeName(slot, locale){
+  const cfg = LOCALE_CONFIG[locale];
+  if(!cfg) return null;
+  const kit = state.kitcontentBySlot.get(String(slot).trim());
+  if(!kit || !kit.sku) return null;
+  const entries = state.mealDbBySku.get(kit.sku) || [];
+  for(const e of entries){ if(e[cfg.nameKey]) return e[cfg.nameKey]; }
+  return null;
+}
+
+/* =================================================================
+   LIVE SOURCE LOADING
+================================================================= */
+function setLc(src, html, kind){
+  document.getElementById('lc-'+src).className = 'livecard' + (kind==='ok'?' ok':kind==='warn'?' warn':'');
+  document.getElementById('lc-'+src+'-status').innerHTML = html;
+}
+
+async function loadJson(url, timeoutMs){
+  timeoutMs = timeoutMs || 20000;
+  const controller = new AbortController();
+  const timeout = setTimeout(()=>controller.abort(), timeoutMs);
+  try{
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    const data = await res.json();
+    if(data && data.error) throw new Error(data.error);
+    return data;
+  } catch(err){
+    clearTimeout(timeout);
+    if(err.name === 'AbortError') throw new Error('Timed out.');
+    throw err;
+  }
+}
+
+async function loadSource(src){
+  setLc(src, 'Loading…', 'pending');
+  try{
+    if(src==='kitcontent'){
+      const payload = await loadJson('/api/data?sheet=bnl_kitcontent');
+      const built = buildKitcontentIndex(payload.data);
+      state.kitcontentBySlot = built.map;
+      setLc(src, `Loaded · ${built.count} slot(s)`, 'ok');
+    } else if(src==='mealdb'){
+      const payload = await loadJson('/api/data?sheet=bnl_mealdb');
+      const built = buildMealDatabaseIndex(payload.data);
+      state.mealDbBySku = built.map;
+      setLc(src, `Loaded · ${built.count} row(s)`, 'ok');
+    } else if(src==='production'){
+      const payload = await loadJson('/api/data?sheet=bnl_production');
+      state.productionRows = buildProductionIndex(payload.data);
+      state.availableDates = Array.from(new Set(state.productionRows.map(r=>r.productionDate))).filter(Boolean).sort().reverse();
+      populateDateSelect();
+      setLc(src, `Loaded · ${state.productionRows.length} box(es) · ${state.availableDates.length} date(s)`, 'ok');
+    }
+  } catch(err){
+    setLc(src, `Failed: ${escapeHtml(err.message)}`, 'warn');
+    console.error(src, err);
+  }
+}
+
+function populateDateSelect(){
+  const sel = document.getElementById('in-date');
+  const prevValue = sel.value;
+  if(!state.availableDates.length){
+    sel.innerHTML = '<option value="">No dates loaded</option>';
+    return;
+  }
+  sel.innerHTML = '<option value="">Select date…</option>' + state.availableDates.map(d=>{
+    const sample = state.productionRows.find(r=>r.productionDate===d);
+    const dayLabel = sample && sample.productionDay ? ` (${sample.productionDay})` : '';
+    return `<option value="${escapeHtml(d)}">${escapeHtml(d)}${escapeHtml(dayLabel)}</option>`;
+  }).join('');
+  if(state.availableDates.includes(prevValue)) sel.value = prevValue;
+}
+
+document.querySelectorAll('.lc-refresh').forEach(btn=>{
+  btn.addEventListener('click', ()=> loadSource(btn.dataset.src));
+});
+window.addEventListener('load', ()=>{
+  loadSource('kitcontent'); loadSource('mealdb'); loadSource('production');
+});
+
+/* =================================================================
+   CATEGORY DROPDOWN
+================================================================= */
+const categorySelect = document.getElementById('in-category');
+const RECIPE_CATEGORIES = DEFAULT_CATEGORIES
+  .map((c, originalIndex) => Object.assign({ originalIndex }, c))
+  .filter(c => c.sub === '_recipes');
+function labelForD1(d1){
+  if(d1 === 'missing') return 'SHORT';
+  if(d1 === 'sku_change') return 'SWAP';
+  return d1;
+}
+function typeForD1(d1){
+  return d1 === 'missing' ? 'SHORTAGE' : 'SWAP';
+}
+categorySelect.innerHTML = RECIPE_CATEGORIES.map((c,i)=>`<option value="${i}">${escapeHtml(c.issue)} — ${escapeHtml(labelForD1(c.d1))}</option>`).join('');
+
+function getCurrentType(){
+  const idx = parseInt(categorySelect.value, 10);
+  const cat = RECIPE_CATEGORIES[idx];
+  return cat ? typeForD1(cat.d1) : 'SWAP';
+}
+
+/* =================================================================
+   COMBOBOX (meal / substitute picker) — same component as the
+   DE/SE/DK Line Impact Builder.
+================================================================= */
+function createCombobox({container, getOptions, placeholder, onSelect, allowFreeText}){
+  container.innerHTML = `<div class="combo"><input type="text" class="combo-input" placeholder="${escapeHtml(placeholder||'Search recipes…')}" autocomplete="off"><div class="combo-panel" style="display:none;"></div></div>`;
+  const wrap = container.querySelector('.combo');
+  const input = wrap.querySelector('.combo-input');
+  const panel = wrap.querySelector('.combo-panel');
+  let currentSlot = '', activeIndex = -1, currentList = [];
+  function displayFor(rec){ return rec.code ? `${rec.label} (${rec.code})` : rec.label; }
+  function renderOptions(filter){
+    const opts = getOptions();
+    const f = (filter||'').toLowerCase().trim();
+    const filtered = f ? opts.filter(o => o.label.toLowerCase().includes(f) || String(o.slot).includes(f) || (o.code||'').toLowerCase().includes(f)) : opts;
+    currentList = filtered;
+    if(!opts.length){ panel.innerHTML = `<div class="combo-empty">${allowFreeText ? 'No slot list yet — you can still type a slot number' : 'No recipes loaded yet'}</div>`; return; }
+    if(!filtered.length){ panel.innerHTML = `<div class="combo-empty">No matching recipes${allowFreeText ? ' — typed value will be used as-is' : ''}</div>`; return; }
+    panel.innerHTML = filtered.map((o,i)=>`<div class="combo-option" data-idx="${i}"><span>${escapeHtml(o.label)}</span><span class="co-meta"><span class="co-idx">#${escapeHtml(o.slot)}</span>${o.code?`<span class="co-idx">${escapeHtml(o.code)}</span>`:''}</span></div>`).join('');
+  }
+  function openPanel(){ renderOptions(''); panel.style.display='block'; activeIndex=-1; }
+  function closePanel(){ panel.style.display='none'; activeIndex=-1; }
+  function updateActive(){
+    panel.querySelectorAll('.combo-option').forEach((it,i)=> it.classList.toggle('active', i===activeIndex));
+  }
+  function select(rec){
+    currentSlot = rec ? rec.slot : (allowFreeText ? input.value.trim() : '');
+    input.value = rec ? displayFor(rec) : input.value;
+    closePanel();
+    onSelect(rec, currentSlot);
+  }
+  input.addEventListener('focus', ()=>{ input.select(); openPanel(); });
+  input.addEventListener('input', ()=>{
+    renderOptions(input.value);
+    panel.style.display='block'; activeIndex=-1;
+    if(allowFreeText) currentSlot = input.value.trim();
+  });
+  input.addEventListener('keydown', e=>{
+    if(panel.style.display==='none') return;
+    if(e.key==='ArrowDown'){ e.preventDefault(); activeIndex=Math.min(activeIndex+1, currentList.length-1); updateActive(); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); activeIndex=Math.max(activeIndex-1,0); updateActive(); }
+    else if(e.key==='Enter'){ e.preventDefault(); if(activeIndex>=0 && currentList[activeIndex]) select(currentList[activeIndex]); }
+    else if(e.key==='Escape'){ closePanel(); input.blur(); }
+  });
+  panel.addEventListener('mousedown', e=>{
+    const opt = e.target.closest('.combo-option');
+    if(!opt) return;
+    e.preventDefault();
+    select(currentList[+opt.dataset.idx]);
+  });
+  input.addEventListener('blur', ()=>{
+    setTimeout(()=>{
+      closePanel();
+      if(!allowFreeText){
+        const rec = getOptions().find(o=>o.slot===currentSlot);
+        input.value = rec ? displayFor(rec) : '';
+        if(!rec) currentSlot = '';
+      } else {
+        const typed = input.value.trim();
+        const rec = getOptions().find(o=> o.label===typed || String(o.slot)===typed || displayFor(o)===typed);
+        if(rec){ currentSlot = rec.slot; input.value = displayFor(rec); }
+        else { currentSlot = typed; }
+      }
+    }, 120);
+  });
+  return {
+    getSlot: ()=>currentSlot,
+    setPlaceholder: p=>{ input.placeholder = p; },
+    setValue: (slot, label, code)=>{ currentSlot = slot || ''; input.value = slot ? displayFor({label, code}) : ''; }
+  };
+}
+
+/* =================================================================
+   MEAL-IMPACTED COMBO — sourced straight from Kitcontent (this
+   week only, no week-matching needed).
+================================================================= */
+let slotComboRef = null;
+function getKitcontentOptions(){
+  return Array.from(state.kitcontentBySlot.entries())
+    .map(([slot, kit]) => ({ slot, label: kit.etiketnaam || kit.ingredientnaam || `Slot ${slot}`, code: kit.sku }))
+    .sort((a,b)=> a.slot.localeCompare(b.slot, undefined, {numeric:true}));
+}
+function mountSlotCombo(){
+  const mount = document.getElementById('slot-combo-mount');
+  slotComboRef = createCombobox({
+    container: mount,
+    getOptions: getKitcontentOptions,
+    placeholder: 'Search meal or type slot #…',
+    allowFreeText: true,
+    onSelect: ()=>{}
+  });
+}
+mountSlotCombo();
+
+/* =================================================================
+   ADD INCIDENT
+================================================================= */
+document.getElementById('btn-add-incident').addEventListener('click', ()=>{
+  const date = document.getElementById('in-date').value;
+  const firstBox = document.getElementById('in-firstbox').value.trim();
+  const lastBox = document.getElementById('in-lastbox').value.trim();
+  const slot = slotComboRef ? slotComboRef.getSlot() : '';
+  const categoryIndex = parseInt(categorySelect.value, 10);
+  if(!date || !firstBox || !slot){ alert('Production date, first box ID and affected meal are required.'); return; }
+  const type = getCurrentType();
+  state.incidentSeq++;
+  state.incidents.push({
+    id: state.incidentSeq, date, firstBox, lastBox: lastBox || null, slot, type, categoryIndex,
+    status: 'draft', matched: [], warnings: [],
+    recipeName: null, recipeCode: null, substituteSlot: null, substituteRecipeName: null, substituteRecipeCode: null,
+    checkedCount: 0, notImpacted: 0, localeBreakdown: {}
+  });
+  document.getElementById('in-firstbox').value = '';
+  document.getElementById('in-lastbox').value = '';
+  mountSlotCombo();
+  renderIncidents();
+});
+
+/* =================================================================
+   MATCHING
+================================================================= */
+function findMatches(incident){
+  incident.warnings = [];
+  const dateRows = state.productionRows.filter(r=>r.productionDate===incident.date);
+  if(!dateRows.length){ incident.warnings.push(`No production rows found for ${incident.date}.`); incident.status='error'; return; }
+
+  const sorted = dateRows.slice().sort((a,b)=> parseTs(a.ts) - parseTs(b.ts));
+  const firstNorm = normalizeBoxId(incident.firstBox);
+  const firstIdx = sorted.findIndex(r=>r.boxIdNorm===firstNorm);
+  if(firstIdx===-1){ incident.warnings.push(`First box ${incident.firstBox} not found on ${incident.date}.`); incident.status='error'; return; }
+
+  let endIdx = sorted.length - 1;
+  if(incident.lastBox){
+    const lastNorm = normalizeBoxId(incident.lastBox);
+    const lastIdx = sorted.findIndex((r,i)=> i>=firstIdx && r.boxIdNorm===lastNorm);
+    if(lastIdx===-1){ incident.warnings.push('Last box not found after the first box — using the rest of the run instead.'); }
+    else { endIdx = lastIdx; }
+  }
+  const candidates = sorted.slice(firstIdx, endIdx+1);
+
+  const matched = []; let notImpacted = 0;
+  const localeBreakdown = {};
+  candidates.forEach(box=>{
+    const qty = box.slots.filter(s=>s===String(incident.slot)).length;
+    if(!qty){ notImpacted++; return; }
+    matched.push({
+      boxIdRaw: box.boxIdRaw, boxIdClean: stripTrailingLetters(box.boxIdRaw),
+      customerId: box.customerId, locale: box.locale, qty
+    });
+    localeBreakdown[box.locale] = (localeBreakdown[box.locale]||0) + 1;
+  });
+
+  incident.matched = matched;
+  incident.checkedCount = candidates.length;
+  incident.notImpacted = notImpacted;
+  incident.localeBreakdown = localeBreakdown;
+
+  const kit = state.kitcontentBySlot.get(String(incident.slot));
+  if(kit){
+    incident.recipeCode = kit.sku;
+    incident.recipeName = kit.etiketnaam || kit.ingredientnaam || null;
+  } else {
+    incident.warnings.push(`Slot ${incident.slot} not found in Kitcontent for this week.`);
+  }
+
+  if(!matched.length) incident.warnings.push(`No customers in this range actually had slot ${incident.slot} in their box.`);
+  incident.status = matched.length ? 'matched' : 'empty';
+}
+
+/* =================================================================
+   RENDER INCIDENTS
+================================================================= */
+function renderIncidents(){
+  const wrap = document.getElementById('incidentList');
+  wrap.innerHTML = state.incidents.map(inc => renderIncidentCard(inc)).join('');
+
+  state.incidents.forEach(inc=>{
+    const btnFind = document.getElementById('find-'+inc.id);
+    if(btnFind) btnFind.addEventListener('click', ()=>{ findMatches(inc); renderIncidents(); });
+    const btnRemove = document.getElementById('remove-'+inc.id);
+    if(btnRemove) btnRemove.addEventListener('click', ()=>{ state.incidents = state.incidents.filter(x=>x.id!==inc.id); renderIncidents(); });
+    const btnConfirm = document.getElementById('confirm-'+inc.id);
+    if(btnConfirm) btnConfirm.addEventListener('click', ()=>{ confirmIncident(inc); });
+
+    if(inc.status==='matched' && inc.type==='SWAP'){
+      const mount = document.getElementById('combo-'+inc.id);
+      if(mount){
+        const comboInstance = createCombobox({
+          container: mount,
+          getOptions: ()=> getKitcontentOptions().filter(o=> o.slot !== String(inc.slot)),
+          placeholder: 'Search substitute recipe…',
+          onSelect: rec=>{
+            inc.substituteSlot = rec ? rec.slot : null;
+            inc.substituteRecipeCode = rec ? rec.code : null;
+            inc.substituteRecipeName = rec ? rec.label : null;
+            renderIncidents();
+          }
+        });
+        if(inc.substituteSlot) comboInstance.setValue(inc.substituteSlot, inc.substituteRecipeName, inc.substituteRecipeCode);
+      }
+    }
+  });
+}
+
+function localeBreakdownText(inc){
+  const parts = Object.keys(inc.localeBreakdown||{}).map(loc=>`${loc}: ${inc.localeBreakdown[loc]}`);
+  return parts.length ? parts.join(' · ') : '—';
+}
+
+function renderIncidentCard(inc){
+  const typeTag = inc.type==='SWAP' ? '<span class="tag swap">Swap</span>' : '<span class="tag short">Shortage</span>';
+  let body = `
+    <div class="incident-head">
+      <div>
+        <div class="incident-title">#${inc.id} — ${escapeHtml(inc.date)} · Slot ${escapeHtml(inc.slot)} ${typeTag}</div>
+        <div class="incident-meta">${escapeHtml(inc.firstBox)}${inc.lastBox ? ' → '+escapeHtml(inc.lastBox) : ' → rest of run'}</div>
+      </div>
+      ${inc.status!=='confirmed' ? `<button class="remove-x" id="remove-${inc.id}">✕</button>` : ''}
+    </div>`;
+
+  if(inc.status==='draft'){
+    body += `<div class="btn-row"><button class="btn btn-ghost btn-sm" id="find-${inc.id}">Find matches</button></div>`;
+  } else if(inc.status==='error'){
+    body += inc.warnings.map(w=>`<div class="warn-line">${escapeHtml(w)}</div>`).join('');
+    body += `<div class="btn-row"><button class="btn btn-ghost btn-sm" id="find-${inc.id}">Try again</button></div>`;
+  } else if(inc.status==='empty' || inc.status==='matched'){
+    body += `<div class="match-summary">
+      Checked <b>${inc.checkedCount}</b> box(es) on ${escapeHtml(inc.date)} &middot;
+      <b>${inc.matched.length}</b> customer(s) actually had slot ${escapeHtml(inc.slot)}
+      ${inc.notImpacted ? ` &middot; ${inc.notImpacted} didn't have this slot` : ''}
+      <br>By locale: <b>${localeBreakdownText(inc)}</b> &middot; Recipe: <b>${escapeHtml(inc.recipeName||'Unknown')}</b>
+    </div>`;
+    inc.warnings.forEach(w=> body += `<div class="warn-line">${escapeHtml(w)}</div>`);
+
+    if(inc.type==='SWAP' && inc.status==='matched'){
+      body += `<label class="field-label" style="margin-top:12px;">Substitute recipe</label>`;
+      body += `<div id="combo-${inc.id}"></div>`;
+      if(inc.substituteRecipeName) body += `<div class="ok-line">Selected: ${escapeHtml(inc.substituteRecipeName)} (#${escapeHtml(inc.substituteSlot)})</div>`;
+    }
+
+    const canConfirm = inc.status==='matched' && inc.matched.length>0 && (inc.type==='SHORTAGE' || inc.substituteSlot);
+    body += `<div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-ghost btn-sm" id="find-${inc.id}">Re-check</button>
+      <button class="btn btn-primary btn-sm" id="confirm-${inc.id}" ${canConfirm?'':'disabled'}>Confirm incident</button>
+    </div>`;
+  } else if(inc.status==='confirmed'){
+    body += `<div class="match-summary">
+      Confirmed &middot; <b>${inc.matched.length}</b> customer(s) added to session &middot; Recipe: <b>${escapeHtml(inc.recipeName||'Unknown')}</b>
+      ${inc.type==='SWAP' ? ` → <b>${escapeHtml(inc.substituteRecipeName||'Unknown')}</b>` : ''}
+    </div>`;
+  }
+
+  return `<div class="incident-card ${inc.status==='confirmed'?'confirmed':''}">${body}</div>`;
+}
+
+function confirmIncident(inc){
+  inc.matched.forEach(m=>{
+    state.auditLog.push({
+      incidentId: inc.id, customerId: m.customerId, boxId: m.boxIdClean, locale: m.locale, qty: m.qty,
+      type: inc.type, slot: inc.slot, substituteSlot: inc.substituteSlot,
+      categoryIndex: inc.categoryIndex
+    });
+  });
+  inc.status = 'confirmed';
+  renderIncidents();
+  unlockSession();
+}
+
+/* =================================================================
+   SESSION UNLOCK / REVIEW
+================================================================= */
+function unlockSession(){
+  ['step3','step4','step5','step6'].forEach(id=> document.getElementById(id).removeAttribute('data-disabled'));
+  renderReview();
+  renderBulkDownloads();
+  renderCrmDownloads();
+  renderSlack();
+}
+
+function renderReview(){
+  const rows = state.auditLog;
+
+  const swaps = rows.filter(r=>r.type==='SWAP').length;
+  const shorts = rows.filter(r=>r.type==='SHORTAGE').length;
+
+  document.getElementById('reviewBody').innerHTML = `
+    <div class="summary-grid">
+      <div class="sum-card"><div class="sum-locale">Customers</div><div class="sum-count">${rows.length}</div><div class="sum-bu">confirmed across all incidents</div></div>
+      <div class="sum-card"><div class="sum-locale">Swaps / Shorts</div><div class="sum-count">${swaps} / ${shorts}</div><div class="sum-bu">by type</div></div>
+    </div>`;
+
+  document.getElementById('tbody').innerHTML = rows.map(r=>{
+    const recipeName = resolveRecipeName(r.slot, r.locale) || 'Unknown';
+    const subName = r.type==='SWAP' ? (resolveRecipeName(r.substituteSlot, r.locale) || 'Unknown') : null;
+    return `
+    <tr>
+      <td>${r.type==='SWAP'?'<span class="tag swap">Swap</span>':'<span class="tag short">Shortage</span>'}</td>
+      <td>${escapeHtml(r.locale||'?')}</td>
+      <td class="mono">${escapeHtml(r.boxId)}</td>
+      <td class="mono">${escapeHtml(r.customerId)}</td>
+      <td class="mono">${escapeHtml(r.slot)}</td>
+      <td>${escapeHtml(recipeName)}${r.type==='SWAP' ? ' → '+escapeHtml(subName) : ''}</td>
+      <td>${r.qty}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('tablewrap').style.display = 'block';
+}
+
+document.getElementById('btn-reset').addEventListener('click', ()=>{
+  state.incidents = []; state.auditLog = [];
+  renderIncidents();
+  ['step3','step4','step5','step6'].forEach(id=> document.getElementById(id).setAttribute('data-disabled','true'));
+});
+
+/* =================================================================
+   BULK ERROR EXPORT — single De Kas file (BNL isn't split by
+   business unit like the DE/SE/DK markets are).
+================================================================= */
+function buildBulkErrorRows(){
+  const rows = [];
+  state.auditLog.forEach(r=>{
+    if(r.categoryIndex===null || r.categoryIndex===undefined || isNaN(r.categoryIndex)) return;
+    const cat = RECIPE_CATEGORIES[r.categoryIndex];
+    const kit = state.kitcontentBySlot.get(String(r.slot));
+    const recipeName = resolveRecipeName(r.slot, r.locale) || 'Unknown';
+    const subName = r.type==='SWAP' ? (resolveRecipeName(r.substituteSlot, r.locale) || 'Unknown') : null;
+    rows.push({
+      'customer id': stripLeadingLetters(r.customerId),
+      'box id': stripTrailingLetters(r.boxId),
+      'error category': cat.cat,
+      'error sub category': cat.sub,
+      'complaint': cat.complaint,
+      'additional detail 1': cat.d1,
+      'additional detail 2': cat.d2,
+      'ingredient': '',
+      'recipe name': recipeName,
+      'compensation type': 'credit',
+      'compensation amount': '',
+      'recipe index': r.slot,
+      'culinary sku': kit ? kit.sku : '',
+      'comment': r.type==='SWAP' ? `Swap to ${r.substituteSlot}: ${subName}` : 'Shortage'
+    });
+  });
+  return rows;
+}
+
+function downloadCsv(filename, columns, rows){
+  const csv = Papa.unparse({ fields: columns, data: rows.map(r => columns.map(c => r[c])) });
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function renderBulkDownloads(){
+  const rows = buildBulkErrorRows();
+  const row = document.getElementById('bulkDownloadRow');
+  const filename = `f_bulk_error_${todayDDMM()}_BNL.csv`;
+  row.innerHTML = `<div class="dl-card">
+    <div class="dl-locale">De Kas bulk error</div>
+    <div class="dl-meta">${rows.length} row${rows.length===1?'':'s'}</div>
+    <button class="btn btn-dark" id="btn-bulk-download" ${rows.length===0?'disabled':''}>Download<br><span class="mono" style="font-weight:500;">${filename}</span></button>
+  </div>`;
+  const btn = document.getElementById('btn-bulk-download');
+  if(btn) btn.addEventListener('click', ()=> downloadCsv(filename, OUTPUT_COLUMNS, buildBulkErrorRows()));
+}
+
+/* =================================================================
+   CRM EXPORT — same merge logic as the BNL CRM Tool: group by
+   customer, merge multiple impacted meals into one message, a
+   customer with both a swap and a shortage gets one combined email,
+   and any row with unresolved recipe data falls back to generic.
+================================================================= */
+function buildContent(locale, reasonKey, parts){
+  const tpl = TEMPLATES[locale] && TEMPLATES[locale][reasonKey];
+  if (!tpl) return "";
+  return tpl.content
+    .replace(/{{ORIGIN}}/g, parts.origin || "")
+    .replace(/{{DEST}}/g,   parts.dest   || "")
+    .replace(/{{SHORT}}/g,  parts.short  || "");
+}
+
+function buildCrmRows(){
+  const byCustomer = {};
+  state.auditLog.forEach(r=>{
+    if(!byCustomer[r.customerId]) byCustomer[r.customerId] = { customerId:r.customerId, locale:r.locale, swaps:[], missing:[] };
+    if(r.type==='SWAP'){
+      byCustomer[r.customerId].swaps.push({ origin:r.slot, dest:r.substituteSlot });
+    } else {
+      byCustomer[r.customerId].missing.push(r.slot);
+    }
+  });
+
+  const resultByLocale = Object.fromEntries(LOCALES.map(l=>[l,[]]));
+  const resultRows = [];
+  const manualReviewRows = [];
+  let genericCount = 0, mixedCount = 0;
+
+  Object.values(byCustomer).forEach(cust=>{
+    const locale = cust.locale;
+    if(!TEMPLATES[locale]){
+      manualReviewRows.push({ customer_id: cust.customerId, flag_reason: `unmapped locale (${locale||'empty'})` });
+      return;
+    }
+
+    let allKnown = true;
+    const swapNames = cust.swaps.map(pair=>{
+      const origin = resolveRecipeName(pair.origin, locale);
+      const dest = resolveRecipeName(pair.dest, locale);
+      if(!origin || !dest) allKnown = false;
+      return { origin, dest };
+    });
+    const missingNames = cust.missing.map(slot=>{
+      const name = resolveRecipeName(slot, locale);
+      if(!name) allKnown = false;
+      return name;
+    });
+
+    const swapCount = swapNames.length, missingCount = missingNames.length;
+    if(swapCount===0 && missingCount===0) return;
+
+    // dedupe identical swap pairs / short recipe names, preserving order
+    const seen = new Set();
+    const uniquePairs = [];
+    swapNames.forEach(p=>{
+      const key = p.origin+'|||'+p.dest;
+      if(!seen.has(key)){ seen.add(key); uniquePairs.push(p); }
+    });
+    const uniqueShort = uniqueList(missingNames);
+
+    let reasonKey, content;
+
+    if(!allKnown){
+      reasonKey = 'generic';
+      genericCount++;
+    } else {
+      const hasSwap = uniquePairs.length>0, hasShort = uniqueShort.length>0;
+      if(hasSwap && hasShort){
+        reasonKey = (uniquePairs.length+uniqueShort.length>2) ? 'mixed_multiple' : 'mixed';
+        mixedCount++;
+      } else if(hasSwap){
+        reasonKey = uniquePairs.length>1 ? 'swap_multiple' : 'swap';
+      } else {
+        reasonKey = uniqueShort.length>1 ? 'short_multiple' : 'short';
+      }
+    }
+
+    const tpl = TEMPLATES[locale][reasonKey];
+    if(!tpl){ manualReviewRows.push({ customer_id: cust.customerId, flag_reason: `no template for ${reasonKey}` }); return; }
+
+    if(reasonKey==='generic'){
+      content = tpl.content;
+    } else {
+      content = buildContent(locale, reasonKey, {
+        origin: asListHtml(uniquePairs.map(p=>p.origin)),
+        dest:   asListHtml(uniquePairs.map(p=>p.dest)),
+        short:  asListHtml(uniqueShort)
+      });
+    }
+
+    const outRow = { business_unit: tpl.business_unit, customer_id: cust.customerId, locale, content, subjectline: tpl.subjectline, preheader: tpl.preheader, voucher:'' };
+    resultByLocale[locale].push(outRow);
+    resultRows.push({ customerId: cust.customerId, locale, reason: reasonKey });
+  });
+
+  return { resultByLocale, resultRows, manualReviewRows, genericCount, mixedCount };
+}
+
+function toTxt(rows){
+  const headers = ["business_unit","customer_id","locale","content","subjectline","preheader","voucher"];
+  const lines = [headers.join("\t")];
+  rows.forEach(r => lines.push(headers.map(h => (r[h]||"").toString().replace(/\t/g," ").replace(/\r?\n/g," ")).join("\t")));
+  return lines.join("\r\n");
+}
+function downloadTxt(loc, rows){
+  const blob = new Blob(["\ufeff" + toTxt(rows)], {type:"text/plain;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `cc_email_${fileSafe(loc)}_${todayDDMM()}.txt`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function downloadManualReview(rows){
+  const fields = ['customer_id','flag_reason'];
+  const csv = Papa.unparse({fields, data: rows});
+  const blob = new Blob(["\ufeff"+csv], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `cc_email_needs_review_${todayDDMM()}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+let lastCrmBuild = null;
+function renderCrmDownloads(){
+  lastCrmBuild = buildCrmRows();
+  const row = document.getElementById('crmDownloadRow');
+  row.innerHTML = LOCALES.map((loc,i)=>{
+    const rows = lastCrmBuild.resultByLocale[loc] || [];
+    const filename = `cc_email_${fileSafe(loc)}_${todayDDMM()}.txt`;
+    return `<div class="dl-card">
+      <div class="dl-locale">${loc}</div><div class="dl-meta">${rows.length} row${rows.length===1?'':'s'}</div>
+      <button class="btn btn-dark" data-loc-idx="${i}" ${rows.length===0?'disabled':''}>Download<br><span class="mono" style="font-weight:500;">${filename}</span></button>
+    </div>`;
+  }).join('') + `<div class="dl-card">
+      <div class="dl-locale">Needs review</div><div class="dl-meta">${lastCrmBuild.manualReviewRows.length} row(s)</div>
+      <button class="btn btn-dark" id="btn-needs-review" ${lastCrmBuild.manualReviewRows.length===0?'disabled':''}>Download<br><span class="mono" style="font-weight:500;">cc_email_needs_review.csv</span></button>
+    </div>`;
+
+  row.querySelectorAll('button[data-loc-idx]').forEach(btn=>{
+    const loc = LOCALES[+btn.dataset.locIdx];
+    const rows = lastCrmBuild.resultByLocale[loc] || [];
+    btn.addEventListener('click', ()=> downloadTxt(loc, rows));
+  });
+  const reviewBtn = document.getElementById('btn-needs-review');
+  if(reviewBtn) reviewBtn.addEventListener('click', ()=> downloadManualReview(lastCrmBuild.manualReviewRows));
+}
+
+/* =================================================================
+   POST EVERYTHING TO DRIVE — one deliberate action from Step 3,
+   instead of relying on individual download clicks.
+================================================================= */
+function driveFilename(baseName){
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  return `${dd}.${mm}-${baseName}`;
+}
+
+async function uploadOneToDrive(baseName, content, mimeType){
+  const filename = driveFilename(baseName);
+  const res = await fetch('/api/upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename, content, mimeType })
+  });
+  const data = await res.json();
+  if(!res.ok || data.error) throw new Error(data.error || ('HTTP '+res.status));
+  return filename;
+}
+
+async function postAllToDrive(){
+  const btn = document.getElementById('btn-post-all-drive');
+  const statusEl = document.getElementById('post-all-status');
+
+  const jobs = [];
+  const bulkRows = buildBulkErrorRows();
+  if(bulkRows.length){
+    const csv = Papa.unparse({ fields: OUTPUT_COLUMNS, data: bulkRows.map(r => OUTPUT_COLUMNS.map(c => r[c])) });
+    jobs.push({ baseName: `f_bulk_error_BNL.csv`, content: csv, mimeType: 'text/csv;charset=utf-8' });
+  }
+
+  const crm = buildCrmRows();
+  LOCALES.forEach(loc=>{
+    const rows = crm.resultByLocale[loc] || [];
+    if(!rows.length) return;
+    jobs.push({ baseName: `cc_email_${fileSafe(loc)}.txt`, content: toTxt(rows), mimeType: 'text/plain;charset=utf-8' });
+  });
+  if(crm.manualReviewRows.length){
+    const csv = Papa.unparse({ fields:['customer_id','flag_reason'], data: crm.manualReviewRows });
+    jobs.push({ baseName: 'cc_email_needs_review.csv', content: csv, mimeType: 'text/csv;charset=utf-8' });
+  }
+
+  if(!jobs.length){
+    statusEl.textContent = 'Nothing to post yet — confirm at least one incident first.';
+    return;
+  }
+
+  btn.disabled = true;
+  statusEl.textContent = `Posting ${jobs.length} file(s) to Drive…`;
+  let okCount = 0;
+  const failures = [];
+  for(const job of jobs){
+    try{
+      await uploadOneToDrive(job.baseName, job.content, job.mimeType);
+      okCount++;
+    } catch(err){
+      failures.push(`${job.baseName}: ${err.message}`);
+      console.error('Drive upload failed for', job.baseName, err);
+    }
+  }
+  btn.disabled = false;
+
+  if(failures.length){
+    statusEl.innerHTML = `Posted ${okCount}/${jobs.length} file(s) to Drive. Failed: ${failures.map(escapeHtml).join(' · ')}`;
+  } else {
+    statusEl.textContent = `Posted ${okCount} file(s) to Drive ✓`;
+  }
+
+  document.getElementById('step4').scrollIntoView({behavior:'smooth', block:'start'});
+}
+document.getElementById('btn-post-all-drive').addEventListener('click', postAllToDrive);
+
+/* =================================================================
+   SLACK SUMMARY
+================================================================= */
+function renderSlack(){
+  const crm = lastCrmBuild || buildCrmRows();
+  const bulkRows = buildBulkErrorRows();
+  const lines = ['📦 *BNL Swap & Shortage During Production — session summary*', ''];
+
+  LOCALES.forEach(loc=>{
+    const relevant = crm.resultRows.filter(r=>r.locale===loc);
+    if(!relevant.length) return;
+    const byReason = {};
+    relevant.forEach(r=> byReason[r.reason] = (byReason[r.reason]||0)+1);
+    lines.push(`*${loc}*: ${relevant.length} customer(s) — ` + Object.keys(byReason).map(k=>`${byReason[k]}x ${k}`).join(', '));
+  });
+  lines.push('');
+  lines.push(`Total customers messaged: ${crm.resultRows.length}`);
+  if(crm.mixedCount) lines.push(`↳ includes ${crm.mixedCount} customer(s) with both a swap and a shortage`);
+  if(crm.genericCount) lines.push(`⚠️ ${crm.genericCount} customer(s) got the generic fallback — check Kitcontent/Meal Database`);
+  if(crm.manualReviewRows.length) lines.push(`⚠️ ${crm.manualReviewRows.length} customer(s) excluded — see needs-review export`);
+  lines.push(`Bulk error rows: ${bulkRows.length}`);
+
+  const msg = lines.join('\n').trim();
+  document.getElementById('slackBody').innerHTML = `
+    <div class="slack-box"><pre class="slack-text" id="slackText"></pre></div>
+    <div class="btn-row"><button class="btn btn-primary btn-sm" id="copySlackBtn">Copy for Slack</button></div>`;
+  document.getElementById('slackText').textContent = msg;
+  document.getElementById('copySlackBtn').addEventListener('click', ()=>{
+    navigator.clipboard.writeText(msg).then(()=>{
+      const btn = document.getElementById('copySlackBtn');
+      const orig = btn.textContent; btn.textContent = 'Copied ✓';
+      setTimeout(()=>{ btn.textContent = orig; }, 1800);
+    });
+  });
+}
+
+renderIncidents();
+</script>
+</body>
+</html>
