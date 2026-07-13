@@ -502,35 +502,45 @@ function buildKitcontentIndex(rows){
 }
 
 function buildMealDatabaseIndex(rows){
-  const header = rows[0].map(h=>(h||'').toString().trim());
+  // Find the actual header row (search first 10 rows, like other builders do),
+  // instead of assuming row 0 is always the header.
+  let headerIdx = -1;
+  for(let i=0;i<Math.min(rows.length,10);i++){
+    if(rows[i].some(c => (c||'').toString().trim().toLowerCase()==='meal id')){ headerIdx = i; break; }
+  }
+  if(headerIdx===-1) throw new Error('Could not find a header row containing "Meal ID" in the Meal Database.');
+
+  const header = rows[headerIdx].map(h=>(h||'').toString().trim());
   const idx = {
-    mealId: header.indexOf('Meal ID'),
-    sku: header.indexOf('Internal SKU (Dutch)'),
+    mealId: -1,
+    sku: -1,
     dutchName: -1,
     frenchName: -1
   };
-  
-  // Try multiple column name variations for Dutch name
-  for(let i = 0; i < header.length; i++){
+  for(let i=0;i<header.length;i++){
     const h = header[i].toLowerCase();
-    if(h.includes('dutch') && h.includes('name') && idx.dutchName < 0) idx.dutchName = i;
+    if(h==='meal id' && idx.mealId<0) idx.mealId = i;
+    if(h==='internal sku (dutch)' && idx.sku<0) idx.sku = i;
+    if(h.includes('dutch') && h.includes('name') && idx.dutchName<0) idx.dutchName = i;
+    if(h.includes('french') && h.includes('name') && idx.frenchName<0) idx.frenchName = i;
   }
-  
-  // Try multiple column name variations for French name
-  for(let i = 0; i < header.length; i++){
-    const h = header[i].toLowerCase();
-    if(h.includes('french') && h.includes('name') && idx.frenchName < 0) idx.frenchName = i;
+  // Fallback: looser substring match if the exact column name shifted
+  if(idx.sku < 0){
+    for(let i=0;i<header.length;i++){
+      const h = header[i].toLowerCase();
+      if(h.includes('internal sku') || (h.includes('sku') && h.includes('dutch'))){ idx.sku = i; break; }
+    }
   }
-  
-  // Fallback: if columns not found by name, use position (F=5, J=9)
-  if(idx.dutchName < 0 && rows[0].length > 5) idx.dutchName = 5;  // Column F
-  if(idx.frenchName < 0 && rows[0].length > 9) idx.frenchName = 9; // Column J
-  
+  // Fallback: name columns not found by header text, use position (F=5, J=9)
+  if(idx.dutchName < 0 && header.length > 5) idx.dutchName = 5;  // Column F
+  if(idx.frenchName < 0 && header.length > 9) idx.frenchName = 9; // Column J
+  if(idx.sku < 0) throw new Error('Could not find column "Internal SKU (Dutch)" in the Meal Database header row.');
+
   const map = new Map();
   let count = 0;
-  for(let i=1;i<rows.length;i++){
+  for(let i=headerIdx+1;i<rows.length;i++){
     const r = rows[i];
-    if(!r || idx.sku<0 || !r[idx.sku]) continue;
+    if(!r || !r[idx.sku]) continue;
     const sku = r[idx.sku].toString().trim();
     const entry = {
       mealId: idx.mealId>=0 ? (r[idx.mealId]||'').toString().trim() : '',
@@ -703,7 +713,11 @@ async function loadSource(src){
       const payload = await loadJson('/api/data?sheet=bnl_mealdb');
       const built = buildMealDatabaseIndex(payload.data);
       state.mealDbBySku = built.map;
-      setLc(src, `Loaded · ${built.count} row(s)`, 'ok');
+      if(built.count === 0){
+        setLc(src, `⚠ Loaded 0 rows — header found, but no data rows matched. Check the sheet for structure changes.`, 'warn');
+      } else {
+        setLc(src, `Loaded · ${built.count} row(s)`, 'ok');
+      }
     } else if(src==='production'){
       const [prodPayload, odlPayload, pricePayload] = await Promise.all([
         loadJson('/api/data?sheet=bnl_production'),
