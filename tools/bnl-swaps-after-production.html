@@ -547,9 +547,17 @@ function buildProductionIndex(rows){
     boxId: header.indexOf('box_id'),
     logistics: header.indexOf('logistics_order_description'),
     customerId: header.indexOf('customer_id'),
-    locale: header.indexOf('locale')
+    locale: -1
   };
-  const missing = Object.keys(idx).filter(k=>idx[k]<0);
+  // Locale/language column: try common header name variants first (case-insensitive)
+  for(let i=0;i<header.length;i++){
+    const h = header[i].toLowerCase();
+    if(h==='locale' || h==='language' || h==='customer_language' || h==='lang'){ idx.locale = i; break; }
+  }
+  // Fallback: column J (0-indexed position 9), per the BNL ODL sheet layout
+  if(idx.locale < 0 && header.length > 9) idx.locale = 9;
+
+  const missing = Object.keys(idx).filter(k=>k!=='locale' && idx[k]<0);
   if(missing.length) throw new Error('Production feed is missing expected column(s): ' + missing.join(', '));
   const records = [];
   for(let i=1;i<rows.length;i++){
@@ -557,7 +565,7 @@ function buildProductionIndex(rows){
     if(!r || !r[idx.boxId]) continue;
     const customerId = (r[idx.customerId]||'').toString().trim();
     const boxIdRaw = r[idx.boxId].toString().trim();
-    const rawLocale = (r[idx.locale]||'').toString().trim();
+    const rawLocale = idx.locale>=0 ? (r[idx.locale]||'').toString().trim() : '';
     const normalizedLocale = normalizeLocale(rawLocale, boxIdRaw);
     records.push({
       boxIdRaw: boxIdRaw,
@@ -567,6 +575,7 @@ function buildProductionIndex(rows){
       ts: (r[idx.ts]||'').toString().trim(),
       customerId: customerId,
       locale: normalizedLocale,
+      rawLocale: rawLocale,
       slots: parseSlots(r[idx.logistics])
     });
   }
@@ -626,7 +635,16 @@ async function loadSource(src){
       state.productionRows = buildProductionIndex(payload.data);
       state.availableDates = Array.from(new Set(state.productionRows.map(r=>r.productionDate))).filter(Boolean).sort().reverse();
       populateDateSelect();
-      setLc(src, `Loaded · ${state.productionRows.length} box(es) · ${state.availableDates.length} date(s)`, 'ok');
+      const unmappedCount = state.productionRows.filter(r=>!r.locale).length;
+      const sampleUnmapped = state.productionRows.find(r=>!r.locale);
+      let statusMsg = `Loaded · ${state.productionRows.length} box(es) · ${state.availableDates.length} date(s)`;
+      let kind = 'ok';
+      if(unmappedCount > 0){
+        statusMsg += ` · ⚠ ${unmappedCount} row(s) with unmapped locale`;
+        if(sampleUnmapped) statusMsg += ` (e.g. box ${escapeHtml(sampleUnmapped.boxIdRaw)}, raw value: "${escapeHtml(sampleUnmapped.rawLocale)}")`;
+        kind = 'warn';
+      }
+      setLc(src, statusMsg, kind);
     }
   } catch(err){
     setLc(src, `Failed: ${escapeHtml(err.message)}`, 'warn');
