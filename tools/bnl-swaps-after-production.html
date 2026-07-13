@@ -438,6 +438,10 @@ function parseTs(s){
   const hh = m[2].padStart(2,'0');
   return new Date(`${m[1]}T${hh}:${m[3]}:${m[4]}`);
 }
+function parseSlots(desc){
+  return (desc||'').split('|').map(s=>s.trim()).filter(s=>/^\d+$/.test(s));
+}
+
 function normalizeLocale(rawLocale, customerId){
   // rawLocale comes from production feed as language code (NLD, FRA, etc)
   // customerId has TT or TO prefix
