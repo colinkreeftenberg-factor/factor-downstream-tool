@@ -22,7 +22,6 @@
   .logo-link{display:block;text-decoration:none;flex:none;}
   .logo-mark{width:40px;height:40px;border-radius:10px;overflow:hidden;flex:none;box-shadow:0 1px 0 rgba(20,20,20,.06);margin-top:2px;}
   .logo-mark img{width:100%;height:100%;display:block;object-fit:cover;}
-  .logo-link{display:block;text-decoration:none;flex:none;}
   .app-title{font-weight:600;font-size:26px;letter-spacing:0.01em;text-transform:uppercase;border-bottom:4px solid var(--saffron);padding-bottom:3px;display:inline-block;line-height:1.1;}
   .app-subtitle{font-weight:400;font-size:14px;color:var(--ink-dim);margin-top:7px;}
   .app-maker{font-size:11.5px;color:var(--ink-faint);margin-top:6px;}
@@ -262,6 +261,20 @@ const MARKET_CONFIG = {
 };
 const LOCALES = ['de-DE','sv-SE','da-DK'];
 
+/* NEW: per-market slot numbering offset relative to the German slot
+   number used as the key in the Verden sheet. Confirmed: TV and TK
+   both use German-slot + 300 (e.g. DE 314 -> SE/DK 614). If this
+   ever turns out to vary by week rather than being a flat constant,
+   this is the place to replace it with a lookup instead. */
+const MARKET_SLOT_OFFSET = { TZ: 0, TV: 300, TK: 300 };
+
+function localSlotForMarket(germanSlot, market){
+  const offset = MARKET_SLOT_OFFSET[market] || 0;
+  const n = parseInt(germanSlot, 10);
+  if (isNaN(n)) return String(germanSlot);
+  return String(n + offset);
+}
+
 const DEFAULT_CATEGORIES = [
   { issue:'Cooking issues in production', cat:'operations_use_only', sub:'_recipes', complaint:'internal_cooking_error', d1:'missing', d2:'' },
   { issue:'Verden production issue causes recipe not to be finished', cat:'operations_use_only', sub:'_recipes', complaint:'internal_production_error_inventory', d1:'sku_change', d2:'impact_high' },
@@ -277,7 +290,140 @@ const DEFAULT_CATEGORIES = [
 ];
 const OUTPUT_COLUMNS = ['customer id','box id','error category','error sub category','complaint','additional detail 1','additional detail 2','ingredient','recipe name','compensation type','compensation amount','recipe index','culinary sku','comment'];
 
-const TEMPLATES = {"de-DE": {"swap": {"business_unit": "TZ", "subjectline": "Wir haben eine Ersatzmahlzeit für dich", "preheader": "Wichtige Information zu deiner Factor Box", "content": "Leider können unsere Köche aufgrund unvorhergesehener Umstände <b>[Recipe_Swapped]</b> nicht zubereiten. Entschuldige bitte die Unannehmlichkeiten.<br><br>Zum Glück haben wir eine Alternative für dich: Diese Woche erhältst du <b>[Recipe_Swapped_to]</b>.<br><br>Bitte überprüfe die Allergene dieser Mahlzeit.<br><br>Als kleine Geste schreiben wir dir <b>5 € Gutschrift pro Mahlzeit</b> auf deinem Konto gut. Diesen kannst du bei deiner nächsten Box einlösen.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam."}, "swap_multiple": {"business_unit": "TZ", "subjectline": "Wir haben eine Ersatzmahlzeit für dich", "preheader": "Wichtige Information zu deiner Factor Box", "content": "Leider können unsere Köche aufgrund unvorhergesehener Umstände die folgenden Mahlzeiten nicht zubereiten:[Recipe_Swapped]Entschuldige bitte die Unannehmlichkeiten.<br><br>Zum Glück haben wir eine Alternative für dich: Diese Woche erhältst du die folgenden Mahlzeiten:[Recipe_Swapped_to]<br><br>Bitte überprüfe die Allergene dieser Mahlzeiten.<br><br>Als kleine Geste schreiben wir dir <b>5 € Gutschrift pro Mahlzeit</b> auf deinem Konto gut. Diesen kannst du bei deiner nächsten Box einlösen.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam."}, "short": {"business_unit": "TZ", "subjectline": "Entschuldigung... wir können nicht alles liefern", "preheader": "Es fehlt eine Mahlzeit in deiner Factor Box", "content": "Diese Woche fehlt eine Mahlzeit in deiner Box: <b>[Recipe_Missing]</b>. Leider ist es uns nicht rechtzeitig gelungen, diese Mahlzeit durch eine passende Alternative zu ersetzen, die unseren hohen Qualitätsstandards entspricht. Entschuldige bitte die Unannehmlichkeiten.<br><br>Selbstverständlich schreiben wir dir den Betrag als Guthaben auf deinem Konto gut, das du bei deiner nächsten Box als Rabatt einlösen kannst. Und nicht zu vergessen: Genieße die Mahlzeiten, die wir dir liefern konnten."}, "short_multiple": {"business_unit": "TZ", "subjectline": "Entschuldigung... wir können nicht alles liefern", "preheader": "Es fehlt eine Mahlzeit in deiner Factor Box", "content": "Diese Woche fehlen mehrere Mahlzeiten in deiner Box:[Recipe_Missing]Leider ist es uns nicht rechtzeitig gelungen, diese Mahlzeiten durch passende Alternativen zu ersetzen, die unseren hohen Qualitätsstandards entsprechen. Entschuldige bitte die Unannehmlichkeiten.<br><br>Selbstverständlich schreiben wir dir den Betrag als Guthaben auf deinem Konto gut, das du bei deiner nächsten Box als Rabatt einlösen kannst. Und nicht zu vergessen: Genieße die Mahlzeiten, die wir dir liefern konnten."}, "mixed": {"business_unit": "TZ", "subjectline": "Ein paar Anpassungen in deiner Factor Box", "preheader": "Wichtige Information zu deiner Factor Box", "content": "Diese Woche läuft nicht alles nach Plan mit deiner Factor Box.<br><br>Für <b>[Recipe_Missing]</b> konnten wir leider keine passende Alternative finden, die unseren hohen Qualitätsstandards entspricht — diese Mahlzeit fehlt daher in deiner Lieferung.<br><br>Außerdem mussten wir <b>[Recipe_Swapped]</b> ersetzen: Dafür erhältst du <b>[Recipe_Swapped_to]</b>. Bitte überprüfe die Allergene dieser Mahlzeit.<br><br>Entschuldige bitte die Unannehmlichkeiten. Selbstverständlich verrechnen wir alles ordentlich als Guthaben auf deinem Konto.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam."}, "mixed_multiple": {"business_unit": "TZ", "subjectline": "Ein paar Anpassungen in deiner Factor Box", "preheader": "Wichtige Information zu deiner Factor Box", "content": "Diese Woche läuft nicht alles nach Plan mit deiner Factor Box.<br><br>Für die folgenden Mahlzeiten konnten wir leider keine passende Alternative finden, die unseren hohen Qualitätsstandards entspricht — sie fehlen daher in deiner Lieferung:[Recipe_Missing]Außerdem mussten wir die folgenden Mahlzeiten ersetzen:[Recipe_Swapped]Dafür erhältst du:[Recipe_Swapped_to]Bitte überprüfe die Allergene dieser Mahlzeiten.<br><br>Entschuldige bitte die Unannehmlichkeiten. Selbstverständlich verrechnen wir alles ordentlich als Guthaben auf deinem Konto.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam."}, "generic": {"business_unit": "TZ", "subjectline": "Wir haben eine Ersatzmahlzeit für dich", "preheader": "Wichtige Information zu deiner Factor Box", "content": "Aufgrund unvorhergesehener Umstände können unsere Köche diese Woche eine oder mehrere Mahlzeiten nicht nach unserem gewohnt hohen Standard zubereiten. Wir verstehen, dass das ärgerlich sein kann, und entschuldigen uns aufrichtig für die Unannehmlichkeiten. Damit du trotzdem eine leckere Mahlzeit genießen kannst, haben unsere Köche bereits eine passende Ersatzmahlzeit für diese Woche vorbereitet. <br><br> Bitte überprüfe die Allergene in der/den neuen Mahlzeit(en). Als Entschädigung erhältst du außerdem 5 € Gutschrift pro betroffener Mahlzeit, die automatisch mit deiner nächsten Box verrechnet wird. <br><br> Hast du Fragen oder bist du nicht zufrieden? Wende dich gerne an unseren Kundenservice, wir helfen dir gerne weiter!"}}, "sv-SE": {"swap": {"business_unit": "TV", "subjectline": "Vi har en ersättningsmåltid till dig", "preheader": "Viktig information om din Factor Box", "content": "Tyvärr har våra kockar på grund av oförutsedda omständigheter inte kunnat tillaga <b>[Recipe_Swapped]</b>. Vi ber om ursäkt för besväret.<br><br>Som tur är har vi ett alternativ till dig: den här veckan får du <b>[Recipe_Swapped_to]</b> istället.<br><br>Kontrollera gärna allergenerna för den här måltiden.<br><br>Som en liten gest lägger vi till <b>120 SEK tillgodo per måltid</b> på ditt konto. Det kan du använda till din nästa box.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam."}, "swap_multiple": {"business_unit": "TV", "subjectline": "Vi har en ersättningsmåltid till dig", "preheader": "Viktig information om din Factor Box", "content": "Tyvärr har våra kockar på grund av oförutsedda omständigheter inte kunnat tillaga följande måltider:[Recipe_Swapped]Vi ber om ursäkt för besväret.<br><br>Som tur är har vi ett alternativ till dig: den här veckan får du följande måltider istället:[Recipe_Swapped_to]<br><br>Kontrollera gärna allergenerna för dessa måltider.<br><br>Som en liten gest lägger vi till <b>120 SEK tillgodo per måltid</b> på ditt konto. Det kan du använda till din nästa box.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam."}, "short": {"business_unit": "TV", "subjectline": "Vi är ledsna... vi kan inte leverera allt", "preheader": "Det saknas en måltid i din Factor Box", "content": "Den här veckan saknas det en måltid i din box: <b>[Recipe_Missing]</b>. Tyvärr lyckades vi inte i tid hitta ett lämpligt alternativ som uppfyller våra höga kvalitetsstandarder. Vi ber om ursäkt för besväret.<br><br>Vi lägger så klart till beloppet som tillgodo på ditt konto, så att du kan använda det som rabatt på din nästa box. Och glöm inte att njuta av de måltider som faktiskt levererades."}, "short_multiple": {"business_unit": "TV", "subjectline": "Vi är ledsna... vi kan inte leverera allt", "preheader": "Det saknas en måltid i din Factor Box", "content": "Den här veckan saknas det flera måltider i din box:[Recipe_Missing]Tyvärr lyckades vi inte i tid hitta lämpliga alternativ som uppfyller våra höga kvalitetsstandarder. Vi ber om ursäkt för besväret.<br><br>Vi lägger så klart till beloppet som tillgodo på ditt konto, så att du kan använda det som rabatt på din nästa box. Och glöm inte att njuta av de måltider som faktiskt levererades."}, "mixed": {"business_unit": "TV", "subjectline": "Några ändringar i din Factor Box", "preheader": "Viktig information om din Factor Box", "content": "Den här veckan går inte allt enligt plan med din Factor Box.<br><br>För <b>[Recipe_Missing]</b> kunde vi tyvärr inte hitta ett lämpligt alternativ som uppfyller våra höga kvalitetsstandarder — den här måltiden saknas därför i din leverans.<br><br>Dessutom har vi behövt byta ut <b>[Recipe_Swapped]</b>: istället får du <b>[Recipe_Swapped_to]</b>. Kontrollera gärna allergenerna för den här måltiden.<br><br>Vi ber om ursäkt för besväret. Vi ser givetvis till att allt kompenseras korrekt som tillgodo på ditt konto.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam."}, "mixed_multiple": {"business_unit": "TV", "subjectline": "Några ändringar i din Factor Box", "preheader": "Viktig information om din Factor Box", "content": "Den här veckan går inte allt enligt plan med din Factor Box.<br><br>För följande måltider kunde vi tyvärr inte hitta lämpliga alternativ som uppfyller våra höga kvalitetsstandarder — de saknas därför i din leverans:[Recipe_Missing]Dessutom har vi behövt byta ut följande måltider:[Recipe_Swapped]Istället får du:[Recipe_Swapped_to]Kontrollera gärna allergenerna för dessa måltider.<br><br>Vi ber om ursäkt för besväret. Vi ser givetvis till att allt kompenseras korrekt som tillgodo på ditt konto.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam."}, "generic": {"business_unit": "TV", "subjectline": "Vi har en ersättningsmåltid till dig", "preheader": "Viktig information om din Factor Box", "content": "På grund av oförutsedda omständigheter kan våra kockar den här veckan inte tillaga en eller flera måltider enligt vår vanliga höga standard. Vi förstår att det kan vara tråkigt och ber uppriktigt om ursäkt för besväret. För att du ändå ska kunna njuta av en god måltid har våra kockar redan förberett ett lämpligt alternativ till den här veckan. <br><br> Kontrollera gärna allergenerna i den/de nya måltiden/måltiderna. Som kompensation får du också 120 SEK tillgodo per berörd måltid, vilket automatiskt dras av på din nästa box. <br><br> Har du frågor eller är du inte nöjd? Hör gärna av dig till vår kundtjänst, vi hjälper dig gärna vidare!"}}, "da-DK": {"swap": {"business_unit": "TK", "subjectline": "Vi har fundet en erstatningsret til dig", "preheader": "Vigtig information om din Factor Box", "content": "Desværre har vores kokke på grund af uforudsete omstændigheder ikke kunnet tilberede <b>[Recipe_Swapped]</b>. Undskyld ulejligheden.<br><br>Heldigvis har vi et alternativ til dig: denne uge modtager du <b>[Recipe_Swapped_to]</b> i stedet.<br><br>Husk at tjekke allergenerne for denne ret.<br><br>Som en lille kompensation tilføjer vi <b>120 DKK til gode pr. ret</b> på din konto. Det kan du bruge på din næste box.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam."}, "swap_multiple": {"business_unit": "TK", "subjectline": "Vi har fundet en erstatningsret til dig", "preheader": "Vigtig information om din Factor Box", "content": "Desværre har vores kokke på grund af uforudsete omstændigheder ikke kunnet tilberede følgende retter:[Recipe_Swapped]Undskyld ulejligheden.<br><br>Heldigvis har vi et alternativ til dig: denne uge modtager du følgende retter i stedet:[Recipe_Swapped_to]<br><br>Husk at tjekke allergenerne for disse retter.<br><br>Som en lille kompensation tilføjer vi <b>120 DKK til gode pr. ret</b> på din konto. Det kan du bruge på din næste box.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam."}, "short": {"business_unit": "TK", "subjectline": "Beklager... vi kan ikke levere det hele", "preheader": "Der mangler en ret i din Factor Box", "content": "Der mangler en ret i din box denne uge: <b>[Recipe_Missing]</b>. Desværre lykkedes det os ikke i tide at finde et passende alternativ, der lever op til vores høje kvalitetsstandarder. Undskyld ulejligheden.<br><br>Selvfølgelig tilføjer vi beløbet som tilgodehavende på din konto, så du kan bruge det som rabat på din næste box. Og glem ikke at nyde de retter, der rent faktisk blev leveret."}, "short_multiple": {"business_unit": "TK", "subjectline": "Beklager... vi kan ikke levere det hele", "preheader": "Der mangler en ret i din Factor Box", "content": "Der mangler flere retter i din box denne uge:[Recipe_Missing]Desværre lykkedes det os ikke i tide at finde passende alternativer, der lever op til vores høje kvalitetsstandarder. Undskyld ulejligheden.<br><br>Selvfølgelig tilføjer vi beløbet som tilgodehavende på din konto, så du kan bruge det som rabat på din næste box. Og glem ikke at nyde de retter, der rent faktisk blev leveret."}, "mixed": {"business_unit": "TK", "subjectline": "Et par ændringer i din Factor Box", "preheader": "Vigtig information om din Factor Box", "content": "Denne uge går ikke alt efter planen med din Factor Box.<br><br>For <b>[Recipe_Missing]</b> har vi desværre ikke kunnet finde et passende alternativ, der lever op til vores høje kvalitetsstandarder — denne ret mangler derfor i din levering.<br><br>Derudover har vi været nødt til at erstatte <b>[Recipe_Swapped]</b>: i stedet modtager du <b>[Recipe_Swapped_to]</b>. Husk at tjekke allergenerne for denne ret.<br><br>Undskyld ulejligheden. Vi sørger selvfølgelig for, at alt bliver godtgjort som tilgodehavende på din konto.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam."}, "mixed_multiple": {"business_unit": "TK", "subjectline": "Et par ændringer i din Factor Box", "preheader": "Vigtig information om din Factor Box", "content": "Denne uge går ikke alt efter planen med din Factor Box.<br><br>For følgende retter har vi desværre ikke kunnet finde passende alternativer, der lever op til vores høje kvalitetsstandarder — de mangler derfor i din levering:[Recipe_Missing]Derudover har vi været nødt til at erstatte følgende retter:[Recipe_Swapped]I stedet modtager du:[Recipe_Swapped_to]Husk at tjekke allergenerne for disse retter.<br><br>Undskyld ulejligheden. Vi sørger selvfølgelig for, at alt bliver godtgjort som tilgodehavende på din konto.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam."}, "generic": {"business_unit": "TK", "subjectline": "Vi har fundet en erstatningsret til dig", "preheader": "Vigtig information om din Factor Box", "content": "På grund af uforudsete omstændigheder kan vores kokke denne uge ikke tilberede en eller flere retter efter vores sædvanlige høje standard. Vi forstår, at det kan være ærgerligt, og vi undskylder oprigtigt for ulejligheden. For at du alligevel kan nyde en lækker ret, har vores kokke allerede tilberedt et passende alternativ til denne uge. <br><br> Husk at tjekke allergenerne i den/de nye ret(ter). Som kompensation modtager du også 120 DKK til gode pr. berørt ret, som automatisk bliver modregnet i din næste box. <br><br> Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores kundeservice - vi hjælper dig gerne videre!"}}};
+const TEMPLATES = {
+  "de-DE": {
+    "swap": {
+      "business_unit": "TZ",
+      "content": "Leider können unsere Köche aufgrund unvorhergesehener Umstände <b>[Recipe_Swapped]</b> nicht zubereiten. Entschuldige bitte die Unannehmlichkeiten.<br><br>Zum Glück haben wir eine Alternative für dich: Diese Woche erhältst du <b>[Recipe_Swapped_to]</b>.<br><br>Bitte überprüfe die Allergene dieser Mahlzeit.<br><br>Als kleine Geste schreiben wir dir <b>5 € Gutschrift pro Mahlzeit</b> auf deinem Konto gut. Diesen kannst du bei deiner nächsten Box einlösen.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam.",
+      "subjectline": "Wir haben eine Ersatzmahlzeit für dich",
+      "preheader": "Wichtige Information zu deiner Factor Box"
+    },
+    "swap_multiple": {
+      "business_unit": "TZ",
+      "content": "Leider können unsere Köche aufgrund unvorhergesehener Umstände die folgenden Mahlzeiten nicht zubereiten:[Recipe_Swapped]Entschuldige bitte die Unannehmlichkeiten.<br><br>Zum Glück haben wir eine Alternative für dich: Diese Woche erhältst du die folgenden Mahlzeiten:[Recipe_Swapped_to]<br><br>Bitte überprüfe die Allergene dieser Mahlzeiten.<br><br>Als kleine Geste schreiben wir dir <b>5 € Gutschrift pro Mahlzeit</b> auf deinem Konto gut. Diesen kannst du bei deiner nächsten Box einlösen.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam.",
+      "subjectline": "Wir haben eine Ersatzmahlzeit für dich",
+      "preheader": "Wichtige Information zu deiner Factor Box"
+    },
+    "short": {
+      "business_unit": "TZ",
+      "content": "Diese Woche fehlt eine Mahlzeit in deiner Box: <b>[Recipe_Missing]</b>. Leider ist es uns nicht rechtzeitig gelungen, diese Mahlzeit durch eine passende Alternative zu ersetzen, die unseren hohen Qualitätsstandards entspricht. Entschuldige bitte die Unannehmlichkeiten.<br><br>Selbstverständlich schreiben wir dir den Betrag als Guthaben auf deinem Konto gut, das du bei deiner nächsten Box als Rabatt einlösen kannst. Und nicht zu vergessen: Genieße die Mahlzeiten, die wir dir liefern konnten.",
+      "subjectline": "Entschuldigung... wir können nicht alles liefern",
+      "preheader": "Es fehlt eine Mahlzeit in deiner Factor Box"
+    },
+    "short_multiple": {
+      "business_unit": "TZ",
+      "content": "Diese Woche fehlen mehrere Mahlzeiten in deiner Box:[Recipe_Missing]Leider ist es uns nicht rechtzeitig gelungen, diese Mahlzeiten durch passende Alternativen zu ersetzen, die unseren hohen Qualitätsstandards entsprechen. Entschuldige bitte die Unannehmlichkeiten.<br><br>Selbstverständlich schreiben wir dir den Betrag als Guthaben auf deinem Konto gut, das du bei deiner nächsten Box als Rabatt einlösen kannst. Und nicht zu vergessen: Genieße die Mahlzeiten, die wir dir liefern konnten.",
+      "subjectline": "Entschuldigung... wir können nicht alles liefern",
+      "preheader": "Es fehlt eine Mahlzeit in deiner Factor Box"
+    },
+    "mixed": {
+      "business_unit": "TZ",
+      "content": "Diese Woche läuft nicht alles nach Plan mit deiner Factor Box.<br><br>Für <b>[Recipe_Missing]</b> konnten wir leider keine passende Alternative finden, die unseren hohen Qualitätsstandards entspricht — diese Mahlzeit fehlt daher in deiner Lieferung.<br><br>Außerdem mussten wir <b>[Recipe_Swapped]</b> ersetzen: Dafür erhältst du <b>[Recipe_Swapped_to]</b>. Bitte überprüfe die Allergene dieser Mahlzeit.<br><br>Entschuldige bitte die Unannehmlichkeiten. Selbstverständlich verrechnen wir alles ordentlich als Guthaben auf deinem Konto.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam.",
+      "subjectline": "Ein paar Anpassungen in deiner Factor Box",
+      "preheader": "Wichtige Information zu deiner Factor Box"
+    },
+    "mixed_multiple": {
+      "business_unit": "TZ",
+      "content": "Diese Woche läuft nicht alles nach Plan mit deiner Factor Box.<br><br>Für die folgenden Mahlzeiten konnten wir leider keine passende Alternative finden, die unseren hohen Qualitätsstandards entspricht — sie fehlen daher in deiner Lieferung:[Recipe_Missing]Außerdem mussten wir die folgenden Mahlzeiten ersetzen:[Recipe_Swapped]Dafür erhältst du:[Recipe_Swapped_to]Bitte überprüfe die Allergene dieser Mahlzeiten.<br><br>Entschuldige bitte die Unannehmlichkeiten. Selbstverständlich verrechnen wir alles ordentlich als Guthaben auf deinem Konto.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam.",
+      "subjectline": "Ein paar Anpassungen in deiner Factor Box",
+      "preheader": "Wichtige Information zu deiner Factor Box"
+    },
+    "generic": {
+      "business_unit": "TZ",
+      "content": "Aufgrund unvorhergesehener Umstände können unsere Köche diese Woche eine oder mehrere Mahlzeiten nicht nach unserem gewohnt hohen Standard zubereiten. Wir verstehen, dass das ärgerlich sein kann, und entschuldigen uns aufrichtig für die Unannehmlichkeiten. Damit du trotzdem eine leckere Mahlzeit genießen kannst, haben unsere Köche bereits eine passende Ersatzmahlzeit für diese Woche vorbereitet. <br><br> Bitte überprüfe die Allergene in der/den neuen Mahlzeit(en). Als Entschädigung erhältst du außerdem 5 € Gutschrift pro betroffener Mahlzeit, die automatisch mit deiner nächsten Box verrechnet wird. <br><br> Hast du Fragen oder bist du nicht zufrieden? Wende dich gerne an unseren Kundenservice, wir helfen dir gerne weiter!",
+      "subjectline": "Wir haben eine Ersatzmahlzeit für dich",
+      "preheader": "Wichtige Information zu deiner Factor Box"
+    }
+  },
+  "sv-SE": {
+    "swap": {
+      "business_unit": "TV",
+      "content": "Tyvärr har våra kockar på grund av oförutsedda omständigheter inte kunnat tillaga <b>[Recipe_Swapped]</b>. Vi ber om ursäkt för besväret.<br><br>Som tur är har vi ett alternativ till dig: den här veckan får du <b>[Recipe_Swapped_to]</b> istället.<br><br>Kontrollera gärna allergenerna för den här måltiden.<br><br>Som en liten gest lägger vi till <b>5 € tillgodo per måltid</b> på ditt konto. Det kan du använda till din nästa box.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam.",
+      "subjectline": "Vi har en ersättningsmåltid till dig",
+      "preheader": "Viktig information om din Factor Box"
+    },
+    "swap_multiple": {
+      "business_unit": "TV",
+      "content": "Tyvärr har våra kockar på grund av oförutsedda omständigheter inte kunnat tillaga följande måltider:[Recipe_Swapped]Vi ber om ursäkt för besväret.<br><br>Som tur är har vi ett alternativ till dig: den här veckan får du följande måltider istället:[Recipe_Swapped_to]<br><br>Kontrollera gärna allergenerna för dessa måltider.<br><br>Som en liten gest lägger vi till <b>5 € tillgodo per måltid</b> på ditt konto. Det kan du använda till din nästa box.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam.",
+      "subjectline": "Vi har en ersättningsmåltid till dig",
+      "preheader": "Viktig information om din Factor Box"
+    },
+    "short": {
+      "business_unit": "TV",
+      "content": "Den här veckan saknas det en måltid i din box: <b>[Recipe_Missing]</b>. Tyvärr lyckades vi inte i tid hitta ett lämpligt alternativ som uppfyller våra höga kvalitetsstandarder. Vi ber om ursäkt för besväret.<br><br>Vi lägger så klart till beloppet som tillgodo på ditt konto, så att du kan använda det som rabatt på din nästa box. Och glöm inte att njuta av de måltider som faktiskt levererades.",
+      "subjectline": "Vi är ledsna... vi kan inte leverera allt",
+      "preheader": "Det saknas en måltid i din Factor Box"
+    },
+    "short_multiple": {
+      "business_unit": "TV",
+      "content": "Den här veckan saknas det flera måltider i din box:[Recipe_Missing]Tyvärr lyckades vi inte i tid hitta lämpliga alternativ som uppfyller våra höga kvalitetsstandarder. Vi ber om ursäkt för besväret.<br><br>Vi lägger så klart till beloppet som tillgodo på ditt konto, så att du kan använda det som rabatt på din nästa box. Och glöm inte att njuta av de måltider som faktiskt levererades.",
+      "subjectline": "Vi är ledsna... vi kan inte leverera allt",
+      "preheader": "Det saknas en måltid i din Factor Box"
+    },
+    "mixed": {
+      "business_unit": "TV",
+      "content": "Den här veckan går inte allt enligt plan med din Factor Box.<br><br>För <b>[Recipe_Missing]</b> kunde vi tyvärr inte hitta ett lämpligt alternativ som uppfyller våra höga kvalitetsstandarder — den här måltiden saknas därför i din leverans.<br><br>Dessutom har vi behövt byta ut <b>[Recipe_Swapped]</b>: istället får du <b>[Recipe_Swapped_to]</b>. Kontrollera gärna allergenerna för den här måltiden.<br><br>Vi ber om ursäkt för besväret. Vi ser givetvis till att allt kompenseras korrekt som tillgodo på ditt konto.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam.",
+      "subjectline": "Några ändringar i din Factor Box",
+      "preheader": "Viktig information om din Factor Box"
+    },
+    "mixed_multiple": {
+      "business_unit": "TV",
+      "content": "Den här veckan går inte allt enligt plan med din Factor Box.<br><br>För följande måltider kunde vi tyvärr inte hitta lämpliga alternativ som uppfyller våra höga kvalitetsstandarder — de saknas därför i din leverans:[Recipe_Missing]Dessutom har vi behövt byta ut följande måltider:[Recipe_Swapped]Istället får du:[Recipe_Swapped_to]Kontrollera gärna allergenerna för dessa måltider.<br><br>Vi ber om ursäkt för besväret. Vi ser givetvis till att allt kompenseras korrekt som tillgodo på ditt konto.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam.",
+      "subjectline": "Några ändringar i din Factor Box",
+      "preheader": "Viktig information om din Factor Box"
+    },
+    "generic": {
+      "business_unit": "TV",
+      "content": "På grund av oförutsedda omständigheter kan våra kockar den här veckan inte tillaga en eller flera måltider enligt vår vanliga höga standard. Vi förstår att det kan vara tråkigt och ber uppriktigt om ursäkt för besväret. För att du ändå ska kunna njuta av en god måltid har våra kockar redan förberett ett lämpligt alternativ till den här veckan. <br><br> Kontrollera gärna allergenerna i den/de nya måltiden/måltiderna. Som kompensation får du också 5 € tillgodo per berörd måltid, vilket automatiskt dras av på din nästa box. <br><br> Har du frågor eller är du inte nöjd? Hör gärna av dig till vår kundtjänst, vi hjälper dig gärna vidare!",
+      "subjectline": "Vi har en ersättningsmåltid till dig",
+      "preheader": "Viktig information om din Factor Box"
+    }
+  },
+  "da-DK": {
+    "swap": {
+      "business_unit": "TK",
+      "content": "Desværre har vores kokke på grund af uforudsete omstændigheder ikke kunnet tilberede <b>[Recipe_Swapped]</b>. Undskyld ulejligheden.<br><br>Heldigvis har vi et alternativ til dig: denne uge modtager du <b>[Recipe_Swapped_to]</b> i stedet.<br><br>Husk at tjekke allergenerne for denne ret.<br><br>Som en lille kompensation tilføjer vi <b>5 € til gode pr. ret</b> på din konto. Det kan du bruge på din næste box.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam.",
+      "subjectline": "Vi har fundet en erstatningsret til dig",
+      "preheader": "Vigtig information om din Factor Box"
+    },
+    "swap_multiple": {
+      "business_unit": "TK",
+      "content": "Desværre har vores kokke på grund af uforudsete omstændigheder ikke kunnet tilberede følgende retter:[Recipe_Swapped]Undskyld ulejligheden.<br><br>Heldigvis har vi et alternativ til dig: denne uge modtager du følgende retter i stedet:[Recipe_Swapped_to]<br><br>Husk at tjekke allergenerne for disse retter.<br><br>Som en lille kompensation tilføjer vi <b>5 € til gode pr. ret</b> på din konto. Det kan du bruge på din næste box.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam.",
+      "subjectline": "Vi har fundet en erstatningsret til dig",
+      "preheader": "Vigtig information om din Factor Box"
+    },
+    "short": {
+      "business_unit": "TK",
+      "content": "Der mangler en ret i din box denne uge: <b>[Recipe_Missing]</b>. Desværre lykkedes det os ikke i tide at finde et passende alternativ, der lever op til vores høje kvalitetsstandarder. Undskyld ulejligheden.<br><br>Selvfølgelig tilføjer vi beløbet som tilgodehavende på din konto, så du kan bruge det som rabat på din næste box. Og glem ikke at nyde de retter, der rent faktisk blev leveret.",
+      "subjectline": "Beklager... vi kan ikke levere det hele",
+      "preheader": "Der mangler en ret i din Factor Box"
+    },
+    "short_multiple": {
+      "business_unit": "TK",
+      "content": "Der mangler flere retter i din box denne uge:[Recipe_Missing]Desværre lykkedes det os ikke i tide at finde passende alternativer, der lever op til vores høje kvalitetsstandarder. Undskyld ulejligheden.<br><br>Selvfølgelig tilføjer vi beløbet som tilgodehavende på din konto, så du kan bruge det som rabat på din næste box. Og glem ikke at nyde de retter, der rent faktisk blev leveret.",
+      "subjectline": "Beklager... vi kan ikke levere det hele",
+      "preheader": "Der mangler en ret i din Factor Box"
+    },
+    "mixed": {
+      "business_unit": "TK",
+      "content": "Denne uge går ikke alt efter planen med din Factor Box.<br><br>For <b>[Recipe_Missing]</b> har vi desværre ikke kunnet finde et passende alternativ, der lever op til vores høje kvalitetsstandarder — denne ret mangler derfor i din levering.<br><br>Derudover har vi været nødt til at erstatte <b>[Recipe_Swapped]</b>: i stedet modtager du <b>[Recipe_Swapped_to]</b>. Husk at tjekke allergenerne for denne ret.<br><br>Undskyld ulejligheden. Vi sørger selvfølgelig for, at alt bliver godtgjort som tilgodehavende på din konto.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam.",
+      "subjectline": "Et par ændringer i din Factor Box",
+      "preheader": "Vigtig information om din Factor Box"
+    },
+    "mixed_multiple": {
+      "business_unit": "TK",
+      "content": "Denne uge går ikke alt efter planen med din Factor Box.<br><br>For følgende retter har vi desværre ikke kunnet finde passende alternativer, der lever op til vores høje kvalitetsstandarder — de mangler derfor i din levering:[Recipe_Missing]Derudover har vi været nødt til at erstatte følgende retter:[Recipe_Swapped]I stedet modtager du:[Recipe_Swapped_to]Husk at tjekke allergenerne for disse retter.<br><br>Undskyld ulejligheden. Vi sørger selvfølgelig for, at alt bliver godtgjort som tilgodehavende på din konto.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam.",
+      "subjectline": "Et par ændringer i din Factor Box",
+      "preheader": "Vigtig information om din Factor Box"
+    },
+    "generic": {
+      "business_unit": "TK",
+      "content": "På grund af uforudsete omstændigheder kan vores kokke denne uge ikke tilberede en eller flere retter efter vores sædvanlige høje standard. Vi forstår, at det kan være ærgerligt, og vi undskylder oprigtigt for ulejligheden. For at du alligevel kan nyde en lækker ret, har vores kokke allerede tilberedt et passende alternativ til denne uge. <br><br> Husk at tjekke allergenerne i den/de nye ret(ter). Som kompensation modtager du også 5 € til gode pr. berørt ret, som automatisk bliver modregnet i din næste box. <br><br> Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores kundeservice - vi hjælper dig gerne videre!",
+      "subjectline": "Vi har fundet en erstatningsret til dig",
+      "preheader": "Vigtig information om din Factor Box"
+    }
+  }
+};
 
 /* =================================================================
    STATE
@@ -660,11 +806,17 @@ function findMatches(incident){
   candidateBoxes.forEach(box=>{
     const odlRow = state.odlByBoxNorm.get(box.boxIdNorm);
     if(!odlRow){ notInOdl++; return; }
-    const qty = odlRow.mealSwapParsed.get(String(incident.slot));
+    // NEW: the ODL "Meal Swap" field encodes slots using each market's own
+    // local numbering, not the German slot number the incident is keyed on.
+    // Convert before looking up, per-box, since a line/day run could in
+    // theory span more than one market.
+    const boxMarket = detectMarket(box.boxIdRaw);
+    const localSlot = localSlotForMarket(incident.slot, boxMarket);
+    const qty = odlRow.mealSwapParsed.get(localSlot);
     if(!qty){ notImpacted++; return; }
     matched.push({
       boxIdRaw: box.boxIdRaw, boxIdClean: odlRow.boxIdClean || stripTrailingLetters(box.boxIdRaw),
-      customerId: odlRow.customerId, week: odlRow.week, market: detectMarket(box.boxIdRaw), qty
+      customerId: odlRow.customerId, week: odlRow.week, market: boxMarket, qty
     });
   });
 
