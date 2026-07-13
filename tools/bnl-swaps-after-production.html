@@ -24,8 +24,6 @@
   .app-title{font-weight:600;font-size:26px;letter-spacing:0.01em;text-transform:uppercase;border-bottom:4px solid var(--saffron);padding-bottom:3px;display:inline-block;line-height:1.1;}
   .app-subtitle{font-weight:400;font-size:14px;color:var(--ink-dim);margin-top:7px;}
   .app-maker{font-size:11.5px;color:var(--ink-faint);margin-top:6px;}
-  .dc-badge{display:inline-flex;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:var(--carbon);color:var(--saffron);padding:4px 11px;border-radius:999px;margin-left:10px;vertical-align:middle;}
-  .header-notice{margin-top:14px;background:#FFF9E6;border:1px solid #EBD98A;border-radius:12px;padding:10px 14px;font-size:12.5px;color:var(--ink-dim);line-height:1.5;max-width:680px;}
   .divider{height:1px;background:var(--line);margin:26px 0 30px;}
 
   .step{ background:#FBFBF7; border:1px solid var(--line); border-radius:var(--radius); padding:24px 26px; margin-bottom:18px; position:relative;}
@@ -35,7 +33,7 @@
   .step-title{font-size:16.5px;font-weight:700;letter-spacing:-0.01em;}
   .step-desc{font-size:13px;color:var(--ink-dim);margin:8px 0 16px;line-height:1.5;max-width:680px;}
 
-  .live-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  .live-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
   @media (max-width:820px){.live-grid{grid-template-columns:repeat(2,1fr);}}
   .livecard{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;transition:.2s;}
   .livecard.ok{background:#E9F5E4;border-color:#BFDDB3;}
@@ -118,10 +116,9 @@
   <div class="app-header">
     <div class="logo-mark"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXcAAAF3CAIAAADRopypAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAABd6ADAAQAAAABAAABdwAAAABoPpSuAAAYKElEQVR4Ae2dy25cRddAcexcnIudEEzEjBGMQIIBk/AMPAK8A4x5BHgXnoJHQEJihBQJZMfOzbk6/hfULyv+Uo5N9/Y+l7160DpdfU5V7bW7Vled7j698s0337znTQISkEAQgcPDw5WVlYODg3Z/9+7dtV9//TWocquRgASqE8AsR5a5cOECrlnjVp2K8UtAAudAAMVwwzjcryGbc2jCKiUggYoEjuYy+IXb639va5imIgxjloAEzoHAm5ZpblldXV3DN+fQllVKQAIVCTB3QSltrUT8PPzn1IxzmYqvBWOWwPkQ+GeZ9O9nTFTPvKbdXC6dD2xrlYAE3nuvSccVk68FCUggmABTGPxCpc5lgslanQQk0CXgiqmLxUIJSCCMgJYJQ2lFEpBAl4CW6WKxUAISCCOgZcJQWpEEJNAloGW6WCyUgATCCGiZMJRWJAEJdAlomS4WCyUggTACWiYMpRVJQAJdAlqmi8VCCUggjICWCUNpRRKQQJeAlulisVACEggjoGXCUFqRBCTQJaBlulgslIAEwghomTCUViQBCXQJaJkuFgslIIEwAlomDKUVSUACXQJapovFQglIIIyAlglDaUUSkECXgJbpYrFQAhIII6BlwlBakQQk0CWgZbpYLJSABMIIaJkwlFYkAQl0CWiZLhYLJSCBMAJaJgylFUlAAl0CWqaLxUIJSCCMgJYJQ2lFEpBAl4CW6WKxUAISCCOgZcJQWpEEJNAloGW6WCyUgATCCGiZMJRWJAEJdAlomS4WCyUggTACWiYMpRVJQAJdAlqmi8VCCUggjICWCUNpRRKQQJeAlulisVACEggjoGXCUFqRBCTQJaBlulgslIAEwghomTCUViQBCXQJaJkuFgslIIEwAlomDKUVSUACXQJapovFQglIIIyAlglDaUUSkECXgJbpYrFQAhIII6BlwlBakQQk0CWgZbpYLJSABMIIaJkwlFYkAQl0CWiZLhYLJSCBMAJaJgylFUlAAl0CWqaLxUIJSCCMgJYJQ2lFEpBAl4CW6WKxUAISCCOgZcJQWpEEJNAloGW6WCyUgATCCGiZMJRWJAEJdAlomS4WCyUggTACWiYMpRVJQAJdAlqmi8VCCUggjICWCUNpRRKQQJeAlulisVACEggjoGXCUFqRBCTQJaBlulgslIAEwghomTCUViQBCXQJaJkuFgslIIEwAlomDKUVSUACXQJapovFQglIIIyAlglDaUUSkECXgJbpYrFQAhIII6BlwlBakQQk0CWgZbpYLJSABMIIaJkwlFYkAQl0CWiZLhYLJSCBMAJaJgylFUlAAl0CWqaLxUIJSCCMgJYJQ2lFEpBAl4CW6WKxUAISCCOgZcJQWpEEJNAloGW6WCyUgATCCGiZMJRWJAEJdAlomS4WCyUggTACWiYMpRVJQAJdAlqmi8VCCUggjICWCUNpRRKQQJeAlulisVACEggjoGXCUFqRBCTQJaBlulgslIAEwghomTCUViQBCXQJaJkuFgslIIEwAlomDKUVSUACXQJapovFQglIIIyAlglDaUUSkECXgJbpYrFQAhIII6BlwlBakQQk0CWgZbpYLJSABMIIaJkwlFYkAQl0CWiZLhYLJSCBMAJaJgylFUlAAl0CWqaLxUIJSCCMgJYJQ2lFEpBAl4CW6WKxUAISCCOgZcJQWpEEJNAloGW6WCyUgATCCGiZMJRWJAEJdAlomS4WCyUggTACWiYMpRVJQAJdAlqmi8VCCUggjICWCUNpRRKQQJeAlulisVACEggjoGXCUFqRBCTQJaBlulgslIAEwghomTCUViQBCXQJaJkultMLL1y48PTp07W1NTbY++rVq2y8fv369CPHscfBwQEdOTw8fPXqVYtlZWXl8uXL4+idvZgVgbVZRZMYzMWLFy9duvTs2bMXL160DbavXLnSRm9iRxZsCqdwW19fx5Wrq6vvv/8+/X/w4AEhLFijh0ngBAJa5gQwpxXv7OzcvHmTMfnkyRNmBMiFiQxTm9OOG8vzmOXRo0dMZOg8oiSQly9fIh0ejqWL9mMuBCYzKsYGfGNjoy00nj9/jlxYazA1ePz48VREQ2+ZjtHbJkqigDCipHxsqO3P1AlomQUzyCyAWQwDlTMyzAJ42NYaUxmlLJToMLMYOowumcJcu3aNRdOCODxMAicT0DIns3nnM8iF5xmizGKYAjCLYaAyXKdyXqbJkT7jR5Z+29vbSLMZ551x+6QE/jMBLfOfkbUDGJZ37tx5+PAhG4xYbriGuQCzmwVrzD2szWI+/PDDP/74g85zApvZzY0bN5BObkdsbf4EtMyCOd7c3Pzxxx+/+OILzqEynWFSwI1TqtwvWGPuYcy56Pbe3t533313//79ra0t/MLSbyorvlxatrYUAS2zID5mLp988smXX37J8ZilDc6jjQUrzT0M0aBFJjXMZVgusa1icjNQpTW/lVcl08YpgaEIaJmhyNuuBKoQ0DJVMm2cEhiKgJYZirztSqAKAS1TJdPGKYGhCGiZocjbrgSqENAyVTJtnBIYioCWGYq87UqgCgEtUyXTximBoQhomaHI264EqhDQMlUybZwSGIqAlhmKvO1KoAoBLVMl08YpgaEIaJmhyNuuBKoQ0DJVMm2cEhiKgJbJI8/VZ7hxsah21U4u7JLX9lst0Y12/dD27wVcLoerzFDy1o4WSGBZAl7FalmCZzwepzCSGdLtTw4Y5FwEk5KhBnbrBleu4vpV9IRusEF/pvIfDGfE7m5jIKBlkrLASOZ6lwxj/HLUJNtDXSeYzqAYeoJW2Gh/w3D79m0uMHrUPTckEEJAy4RgPL0ShMJ4bn8SgGuQzl9//cX1yU8/8nz2oDPMX/b391kocYF0riuO77gMcFPP+bRprUUJaJmkxDOqOR2DaxjGKIbx/PXXX9+7d4+/c0zqwVvN8KcFTF52d3f5pxR0gwG53vibU623jrBAAosQ0DKLUFvgGP68kTGMYjgBzOH8BcLff//NPGKoC3ozkaEP/LULf/bG/70gO9zHpOb69esLROchEngHAS3zDjiRT6EYqmOmwK1t45d/P3Qa5p9VOBvN9IoOIBc26BXeuXXrFidoIsO2Lglw7k8IOQQYvQxj5jLc8AtTGyYyDHUKczrwP60002EZPlpq2+3DpqHmVv/TPR/OiYCWScpm+yyJUd2mMAzsphhKknpwvJmjdtsJI55srjm+l48kEEBgmDfSgI5bhQQkMBECWmYiibKbEpgsAS0z2dTZcQlMhICWmUii7KYEJktAy0w2dXZcAhMhoGUmkii7KYHJEtAyk02dHZfARAhomYkkym5KYLIEtMxkU2fHJTARAlpmIomymxKYLAEtM9nU2XEJTISAlplIouymBCZLQMtMNnV2XAITIaBlJpIouymByRLQMpNNnR2XwEQIaJmkRHE9F65c1S4uw4XpaJXrywx4ySia5ip57cJaXGGr/WeLF8pLejUUa8arWCUlnFHN9aIYzLTH2EYx/G0Al6ejMKkHx5vhUuf8KQoX/cV9XF2cnuA+LvrLw+M7+kgCyxIY5iW+bK8neDxaQSi4hhvd57qc33//PSWUDxIN/z9H07jmp59+okvNgANabxAINppDQMvkcH6PFRNTGO6ZMrT/Y/r222+3traSmn+rGRTDion/MMAyTGq4YGh7+NaOFkhgWQJaZlmCZzy+XVW3nZFh4sAZkKaYo+vvnrGeqN2YTFEVMxqWSCgG8dE3FlB4J6oJ65FAI6Blkl4J7fQqY7v9aUFbNzGkGedJPTjeDN1AK/gOzTGLoXv8CdzxXXwkgRgCfsYUw/HUWhjMnARhbDOe2WYGwcM2oTj12PPYoZ2LoSf0B9mhG/pGl86jLessTkDLJL0AEArjmcaYQTC2WUBR0v4+JakHx5uhDxTQJVZJbLOCQzH8RdTxvXwkgQACrpgCIJ6xiuYUlidn3P9cd2Mu0yZTR/d0z5My58q8bOXOZcqm3sAlkERAyySBthkJlCWgZcqm3sAlkERAyySBthkJlCWgZcqm3sAlkERAyySBthkJlCWgZcqm3sAlkETA78skgeabb3xFhW/B8a3f9fV1Wm2/V2zfjkvqxBvNtK/50h++j0d/6Aw94buC7ZdWb+zopgSWJaBlliV4xuMZxoxhRMOQRjSMbb50235JdMYaYnfjJwVUyNfwmln4eQEbPKSHsQ1ZmwRcMSW9BtpXftsvEtnmelHMHQa8YT0ixyztQjNs893fVphExGbKEHAuk5TqNkfgh0IPHjxgFsNUYnd39/bt20nNv9VM+x02xcxf+EUVftnf32ee1X5s9dbuFkhgcQLOZRZn95+OZJXUZgobGxtttbK5ufmfagjfGb8wmWLVhuyY1Dx+/Di8CSuUAAScyyS9DBjGnHBlVDOp4cKXtMqMhhJOiCT14HgzWK/9AhvXbG9vM7VBf0xqKD++o48ksCyBYV7iy/Z6gsczZcAv3Og7rkExOzs7jOpWmH+P9egJq7aPPvqIU9Esl+iM05kJvrIm0GXnMklJYpXEYMYmrJs49cv9559/zqhuZ4WTOvFGMzjl/v37H3/88b179+7cubO3t8eT6O+NXdyUQAwB5zIxHM9SS7u+DJMIBjNyYW3SJhRnOTZ8HxZrnBhiLsOsCtkhQfozlPLCo7PCURHQMqNKh52RwAwJaJkZJtWQJDAqAlpmVOmwMxKYIQEtM8OkGpIERkVAy4wqHXZGAjMkoGVmmFRDksCoCGiZUaXDzkhghgS0zAyTakgSGBUBLTOqdNgZCcyQgJaZYVINSQKjIqBlRpUOOyOBGRLQMjNMqiFJYFQEtMyo0mFnJDBDAlpmhkk1JAmMioCWGVU67IwEZkhAy8wwqYYkgVER0DKjSoedkcAMCWiZGSbVkCQwKgJaZlTpsDMSmCEBLTPDpBqSBEZFQMuMKh12RgIzJKBlZphUQ5LAqAhomVGlw85IYIYEtMwMk2pIEhgVAS0zqnTYGQnMkICWmWFSDUkCoyKgZUaVDjsjgRkS0DIzTKohSWBUBLTMqNJhZyQwQwJaZoZJNSQJjIqAlhlVOuyMBGZIQMvMMKmGJIFREdAyo0qHnZHADAlomRkm1ZAkMCoCWmZU6bAzEpghAS0zw6QakgRGRUDLjCoddkYCMySgZWaYVEOSwKgIaJlRpcPOSGCGBLTMgkl99erVxYsXDw8POX5lZeX58+fPnj1j4/UJN55lzxcvXrRD2KbkwgX5L8jfwyZEYG1CfR1VVy9fvowvUMrBwcHq6ioPW/dOEgc7sDOHvHz58tKlS+x87dq1UUVkZyRwTgR8L10QLNOWhw8f4heUwT1TGyTy9OnTk6rDL/joypUrTTG7u7t458mTJyftb7kEZkNg5YMPPphNMJmBsET66quvmjJoF8Vcv36dicz+/n63G8xcOISnuGepdfPmzV9++eXWrVuKpovLwukS4A2VgcCIaPd37951xbRgNq9evfr777/jCETD7cGDB8xumK1Q3q3x8ePHTGTYAfSkYW1tje2TlNStwUIJTJSAllkwcVhjfX0ds3ASl+USN+YyuOOkRRP2YYnEsyip7c90BtGwvWAPPEwCEyGgZRZMFCsgFMNnRtxu3LiBX5gi7u3tnTSXQShMfDiE3ZjLcCqHA1k9IZ0Fe+BhEpgIAc/+LpgoZMGRnGFhBYRBmKRwz3SG++6N5RKHtIkM0x8s007QLNi8h0lgOgScyyyeK2zCweiDWQm6YZsSpNOtse3D+ojpTDtBM+wshvkU/WQK9umnn/788898XkZ/Tup8N6JxFsKZlelvv/32ww8/tKQ05mAfZ4cr9ErLVMhyJ8b26Tuu4XOuzz77DL9gnKaezt7TKWprUqaWqLx9E5KgiE7LDJhDLTMg/IGbbis73uoxDjdG4wzOE2ETnMKtnf9igkYJobUV7sDEqzavZYpmnrHHuz2jkfUFioFCK5k6Dr5azUKJiAiN+3ZWnkIeTj206fZfy0w3d0v1nE/iGYGMQ05k8FbPDctwm/p7fjsXQyDM0ZiaNbm843zZUhA9+GwEtMzZOM1uLz59ZwTyJv+vW/65Y1gSJeqZdKxE1NSJLo9Cm3pQk87IPy+qqQdg/xcjwPs8Y48xyVym1cB0hvHJ/WIVjuSoNpdhGcgXl9qiCXtiHEIbSQ8LdkPLFEz6/4fczl+0YdlWTPM4eUEsOJQPmLhnrcSMZh5xTfeV6imx6eZuqZ7z3t7OXLTVBO/2bEx9ItOIoBXmMsSCQNlu90vB8uDlCGiZ5fh5tAQkcBoBLXMaIZ+XgASWI6BlluPn0RKQwGkEtMxphHxeAhJYjoCWWY6fR0tAAqcR0DKnEfJ5CUhgOQJaZjl+Hi0BCZxGQMucRmimz/ONEr60xtdJ2g+X+PYagbbtSUfM12TaTyWIqF3Hhy83D3spn0nzDOm83/0NwTi9Sh49esQg5BcGzS/t1wYz+GIe3iQKvuzLPZdAbb+Z4KehimbA16iWGRD+kE1vbGzQPIphUoNx2o8nmd3wcMhuRbSNU7gAMxHt7OzgGqr0FwYRXBevw/9jWpzdpI/kfZ65TJu8cM+A3NzcbD87mHRcLPqIi1j+/PNPLsPMFAbpMMFRNGlpZdEKbRLR7vk/Js/LpMEfV0NbW1vIhVMYvCb4YSEDkt/7nPQ3L+Pq+jt707Syvb1NOKwHUQwTtDajeedxPnmOBFwxnSPcMVfN39Txns8bDqJhcUFXGY38/Us7TTPmnp/aN5zC5KVd6oFt3lG5P7rAxamHu0M4AS0TjnQaFTKFYSjyx3XIBddwz40StqcRwAm9bH7BLExkuEeaRMRkje0TjrD43AlomXNHPM4GmLa0k75HH2lzPpjROPXFBU5p5wXQCqsn1MlDguJ+nImo0CstUyHLnRh5q2+fZPNcW1ywdJq6YoilzVlwDRtE1EJTMZ1XQGKR08hE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJaJlE2DYlgZIEtEzJtBu0BBIJ/B+kcJIuf3GHbQAAAABJRU5ErkJggg==" alt="Factor" /></div>
     <div>
-      <div class="app-title">BNL Swap &amp; Shortage During Production</div><span class="dc-badge">De Kas</span>
+      <div class="app-title">BNL Swap &amp; Shortage During Production</div>
       <div class="app-subtitle">Turns boxes impacted by a recipe shortage into files used for swap and shortage communication.</div>
       <div class="app-maker">Made &amp; maintained by <strong>Colin Kreeftenberg</strong> — questions or edits go to him.</div>
-      <div class="header-notice">Note: production sequences are published with a delay to Datawarehouse. If boxes don't appear, check back later.</div>
     </div>
   </div>
 
@@ -146,11 +143,6 @@
         <div class="lc-label">Production feed</div>
         <div class="lc-status" id="lc-production-status">Not loaded yet…</div>
         <button class="lc-refresh" data-src="production">Refresh</button>
-      </div>
-      <div class="livecard" id="lc-pricebnl">
-        <div class="lc-label">Price BNL</div>
-        <div class="lc-status" id="lc-pricebnl-status">Not loaded yet…</div>
-        <button class="lc-refresh" data-src="pricebnl">Refresh</button>
       </div>
     </div>
   </div>
@@ -411,7 +403,6 @@ const state = {
   kitcontentBySlot: new Map(),   // slot -> {receptcode, ingredientnaam, etiketnaam, sku}
   mealDbBySku: new Map(),        // sku -> [{mealId, dutchName, frenchName}]
   productionRows: [],            // flat array of box records
-  boxPriceByBoxNorm: new Map(),  // normalized box id -> {productsize, totalOrderValue, currency, market, meals, pricePerMeal}
   availableDates: [],            // sorted unique production_date strings (desc)
   incidents: [],
   incidentSeq: 0,
@@ -423,9 +414,6 @@ const state = {
 ================================================================= */
 function stripLeadingLetters(v){ return v==null ? '' : String(v).replace(/^[A-Za-z]+/, ''); }
 function stripTrailingLetters(v){ return v==null ? '' : String(v).replace(/[A-Za-z]+$/, ''); }
-function round2(n){ if(n===null||n===undefined||isNaN(n)) return null; return Math.round((n+Number.EPSILON)*100)/100; }
-function fmt2(n){ return (n===null||n===undefined) ? '' : n.toFixed(2); }
-function mealsFromProductsize(sku){ if(!sku) return null; const p = String(sku).split('-'); const n = parseInt(p[2],10); return isNaN(n) ? null : n; }
 function normalizeBoxId(id){ if(!id) return ''; const m = String(id).trim().toUpperCase().match(/^([A-Z]{2}\d+)/); return m ? m[1] : String(id).trim().toUpperCase(); }
 function todayDDMM(){ const d = new Date(); return String(d.getDate()).padStart(2,'0') + String(d.getMonth()+1).padStart(2,'0'); }
 function fileSafe(s){ return (s||'').replace(/-/g,'_'); }
@@ -494,9 +482,26 @@ function buildMealDatabaseIndex(rows){
   const idx = {
     mealId: header.indexOf('Meal ID'),
     sku: header.indexOf('Internal SKU (Dutch)'),
-    dutchName: header.indexOf('Dutch name'),
-    frenchName: header.indexOf('French Name')
+    dutchName: -1,
+    frenchName: -1
   };
+  
+  // Try multiple column name variations for Dutch name
+  for(let i = 0; i < header.length; i++){
+    const h = header[i].toLowerCase();
+    if(h.includes('dutch') && h.includes('name') && idx.dutchName < 0) idx.dutchName = i;
+  }
+  
+  // Try multiple column name variations for French name
+  for(let i = 0; i < header.length; i++){
+    const h = header[i].toLowerCase();
+    if(h.includes('french') && h.includes('name') && idx.frenchName < 0) idx.frenchName = i;
+  }
+  
+  // Fallback: if columns not found by name, use position (F=5, J=9)
+  if(idx.dutchName < 0 && rows[0].length > 5) idx.dutchName = 5;  // Column F
+  if(idx.frenchName < 0 && rows[0].length > 9) idx.frenchName = 9; // Column J
+  
   const map = new Map();
   let count = 0;
   for(let i=1;i<rows.length;i++){
@@ -546,41 +551,6 @@ function buildProductionIndex(rows){
     });
   }
   return records;
-}
-
-function buildBoxPriceIndex(rows){
-  const header = rows[0].map(h=>(h||'').toString().trim());
-  const idx = {
-    customerId: header.indexOf('customer_id'),
-    boxId: header.indexOf('box_id'),
-    productsize: header.indexOf('productsize'),
-    totalOrderValue: header.indexOf('total_order_value'),
-    currency: header.indexOf('currency'),
-    market: header.indexOf('market')
-  };
-  const missing = Object.keys(idx).filter(k=>idx[k]<0);
-  if(missing.length) throw new Error('Price BNL is missing expected column(s): ' + missing.join(', '));
-  const map = new Map();
-  let count = 0;
-  for(let i=1;i<rows.length;i++){
-    const r = rows[i];
-    if(!r || !r[idx.boxId]) continue;
-    const boxNorm = normalizeBoxId(r[idx.boxId]);
-    if(!boxNorm) continue;
-    const productsize = (r[idx.productsize]||'').toString().trim();
-    const totalOrderValue = parseFloat(r[idx.totalOrderValue]);
-    const meals = mealsFromProductsize(productsize);
-    const pricePerMeal = (meals && !isNaN(totalOrderValue)) ? totalOrderValue / meals : null;
-    map.set(boxNorm, {
-      customerId: (r[idx.customerId]||'').toString().trim(),
-      productsize, totalOrderValue: isNaN(totalOrderValue) ? null : totalOrderValue,
-      currency: (r[idx.currency]||'EUR').toString().trim(),
-      market: (r[idx.market]||'').toString().trim(),
-      meals, pricePerMeal
-    });
-    count++;
-  }
-  return { map, count };
 }
 
 function resolveRecipeName(slot, locale){
@@ -637,11 +607,6 @@ async function loadSource(src){
       state.availableDates = Array.from(new Set(state.productionRows.map(r=>r.productionDate))).filter(Boolean).sort().reverse();
       populateDateSelect();
       setLc(src, `Loaded · ${state.productionRows.length} box(es) · ${state.availableDates.length} date(s)`, 'ok');
-    } else if(src==='pricebnl'){
-      const payload = await loadJson('/api/data?sheet=bnl_pricebnl');
-      const built = buildBoxPriceIndex(payload.data);
-      state.boxPriceByBoxNorm = built.map;
-      setLc(src, `Loaded · ${built.count} box(es)`, 'ok');
     }
   } catch(err){
     setLc(src, `Failed: ${escapeHtml(err.message)}`, 'warn');
@@ -668,7 +633,7 @@ document.querySelectorAll('.lc-refresh').forEach(btn=>{
   btn.addEventListener('click', ()=> loadSource(btn.dataset.src));
 });
 window.addEventListener('load', ()=>{
-  loadSource('kitcontent'); loadSource('mealdb'); loadSource('production'); loadSource('pricebnl');
+  loadSource('kitcontent'); loadSource('mealdb'); loadSource('production');
 });
 
 /* =================================================================
@@ -978,10 +943,12 @@ function renderReview(){
 
   const swaps = rows.filter(r=>r.type==='SWAP').length;
   const shorts = rows.filter(r=>r.type==='SHORTAGE').length;
+  const totalUnits = rows.reduce((sum, r) => sum + (r.qty || 1), 0);
 
   document.getElementById('reviewBody').innerHTML = `
     <div class="summary-grid">
       <div class="sum-card"><div class="sum-locale">Customers</div><div class="sum-count">${rows.length}</div><div class="sum-bu">confirmed across all incidents</div></div>
+      <div class="sum-card"><div class="sum-locale">Units</div><div class="sum-count">${totalUnits}</div><div class="sum-bu">total meals impacted</div></div>
       <div class="sum-card"><div class="sum-locale">Swaps / Shorts</div><div class="sum-count">${swaps} / ${shorts}</div><div class="sum-bu">by type</div></div>
     </div>`;
 
@@ -1009,31 +976,17 @@ document.getElementById('btn-reset').addEventListener('click', ()=>{
 });
 
 /* =================================================================
-   BULK ERROR EXPORT — single De Kas file (BNL isn't split by
-   business unit like the DE/SE/DK markets are).
+   BULK ERROR EXPORT — split by business unit (TT and TO separate).
+   Merges split boxes (A/B suffixes) into single box ID.
 ================================================================= */
 function buildBulkErrorRows(){
   const rows = [];
-  let missingPriceCount = 0;
   state.auditLog.forEach(r=>{
     if(r.categoryIndex===null || r.categoryIndex===undefined || isNaN(r.categoryIndex)) return;
     const cat = RECIPE_CATEGORIES[r.categoryIndex];
     const kit = state.kitcontentBySlot.get(String(r.slot));
     const recipeName = resolveRecipeName(r.slot, r.locale) || 'Unknown';
     const subName = r.type==='SWAP' ? (resolveRecipeName(r.substituteSlot, r.locale) || 'Unknown') : null;
-
-    let compAmount = '';
-    if(r.type==='SWAP'){
-      compAmount = fmt2(round2(5 * r.qty));
-    } else {
-      const priceInfo = state.boxPriceByBoxNorm.get(normalizeBoxId(r.boxId));
-      if(priceInfo && priceInfo.pricePerMeal!=null){
-        compAmount = fmt2(round2(priceInfo.pricePerMeal * r.qty));
-      } else {
-        missingPriceCount++;
-      }
-    }
-
     rows.push({
       'customer id': stripLeadingLetters(r.customerId),
       'box id': stripTrailingLetters(r.boxId),
@@ -1045,13 +998,23 @@ function buildBulkErrorRows(){
       'ingredient': '',
       'recipe name': recipeName,
       'compensation type': 'credit',
-      'compensation amount': compAmount,
+      'compensation amount': '',
       'recipe index': r.slot,
       'culinary sku': kit ? kit.sku : '',
       'comment': r.type==='SWAP' ? `Swap to ${r.substituteSlot}: ${subName}` : 'Shortage'
     });
   });
-  return { rows, missingPriceCount };
+  return rows;
+}
+
+function splitBulkErrorRowsByBusinessUnit(rows){
+  const byBu = { 'TT': [], 'TO': [] };
+  rows.forEach(r=>{
+    const customerId = 'TT' + r['customer id']; // reconstruct to check prefix
+    if(customerId.startsWith('TO')) byBu['TO'].push(r);
+    else byBu['TT'].push(r);
+  });
+  return byBu;
 }
 
 function downloadCsv(filename, columns, rows){
@@ -1065,16 +1028,33 @@ function downloadCsv(filename, columns, rows){
 }
 
 function renderBulkDownloads(){
-  const { rows, missingPriceCount } = buildBulkErrorRows();
+  const rows = buildBulkErrorRows();
+  const byBu = splitBulkErrorRowsByBusinessUnit(rows);
   const row = document.getElementById('bulkDownloadRow');
-  const filename = `f_bulk_error_${todayDDMM()}_BNL.csv`;
-  row.innerHTML = `<div class="dl-card">
-    <div class="dl-locale">De Kas bulk error</div>
-    <div class="dl-meta">${rows.length} row${rows.length===1?'':'s'}${missingPriceCount ? ` · ${missingPriceCount} without a Price BNL match` : ''}</div>
-    <button class="btn btn-dark" id="btn-bulk-download" ${rows.length===0?'disabled':''}>Download<br><span class="mono" style="font-weight:500;">${filename}</span></button>
-  </div>`;
-  const btn = document.getElementById('btn-bulk-download');
-  if(btn) btn.addEventListener('click', ()=> downloadCsv(filename, OUTPUT_COLUMNS, buildBulkErrorRows().rows));
+  
+  let html = '';
+  const stamp = todayDDMM();
+  
+  ['TT', 'TO'].forEach(bu=>{
+    const buRows = byBu[bu];
+    const filename = `f_bulk_error_${stamp}_${bu}.csv`;
+    html += `<div class="dl-card">
+      <div class="dl-locale">${bu}</div>
+      <div class="dl-meta">${buRows.length} row${buRows.length===1?'':'s'}</div>
+      <button class="btn btn-dark" data-bu="${bu}" ${buRows.length===0?'disabled':''}>Download<br><span class="mono" style="font-weight:500;">${filename}</span></button>
+    </div>`;
+  });
+  
+  row.innerHTML = html;
+  
+  row.querySelectorAll('button[data-bu]').forEach(btn=>{
+    const bu = btn.dataset.bu;
+    btn.addEventListener('click', ()=>{
+      const buRows = splitBulkErrorRowsByBusinessUnit(buildBulkErrorRows())[bu];
+      const filename = `f_bulk_error_${stamp}_${bu}.csv`;
+      downloadCsv(filename, OUTPUT_COLUMNS, buRows);
+    });
+  });
 }
 
 /* =================================================================
@@ -1111,7 +1091,7 @@ function buildCrmRows(){
   Object.values(byCustomer).forEach(cust=>{
     const locale = cust.locale;
     if(!TEMPLATES[locale]){
-      manualReviewRows.push({ customer_id: cust.customerId, flag_reason: `unmapped locale (${locale||'empty'})` });
+      manualReviewRows.push({ customer_id: stripLeadingLetters(cust.customerId), flag_reason: `unmapped locale (${locale||'empty'})` });
       return;
     }
 
@@ -1158,7 +1138,7 @@ function buildCrmRows(){
     }
 
     const tpl = TEMPLATES[locale][reasonKey];
-    if(!tpl){ manualReviewRows.push({ customer_id: cust.customerId, flag_reason: `no template for ${reasonKey}` }); return; }
+    if(!tpl){ manualReviewRows.push({ customer_id: stripLeadingLetters(cust.customerId), flag_reason: `no template for ${reasonKey}` }); return; }
 
     if(reasonKey==='generic'){
       content = tpl.content;
@@ -1170,7 +1150,7 @@ function buildCrmRows(){
       });
     }
 
-    const outRow = { business_unit: tpl.business_unit, customer_id: cust.customerId, locale, content, subjectline: tpl.subjectline, preheader: tpl.preheader, voucher:'' };
+    const outRow = { business_unit: tpl.business_unit, customer_id: stripLeadingLetters(cust.customerId), locale, content, subjectline: tpl.subjectline, preheader: tpl.preheader, voucher:'' };
     resultByLocale[locale].push(outRow);
     resultRows.push({ customerId: cust.customerId, locale, reason: reasonKey });
   });
@@ -1256,10 +1236,16 @@ async function postAllToDrive(){
   const statusEl = document.getElementById('post-all-status');
 
   const jobs = [];
-  const bulkRows = buildBulkErrorRows().rows;
+  const bulkRows = buildBulkErrorRows();
   if(bulkRows.length){
-    const csv = Papa.unparse({ fields: OUTPUT_COLUMNS, data: bulkRows.map(r => OUTPUT_COLUMNS.map(c => r[c])) });
-    jobs.push({ baseName: `f_bulk_error_BNL.csv`, content: csv, mimeType: 'text/csv;charset=utf-8' });
+    const byBu = splitBulkErrorRowsByBusinessUnit(bulkRows);
+    ['TT', 'TO'].forEach(bu=>{
+      const buRows = byBu[bu];
+      if(buRows.length){
+        const csv = Papa.unparse({ fields: OUTPUT_COLUMNS, data: buRows.map(r => OUTPUT_COLUMNS.map(c => r[c])) });
+        jobs.push({ baseName: `f_bulk_error_${bu}.csv`, content: csv, mimeType: 'text/csv;charset=utf-8' });
+      }
+    });
   }
 
   const crm = buildCrmRows();
@@ -1308,7 +1294,7 @@ document.getElementById('btn-post-all-drive').addEventListener('click', postAllT
 ================================================================= */
 function renderSlack(){
   const crm = lastCrmBuild || buildCrmRows();
-  const { rows: bulkRows, missingPriceCount } = buildBulkErrorRows();
+  const bulkRows = buildBulkErrorRows();
   const lines = ['📦 *BNL Swap & Shortage During Production — session summary*', ''];
 
   LOCALES.forEach(loc=>{
@@ -1324,7 +1310,6 @@ function renderSlack(){
   if(crm.genericCount) lines.push(`⚠️ ${crm.genericCount} customer(s) got the generic fallback — check Kitcontent/Meal Database`);
   if(crm.manualReviewRows.length) lines.push(`⚠️ ${crm.manualReviewRows.length} customer(s) excluded — see needs-review export`);
   lines.push(`Bulk error rows: ${bulkRows.length}`);
-  if(missingPriceCount) lines.push(`⚠️ ${missingPriceCount} shortage row(s) had no Price BNL match — compensation left blank`);
 
   const msg = lines.join('\n').trim();
   document.getElementById('slackBody').innerHTML = `
