@@ -203,7 +203,7 @@
       <button class="btn btn-primary" id="btn-post-all-drive">Post to Drive &amp; continue</button>
       <button class="btn btn-ghost btn-sm" id="btn-reset">Reset session</button>
     </div>
-    <div class="dz-hint" id="post-all-status" style="margin-top:8px;"></div>
+    <div class="dz-hint" id="post-all-status" style="margin-top:8px;font-size:13px;"></div>
   </div>
 
   <!-- STEP 4 -->
@@ -438,8 +438,20 @@ function parseTs(s){
   const hh = m[2].padStart(2,'0');
   return new Date(`${m[1]}T${hh}:${m[3]}:${m[4]}`);
 }
-function parseSlots(desc){
-  return (desc||'').split('|').map(s=>s.trim()).filter(s=>/^\d+$/.test(s));
+function normalizeLocale(rawLocale, customerId){
+  // rawLocale comes from production feed as language code (NLD, FRA, etc)
+  // customerId has TT or TO prefix
+  const isTO = customerId && customerId.toUpperCase().startsWith('TO');
+  const langCode = (rawLocale || '').toUpperCase().trim();
+  
+  if(isTO){
+    if(langCode === 'NLD') return 'be-NL';
+    if(langCode === 'FRA') return 'be-FR';
+  } else {
+    // TT (Netherlands)
+    if(langCode === 'NLD') return 'nl-NL';
+  }
+  return null; // unmapped
 }
 
 /* =================================================================
@@ -539,14 +551,17 @@ function buildProductionIndex(rows){
   for(let i=1;i<rows.length;i++){
     const r = rows[i];
     if(!r || !r[idx.boxId]) continue;
+    const customerId = (r[idx.customerId]||'').toString().trim();
+    const rawLocale = (r[idx.locale]||'').toString().trim();
+    const normalizedLocale = normalizeLocale(rawLocale, customerId);
     records.push({
       boxIdRaw: r[idx.boxId].toString().trim(),
       boxIdNorm: normalizeBoxId(r[idx.boxId]),
       productionDate: (r[idx.prodDate]||'').toString().trim(),
       productionDay: (r[idx.prodDay]||'').toString().trim(),
       ts: (r[idx.ts]||'').toString().trim(),
-      customerId: (r[idx.customerId]||'').toString().trim(),
-      locale: (r[idx.locale]||'').toString().trim(),
+      customerId: customerId,
+      locale: normalizedLocale,
       slots: parseSlots(r[idx.logistics])
     });
   }
@@ -885,10 +900,15 @@ function renderIncidentCard(inc){
     body += inc.warnings.map(w=>`<div class="warn-line">${escapeHtml(w)}</div>`).join('');
     body += `<div class="btn-row"><button class="btn btn-ghost btn-sm" id="find-${inc.id}">Try again</button></div>`;
   } else if(inc.status==='empty' || inc.status==='matched'){
+    // Count unique customers (dedup by customerId to handle split boxes)
+    const uniqueCustomers = new Set(inc.matched.map(m => m.customerId)).size;
+    // Count total units/qty
+    const totalUnits = inc.matched.reduce((sum, m) => sum + (m.qty || 1), 0);
+    
     body += `<div class="match-summary">
-      Checked <b>${inc.checkedCount}</b> box(es) on ${escapeHtml(inc.date)} &middot;
-      <b>${inc.matched.length}</b> customer(s) actually had slot ${escapeHtml(inc.slot)}
-      ${inc.notImpacted ? ` &middot; ${inc.notImpacted} didn't have this slot` : ''}
+      <b>${escapeHtml(inc.date)}</b> &middot;
+      <b>${uniqueCustomers}</b> customer(s) &middot;
+      <b>${totalUnits}</b> unit(s)
       <br>By locale: <b>${localeBreakdownText(inc)}</b> &middot; Recipe: <b>${escapeHtml(inc.recipeName||'Unknown')}</b>
     </div>`;
     inc.warnings.forEach(w=> body += `<div class="warn-line">${escapeHtml(w)}</div>`);
@@ -1007,12 +1027,27 @@ function buildBulkErrorRows(){
   return rows;
 }
 
-function splitBulkErrorRowsByBusinessUnit(rows){
+function splitBulkErrorRowsByBusinessUnit(rows, auditLog){
   const byBu = { 'TT': [], 'TO': [] };
+  
+  // Create map of customerId to locale from auditLog for quick lookup
+  const custLocaleMap = {};
+  (auditLog || []).forEach(r => {
+    if(r.customerId && r.locale) {
+      custLocaleMap[r.customerId] = r.locale;
+    }
+  });
+  
   rows.forEach(r=>{
-    const customerId = 'TT' + r['customer id']; // reconstruct to check prefix
-    if(customerId.startsWith('TO')) byBu['TO'].push(r);
-    else byBu['TT'].push(r);
+    const custId = 'TT' + r['customer id']; // reconstruct for lookup
+    const locale = custLocaleMap[custId];
+    
+    // Determine BU from locale
+    if(locale && (locale === 'be-NL' || locale === 'be-FR')){
+      byBu['TO'].push(r);
+    } else {
+      byBu['TT'].push(r);
+    }
   });
   return byBu;
 }
@@ -1029,7 +1064,7 @@ function downloadCsv(filename, columns, rows){
 
 function renderBulkDownloads(){
   const rows = buildBulkErrorRows();
-  const byBu = splitBulkErrorRowsByBusinessUnit(rows);
+  const byBu = splitBulkErrorRowsByBusinessUnit(rows, state.auditLog);
   const row = document.getElementById('bulkDownloadRow');
   
   let html = '';
@@ -1050,7 +1085,7 @@ function renderBulkDownloads(){
   row.querySelectorAll('button[data-bu]').forEach(btn=>{
     const bu = btn.dataset.bu;
     btn.addEventListener('click', ()=>{
-      const buRows = splitBulkErrorRowsByBusinessUnit(buildBulkErrorRows())[bu];
+      const buRows = splitBulkErrorRowsByBusinessUnit(buildBulkErrorRows(), state.auditLog)[bu];
       const filename = `f_bulk_error_${stamp}_${bu}.csv`;
       downloadCsv(filename, OUTPUT_COLUMNS, buRows);
     });
@@ -1155,6 +1190,29 @@ function buildCrmRows(){
     resultRows.push({ customerId: cust.customerId, locale, reason: reasonKey });
   });
 
+  // Add test users for verification
+  const testUsers = [
+    { customerId: 'TT2732029', locale: 'nl-NL' },
+    { customerId: 'TO100021255', locale: 'be-NL' }
+  ];
+  
+  testUsers.forEach(testUser => {
+    const locale = testUser.locale;
+    const tpl = TEMPLATES[locale] && TEMPLATES[locale]['generic'];
+    if(tpl){
+      const outRow = { 
+        business_unit: tpl.business_unit, 
+        customer_id: stripLeadingLetters(testUser.customerId), 
+        locale, 
+        content: tpl.content + '<br><br><i>[Test user for verification]</i>', 
+        subjectline: tpl.subjectline, 
+        preheader: tpl.preheader, 
+        voucher:'' 
+      };
+      resultByLocale[locale].push(outRow);
+    }
+  });
+
   return { resultByLocale, resultRows, manualReviewRows, genericCount, mixedCount };
 }
 
@@ -1238,7 +1296,7 @@ async function postAllToDrive(){
   const jobs = [];
   const bulkRows = buildBulkErrorRows();
   if(bulkRows.length){
-    const byBu = splitBulkErrorRowsByBusinessUnit(bulkRows);
+    const byBu = splitBulkErrorRowsByBusinessUnit(bulkRows, state.auditLog);
     ['TT', 'TO'].forEach(bu=>{
       const buRows = byBu[bu];
       if(buRows.length){
