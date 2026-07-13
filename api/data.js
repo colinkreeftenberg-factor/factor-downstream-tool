@@ -39,6 +39,28 @@ async function getAuthClient() {
 
 module.exports = async function handler(req, res) {
   const sheet = req.query.sheet;
+
+  // Diagnostic mode: sheet=_list_tabs&spreadsheetId=... lists exact tab names
+  // (including any hidden whitespace) so mismatches like this are easy to spot.
+  if (sheet === '_list_tabs') {
+    const spreadsheetId = req.query.spreadsheetId;
+    if (!spreadsheetId) {
+      res.status(400).json({ error: 'Pass ?spreadsheetId=... to list its tabs.' });
+      return;
+    }
+    try {
+      const client = await getAuthClient();
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties.title`;
+      const response = await client.request({ url });
+      const titles = (response.data.sheets || []).map(s => s.properties.title);
+      // JSON.stringify will surface non-breaking spaces etc. as \u00a0 if present
+      res.status(200).json({ tabs: titles, tabsRaw: titles.map(t => JSON.stringify(t)) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+    return;
+  }
+
   const source = SOURCES[sheet];
   if (!source) {
     res.status(400).json({ error: 'Unknown sheet parameter: ' + sheet });
