@@ -442,10 +442,10 @@ function parseSlots(desc){
   return (desc||'').split('|').map(s=>s.trim()).filter(s=>/^\d+$/.test(s));
 }
 
-function normalizeLocale(rawLocale, customerId){
+function normalizeLocale(rawLocale, boxId){
   // rawLocale comes from production feed as language code (NLD, FRA, etc)
-  // customerId has TT or TO prefix
-  const isTO = customerId && customerId.toUpperCase().startsWith('TO');
+  // boxId has TT or TO prefix (customer_id column may not)
+  const isTO = boxId && boxId.toUpperCase().startsWith('TO');
   const langCode = (rawLocale || '').toUpperCase().trim();
   
   if(isTO){
@@ -556,10 +556,11 @@ function buildProductionIndex(rows){
     const r = rows[i];
     if(!r || !r[idx.boxId]) continue;
     const customerId = (r[idx.customerId]||'').toString().trim();
+    const boxIdRaw = r[idx.boxId].toString().trim();
     const rawLocale = (r[idx.locale]||'').toString().trim();
-    const normalizedLocale = normalizeLocale(rawLocale, customerId);
+    const normalizedLocale = normalizeLocale(rawLocale, boxIdRaw);
     records.push({
-      boxIdRaw: r[idx.boxId].toString().trim(),
+      boxIdRaw: boxIdRaw,
       boxIdNorm: normalizeBoxId(r[idx.boxId]),
       productionDate: (r[idx.prodDate]||'').toString().trim(),
       productionDay: (r[idx.prodDay]||'').toString().trim(),
@@ -940,10 +941,11 @@ function renderIncidentCard(inc){
 
 function confirmIncident(inc){
   inc.matched.forEach(m=>{
+    const businessUnit = m.boxIdRaw && m.boxIdRaw.toUpperCase().startsWith('TO') ? 'TO' : 'TT';
     state.auditLog.push({
       incidentId: inc.id, customerId: m.customerId, boxId: m.boxIdClean, locale: m.locale, qty: m.qty,
       type: inc.type, slot: inc.slot, substituteSlot: inc.substituteSlot,
-      categoryIndex: inc.categoryIndex
+      categoryIndex: inc.categoryIndex, businessUnit: businessUnit
     });
   });
   inc.status = 'confirmed';
@@ -1025,33 +1027,21 @@ function buildBulkErrorRows(){
       'compensation amount': '',
       'recipe index': r.slot,
       'culinary sku': kit ? kit.sku : '',
-      'comment': r.type==='SWAP' ? `Swap to ${r.substituteSlot}: ${subName}` : 'Shortage'
+      'comment': r.type==='SWAP' ? `Swap to ${r.substituteSlot}: ${subName}` : 'Shortage',
+      '_businessUnit': r.businessUnit || 'TT'
     });
   });
   return rows;
 }
 
-function splitBulkErrorRowsByBusinessUnit(rows, auditLog){
+function splitBulkErrorRowsByBusinessUnit(rows){
   const byBu = { 'TT': [], 'TO': [] };
-  
-  // Create map of customerId to locale from auditLog for quick lookup
-  const custLocaleMap = {};
-  (auditLog || []).forEach(r => {
-    if(r.customerId && r.locale) {
-      custLocaleMap[r.customerId] = r.locale;
-    }
-  });
-  
   rows.forEach(r=>{
-    const custId = 'TT' + r['customer id']; // reconstruct for lookup
-    const locale = custLocaleMap[custId];
-    
-    // Determine BU from locale
-    if(locale && (locale === 'be-NL' || locale === 'be-FR')){
-      byBu['TO'].push(r);
-    } else {
-      byBu['TT'].push(r);
-    }
+    const bu = r['_businessUnit'] === 'TO' ? 'TO' : 'TT';
+    // Strip internal field before output
+    const cleanRow = Object.assign({}, r);
+    delete cleanRow['_businessUnit'];
+    byBu[bu].push(cleanRow);
   });
   return byBu;
 }
@@ -1068,7 +1058,7 @@ function downloadCsv(filename, columns, rows){
 
 function renderBulkDownloads(){
   const rows = buildBulkErrorRows();
-  const byBu = splitBulkErrorRowsByBusinessUnit(rows, state.auditLog);
+  const byBu = splitBulkErrorRowsByBusinessUnit(rows);
   const row = document.getElementById('bulkDownloadRow');
   
   let html = '';
@@ -1089,7 +1079,7 @@ function renderBulkDownloads(){
   row.querySelectorAll('button[data-bu]').forEach(btn=>{
     const bu = btn.dataset.bu;
     btn.addEventListener('click', ()=>{
-      const buRows = splitBulkErrorRowsByBusinessUnit(buildBulkErrorRows(), state.auditLog)[bu];
+      const buRows = splitBulkErrorRowsByBusinessUnit(buildBulkErrorRows())[bu];
       const filename = `f_bulk_error_${stamp}_${bu}.csv`;
       downloadCsv(filename, OUTPUT_COLUMNS, buRows);
     });
@@ -1300,7 +1290,7 @@ async function postAllToDrive(){
   const jobs = [];
   const bulkRows = buildBulkErrorRows();
   if(bulkRows.length){
-    const byBu = splitBulkErrorRowsByBusinessUnit(bulkRows, state.auditLog);
+    const byBu = splitBulkErrorRowsByBusinessUnit(bulkRows);
     ['TT', 'TO'].forEach(bu=>{
       const buRows = byBu[bu];
       if(buRows.length){
