@@ -210,6 +210,16 @@
   <div class="step" id="step4" data-disabled="true">
     <div class="step-head"><span class="step-num">04</span><span class="step-title">Bulk Error Report</span></div>
     <div class="step-desc">One CSV for the De Kas bulk-error import.</div>
+    <div class="form-grid" style="margin-bottom:16px;">
+      <div>
+        <label class="field-label">Credit amount — swap (€)</label>
+        <input type="number" min="0" step="0.01" id="comp-swap" value="5">
+      </div>
+      <div>
+        <label class="field-label">Credit amount — shortage (€)</label>
+        <input type="number" min="0" step="0.01" id="comp-short" value="11">
+      </div>
+    </div>
     <div class="download-row" id="bulkDownloadRow"></div>
   </div>
 
@@ -404,6 +414,7 @@ const state = {
   mealDbBySku: new Map(),        // sku -> [{mealId, dutchName, frenchName}]
   productionRows: [],            // flat array of box records
   availableDates: [],            // sorted unique production_date strings (desc)
+  priceByBox: new Map(),         // boxId (no trailing letter) -> {productsize, totalOrderValue}
   incidents: [],
   incidentSeq: 0,
   auditLog: []
@@ -414,6 +425,8 @@ const state = {
 ================================================================= */
 function stripLeadingLetters(v){ return v==null ? '' : String(v).replace(/^[A-Za-z]+/, ''); }
 function stripTrailingLetters(v){ return v==null ? '' : String(v).replace(/[A-Za-z]+$/, ''); }
+function mealsFromSku(sku){ if(!sku) return null; const p = String(sku).split('-'); const n = parseInt(p[2],10); return isNaN(n) ? null : n; }
+function round2(v){ return Math.round(v*100)/100; }
 function normalizeBoxId(id){ if(!id) return ''; const m = String(id).trim().toUpperCase().match(/^([A-Z]{2}\d+)/); return m ? m[1] : String(id).trim().toUpperCase(); }
 function todayDDMM(){ const d = new Date(); return String(d.getDate()).padStart(2,'0') + String(d.getMonth()+1).padStart(2,'0'); }
 function fileSafe(s){ return (s||'').replace(/-/g,'_'); }
@@ -577,6 +590,42 @@ function lookupOdlLanguage(odlIndex, boxIdRaw){
   return '';
 }
 
+function buildPriceIndex(rows){
+  let headerIdx = -1;
+  for(let i=0;i<Math.min(rows.length,10);i++){
+    if(rows[i].some(c => (c||'').toString().trim().toLowerCase()==='customer_id')){ headerIdx = i; break; }
+  }
+  if(headerIdx===-1) throw new Error('Could not find a header row containing "customer_id" in Price BNL.');
+  const header = rows[headerIdx].map(h=>(h||'').toString().trim());
+  const idx = {
+    customerId: header.findIndex(h=>h.toLowerCase()==='customer_id'),
+    boxId: header.findIndex(h=>h.toLowerCase()==='box_id'),
+    productsize: header.findIndex(h=>h.toLowerCase()==='productsize'),
+    totalOrderValue: header.findIndex(h=>h.toLowerCase()==='total_order_value')
+  };
+  const map = new Map();
+  let count = 0;
+  for(let i=headerIdx+1;i<rows.length;i++){
+    const r = rows[i];
+    if(!r || idx.boxId<0 || !r[idx.boxId]) continue;
+    const boxId = stripTrailingLetters(r[idx.boxId].toString().trim());
+    const productsize = idx.productsize>=0 ? (r[idx.productsize]||'').toString().trim() : '';
+    const totalOrderValue = idx.totalOrderValue>=0 ? parseFloat(r[idx.totalOrderValue]) : NaN;
+    if(!map.has(boxId)) map.set(boxId, { productsize, totalOrderValue: isNaN(totalOrderValue) ? null : totalOrderValue });
+    count++;
+  }
+  return { map, count };
+}
+
+function lookupPricePerMeal(priceIndex, boxId){
+  if(!priceIndex) return null;
+  const entry = priceIndex.map.get(stripTrailingLetters(boxId));
+  if(!entry || entry.totalOrderValue===null) return null;
+  const meals = mealsFromSku(entry.productsize);
+  if(!meals) return null;
+  return entry.totalOrderValue / meals;
+}
+
 function buildProductionIndex(rows, odlIndex){
   const header = rows[0].map(h=>(h||'').toString().trim());
   const idx = {
@@ -661,17 +710,20 @@ async function loadSource(src){
       state.mealDbBySku = built.map;
       setLc(src, `Loaded · ${built.count} row(s)`, 'ok');
     } else if(src==='production'){
-      const [prodPayload, odlPayload] = await Promise.all([
+      const [prodPayload, odlPayload, pricePayload] = await Promise.all([
         loadJson('/api/data?sheet=bnl_production'),
-        loadJson('/api/data?sheet=bnlodl')
+        loadJson('/api/data?sheet=bnlodl'),
+        loadJson('/api/data?sheet=bnl_pricebnl')
       ]);
       const odlIndex = buildOdlLanguageIndex(odlPayload.data);
+      const priceIndex = buildPriceIndex(pricePayload.data);
+      state.priceByBox = priceIndex;
       state.productionRows = buildProductionIndex(prodPayload.data, odlIndex);
       state.availableDates = Array.from(new Set(state.productionRows.map(r=>r.productionDate))).filter(Boolean).sort().reverse();
       populateDateSelect();
       const unmappedCount = state.productionRows.filter(r=>!r.locale).length;
       const sampleUnmapped = state.productionRows.find(r=>!r.locale);
-      let statusMsg = `Loaded · ${state.productionRows.length} box(es) · ${state.availableDates.length} date(s) · ${odlIndex.count} ODL row(s)`;
+      let statusMsg = `Loaded · ${state.productionRows.length} box(es) · ${state.availableDates.length} date(s) · ${odlIndex.count} ODL row(s) · ${priceIndex.count} price row(s)`;
       let kind = 'ok';
       if(unmappedCount > 0){
         statusMsg += ` · ⚠ ${unmappedCount} row(s) with unmapped locale`;
@@ -1058,13 +1110,31 @@ document.getElementById('btn-reset').addEventListener('click', ()=>{
    Merges split boxes (A/B suffixes) into single box ID.
 ================================================================= */
 function buildBulkErrorRows(){
+  const compSwap = parseFloat(document.getElementById('comp-swap').value||'0') || 0;
+  const compShort = parseFloat(document.getElementById('comp-short').value||'0') || 0;
   const rows = [];
+  let fallbackShortCount = 0;
   state.auditLog.forEach(r=>{
     if(r.categoryIndex===null || r.categoryIndex===undefined || isNaN(r.categoryIndex)) return;
     const cat = RECIPE_CATEGORIES[r.categoryIndex];
     const kit = state.kitcontentBySlot.get(String(r.slot));
     const recipeName = resolveRecipeName(r.slot, r.locale) || 'Unknown';
     const subName = r.type==='SWAP' ? (resolveRecipeName(r.substituteSlot, r.locale) || 'Unknown') : null;
+    const qty = r.qty || 1;
+
+    let compAmount;
+    if(r.type==='SWAP'){
+      compAmount = round2(compSwap * qty);
+    } else {
+      const pricePerMeal = lookupPricePerMeal(state.priceByBox, r.boxId);
+      if(pricePerMeal !== null){
+        compAmount = round2(pricePerMeal * qty);
+      } else {
+        compAmount = round2(compShort * qty);
+        fallbackShortCount += qty;
+      }
+    }
+
     rows.push({
       'customer id': stripLeadingLetters(r.customerId),
       'box id': stripTrailingLetters(r.boxId),
@@ -1076,13 +1146,14 @@ function buildBulkErrorRows(){
       'ingredient': '',
       'recipe name': recipeName,
       'compensation type': 'credit',
-      'compensation amount': '',
+      'compensation amount': compAmount.toFixed(2),
       'recipe index': r.slot,
       'culinary sku': kit ? kit.sku : '',
       'comment': r.type==='SWAP' ? `Swap to ${r.substituteSlot}: ${subName}` : 'Shortage',
       '_businessUnit': r.businessUnit || 'TT'
     });
   });
+  rows.fallbackShortCount = fallbackShortCount;
   return rows;
 }
 
@@ -1115,6 +1186,10 @@ function renderBulkDownloads(){
   
   let html = '';
   const stamp = todayDDMM();
+
+  if(rows.fallbackShortCount > 0){
+    html += `<div class="warn-line" style="width:100%;margin-bottom:10px;">⚠ ${rows.fallbackShortCount} shortage unit(s) had no matching Price BNL row — used the flat €${document.getElementById('comp-short').value} fallback instead.</div>`;
+  }
   
   ['TT', 'TO'].forEach(bu=>{
     const buRows = byBu[bu];
