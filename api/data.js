@@ -1,7 +1,9 @@
 const { GoogleAuth } = require('google-auth-library');
+
 const LINE_SHEET_ID = '1CJ7raeP-Ex7eOkQ0ShpbgXKeHi1EJWXE6XNITArW7Do';
 const BACKEND_SHEET_ID = '1DjYDHfwKLRkQzlEj22whxrBjdk9T36VRQqMGE91l17U';
 const BNL_PRODUCTION_SHEET_ID = '1NQzhmy1jkfqDoxUQWabxvIV5568eIj4aqsOCaZBozH8';
+
 const SOURCES = {
   bartender: { spreadsheetId: LINE_SHEET_ID, range: 'Bartender!A:Z' },
   odl: { spreadsheetId: LINE_SHEET_ID, range: 'ODL!A:Z' },
@@ -11,12 +13,14 @@ const SOURCES = {
   deodl: { spreadsheetId: BACKEND_SHEET_ID, range: "'DE ODL'!A:Z" },
   kitcontent: { spreadsheetId: BACKEND_SHEET_ID, range: 'Kitcontent!A:Z' },
   bnlodl: { spreadsheetId: BACKEND_SHEET_ID, range: "'BNL ODL'!A:Z" },
+
   // BNL Swap & Shortage During Production — new production sheet
   bnl_kitcontent: { spreadsheetId: BNL_PRODUCTION_SHEET_ID, range: 'Kitcontent!A:M' },
   bnl_mealdb: { spreadsheetId: BNL_PRODUCTION_SHEET_ID, range: 'MealDatabase!A:AJ' },
   bnl_production: { spreadsheetId: BNL_PRODUCTION_SHEET_ID, range: 'source_timestamps_enriched!A:P' },
   bnl_pricebnl: { spreadsheetId: BNL_PRODUCTION_SHEET_ID, range: "'Price BNL'!A:G" }
 };
+
 let cachedClient = null;
 async function getAuthClient() {
   if (cachedClient) return cachedClient;
@@ -31,6 +35,7 @@ async function getAuthClient() {
   cachedClient = await auth.getClient();
   return cachedClient;
 }
+
 module.exports = async function handler(req, res) {
   const sheet = req.query.sheet;
   const source = SOURCES[sheet];
@@ -40,7 +45,7 @@ module.exports = async function handler(req, res) {
   }
   try {
     const client = await getAuthClient();
-    const url = https://sheets.googleapis.com/v4/spreadsheets/${source.spreadsheetId}/values/${encodeURIComponent(source.range)};
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${source.spreadsheetId}/values/${encodeURIComponent(source.range)}`;
     const response = await client.request({ url });
     res.setHeader('Cache-Control', 's-maxage=30');
     res.status(200).json({ data: response.data.values });
