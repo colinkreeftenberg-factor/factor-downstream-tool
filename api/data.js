@@ -16,13 +16,13 @@ const SOURCES = {
 
   // BNL Swap & Shortage During Production — new production sheet
   bnl_kitcontent: { spreadsheetId: BNL_PRODUCTION_SHEET_ID, range: 'Kitcontent!A:M' },
-  bnl_mealdb: { spreadsheetId: BNL_PRODUCTION_SHEET_ID, range: 'MealDatabase!A:AJ' },
+  bnl_mealdb: { spreadsheetId: BNL_PRODUCTION_SHEET_ID, range: "'Meal Database'!A:AJ" },
+  bnl_mealdb_legacy: { spreadsheetId: BNL_PRODUCTION_SHEET_ID, range: 'MealDatabase!A:AJ' },
   bnl_production: { spreadsheetId: BNL_PRODUCTION_SHEET_ID, range: 'source_timestamps_enriched!A:P' },
   bnl_pricebnl: { spreadsheetId: BNL_PRODUCTION_SHEET_ID, range: "'Price BNL'!A:G" }
 };
 
 let cachedClient = null;
-
 async function getAuthClient() {
   if (cachedClient) return cachedClient;
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
@@ -40,12 +40,10 @@ async function getAuthClient() {
 module.exports = async function handler(req, res) {
   const sheet = req.query.sheet;
   const source = SOURCES[sheet];
-
   if (!source) {
     res.status(400).json({ error: 'Unknown sheet parameter: ' + sheet });
     return;
   }
-
   try {
     const client = await getAuthClient();
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${source.spreadsheetId}/values/${encodeURIComponent(source.range)}`;
