@@ -150,6 +150,21 @@
   .review-title .sq{width:8px;height:8px;border-radius:2px;background:var(--warn);flex:none;}
   .review-box.ok .review-title .sq{background:var(--ok);}
   .review-list{margin:0;padding-left:18px;}
+  .locale-context{
+    display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:#5b5b54;
+    background:var(--natural-2);border:1px solid var(--line);border-radius:999px;
+    padding:5px 12px;margin-bottom:16px;
+  }
+  .locale-context strong{color:var(--carbon);font-weight:700;}
+  .locale-context .dot{width:6px;height:6px;border-radius:50%;background:var(--saffron);flex:none;}
+
+  .content-notice{
+    display:flex;align-items:flex-start;gap:9px;background:#EAF3FB;border:1px solid #C9DCEB;
+    border-radius:10px;padding:9px 12px;margin-bottom:8px;font-size:12.5px;line-height:1.5;color:#2A5C82;
+  }
+  .content-notice .ico{flex:none;width:16px;height:16px;margin-top:1px;}
+  .content-notice strong{color:#1D4E89;}
+
   .review-list li{margin-bottom:3px;}
   .review-inline-btn{
     appearance:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:11.5px;
@@ -312,7 +327,7 @@
     <div class="step-desc">At least upload <span class="mono">customer_id</span>, <span class="mono">locale</span> and <span class="mono">market</span>. Merge tags are optional.</div>
     <div class="step-body">
       <div class="template-banner">
-        <div class="template-banner-text">Download an example file here to upload, or use it as a starting point: <strong>template file</strong></div>
+        <div class="template-banner-text">Download the example file, or use your own to upload: <strong>template file</strong></div>
         <button class="btn btn-ghost btn-sm" id="downloadTemplateBtn">Download template file</button>
       </div>
       <label class="dropzone" id="dropzone">
@@ -385,6 +400,17 @@ let messageState = {};      // locale -> { subject, preheader, content, voucher 
 let lastFocusedField = null; // {locale, field} of last focused editable, for tag insertion targeting
 
 const RESERVED_KEYS = ['locale', 'customer_id', 'market']; // excluded from merge tag list — used for routing/BU, not message content
+
+// Friendly country names shown next to the locale code while composing (never in the tab pill itself).
+// Unrecognized locales (e.g. a brand new market) simply show nothing extra.
+const LOCALE_COUNTRY_NAMES = {
+  'be-FR': 'Wallonia',
+  'be-NL': 'Flanders',
+  'da-DK': 'Denmark',
+  'sv-SE': 'Sweden',
+  'nl-NL': 'Netherlands',
+  'de-DE': 'Germany'
+};
 let skippedLocales = new Set(); // locales the user chose to leave out of this export round
 
 /* =================================================================
@@ -608,7 +634,12 @@ function renderComposer(){
   if (!activeLocale){ document.getElementById('composer').innerHTML = ''; return; }
   const st = messageState[activeLocale];
   const c = document.getElementById('composer');
+  const countryName = LOCALE_COUNTRY_NAMES[activeLocale];
+  const contextHtml = countryName
+    ? `<div class="locale-context"><span class="dot"></span>You're writing for <strong>${escHtml(countryName)}</strong> <span class="mono">(${escHtml(activeLocale)})</span></div>`
+    : '';
   c.innerHTML = `
+    ${contextHtml}
     <div class="field-block">
       <div class="field-label">
         <span class="field-label-text">Subject line</span>
@@ -628,6 +659,10 @@ function renderComposer(){
     <div class="field-block">
       <div class="field-label">
         <span class="field-label-text">Content</span>
+      </div>
+      <div class="content-notice">
+        <svg class="ico" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="8.5" stroke="#2A5C82" stroke-width="1.4"/><path d="M10 9v4.2" stroke="#2A5C82" stroke-width="1.4" stroke-linecap="round"/><circle cx="10" cy="6.6" r="0.9" fill="#2A5C82"/></svg>
+        <span>Don't add a greeting (e.g. <em>"Hi Karina"</em>) or a sign-off (e.g. <em>"Your Factor Team"</em>) — the CRM tool adds those automatically. Start straight in with the message.</span>
       </div>
       <div class="toolbar">
         <button type="button" class="tb-btn" id="tb-bold" title="Bold"><b>B</b></button>
