@@ -171,6 +171,13 @@
     <div class="step-head"><span class="step-num">02</span><span class="step-title">Add incidents</span></div>
     <div class="step-desc">One row per affected slot. Add as many as you need, then find matches for each.</div>
 
+    <div id="sessionOverview"></div>
+
+    <div class="btn-row" style="margin:2px 0 16px; align-items:center;">
+      <label class="toggle-switch"><input type="checkbox" id="toggle-flat-credit" checked><span class="toggle-slider"></span></label>
+      <span style="font-size:12.5px; color:var(--ink-dim);">Include €5 goodwill credit per meal in bulk error compensation</span>
+    </div>
+
     <div class="form-grid">
       <div>
         <label class="field-label">Line</label>
@@ -273,6 +280,38 @@ function localSlotForMarket(germanSlot, market){
   const n = parseInt(germanSlot, 10);
   if (isNaN(n)) return String(germanSlot);
   return String(n + offset);
+}
+
+// Customer IDs that must always be present in every market's CRM export,
+// so QA/monitoring always has a live sample. Each one gets the most
+// complex email variant generated in the session for their market.
+const QA_SENTINEL_CUSTOMERS = { TV: '100009895', TK: '100014115', TZ: '100012919' };
+
+// Relative complexity of each CRM template variant, used only to pick which
+// one the QA sentinel customers receive (higher = more complex).
+const REASON_COMPLEXITY = { generic: 0, swap: 1, short: 1, swap_multiple: 2, short_multiple: 2, mixed: 3, mixed_multiple: 4 };
+
+// Flat per-meal goodwill credit, toggleable in Step 2. When on, it's added
+// on top of the calculated per-meal box price for the bulk error export.
+const FLAT_CREDIT_EUR = 5;
+let includeFlatCredit = true;
+
+// Box price data (BoxPriceTZ tab) covers all markets despite the name.
+// SKUs look like "TZ-CBU-10-1-0" / "TK-CBU-6-1-0" — the number after CBU
+// is the meal count for that box, used to derive a per-meal price.
+function mealsInBoxFromSku(sku){
+  if(!sku) return null;
+  const m = String(sku).match(/-CBU-(\d+)-/i);
+  if(!m) return null;
+  const n = parseInt(m[1], 10);
+  return isNaN(n) ? null : n;
+}
+function pricePerMealForBox(boxIdRaw){
+  const rec = state.boxPriceMap[normalizeBoxId(boxIdRaw)];
+  if(!rec) return null;
+  const meals = mealsInBoxFromSku(rec.productsize);
+  if(!meals || rec.totalOrderValue===null || rec.totalOrderValue===undefined || isNaN(rec.totalOrderValue)) return null;
+  return rec.totalOrderValue / meals;
 }
 
 const DEFAULT_CATEGORIES = [
@@ -844,9 +883,31 @@ function findMatches(incident){
   incident.status = matched.length ? 'matched' : 'empty';
 }
 
+function renderSessionOverview(){
+  const mount = document.getElementById('sessionOverview');
+  if(!mount) return;
+  if(!state.incidents.length){ mount.innerHTML = ''; return; }
+
+  const withMatches = state.incidents.filter(i => i.matched && i.matched.length);
+  const totalUnits = withMatches.reduce((sum,i)=> sum + i.matched.reduce((s,m)=> s+(m.qty||0), 0), 0);
+  const uniqueCustomers = new Set();
+  withMatches.forEach(i=> i.matched.forEach(m=> uniqueCustomers.add(m.customerId)));
+  const swaps = state.incidents.filter(i=>i.type==='SWAP').length;
+  const shorts = state.incidents.filter(i=>i.type==='SHORTAGE').length;
+  const confirmed = state.incidents.filter(i=>i.status==='confirmed').length;
+
+  mount.innerHTML = `
+    <div class="summary-grid" style="margin:0 0 16px;">
+      <div class="sum-card"><div class="sum-locale">Incidents</div><div class="sum-count">${state.incidents.length}</div><div class="sum-bu">${swaps} swap(s) &middot; ${shorts} shortage(s) &middot; ${confirmed} confirmed</div></div>
+      <div class="sum-card"><div class="sum-locale">Units impacted</div><div class="sum-count">${totalUnits}</div><div class="sum-bu">across all incidents in this session</div></div>
+      <div class="sum-card"><div class="sum-locale">Customers impacted</div><div class="sum-count">${uniqueCustomers.size}</div><div class="sum-bu">unique customers matched so far</div></div>
+    </div>`;
+}
+
 function renderIncidents(){
   const wrap = document.getElementById('incidentList');
   wrap.innerHTML = state.incidents.map(inc => renderIncidentCard(inc)).join('');
+  renderSessionOverview();
 
   state.incidents.forEach(inc=>{
     const btnFind = document.getElementById('find-'+inc.id);
@@ -884,6 +945,7 @@ function renderIncidents(){
 function renderIncidentCard(inc){
   const cfg = MARKET_CONFIG[inc.market];
   const typeTag = inc.type==='SWAP' ? '<span class="tag swap">Swap</span>' : '<span class="tag short">Shortage</span>';
+  const totalUnits = (inc.matched||[]).reduce((s,m)=> s+(m.qty||0), 0);
   let body = `
     <div class="incident-head">
       <div>
@@ -901,7 +963,7 @@ function renderIncidentCard(inc){
   } else if(inc.status==='empty' || inc.status==='matched'){
     body += `<div class="match-summary">
       Checked <b>${inc.checkedCount}</b> box(es) on this line/day &middot;
-      <b>${inc.matched.length}</b> customer(s) actually had slot ${escapeHtml(inc.slot)}
+      <b>${inc.matched.length}</b> customer(s) / <b>${totalUnits}</b> unit(s) actually had slot ${escapeHtml(inc.slot)}
       ${inc.notInOdl ? ` &middot; ${inc.notInOdl} not found in ODL` : ''}
       ${inc.notImpacted ? ` &middot; ${inc.notImpacted} didn't order this slot` : ''}
       <br>Week <b>${escapeHtml(inc.week||'?')}</b> &middot; Market <b>${escapeHtml(inc.market||'?')}</b> &middot; Recipe: <b>${escapeHtml(inc.recipeName||'Unknown')}</b>
@@ -921,7 +983,7 @@ function renderIncidentCard(inc){
     </div>`;
   } else if(inc.status==='confirmed'){
     body += `<div class="match-summary">
-      Confirmed &middot; <b>${inc.matched.length}</b> customer(s) added to session &middot; Week ${escapeHtml(inc.week||'?')} &middot; Recipe: <b>${escapeHtml(inc.recipeName||'Unknown')}</b>
+      Confirmed &middot; <b>${inc.matched.length}</b> customer(s) / <b>${totalUnits}</b> unit(s) added to session &middot; Week ${escapeHtml(inc.week||'?')} &middot; Recipe: <b>${escapeHtml(inc.recipeName||'Unknown')}</b>
       ${inc.type==='SWAP' ? ` → <b>${escapeHtml(inc.substituteRecipeName||'Unknown')}</b>` : ''}
     </div>`;
   }
@@ -959,10 +1021,12 @@ function renderReview(){
 
   const swaps = rows.filter(r=>r.type==='SWAP').length;
   const shorts = rows.filter(r=>r.type==='SHORTAGE').length;
+  const totalUnits = rows.reduce((s,r)=> s+(r.qty||0), 0);
 
   document.getElementById('reviewBody').innerHTML = `
     <div class="summary-grid">
       <div class="sum-card"><div class="sum-locale">Customers</div><div class="sum-count">${rows.length}</div><div class="sum-bu">confirmed across all incidents</div></div>
+      <div class="sum-card"><div class="sum-locale">Units</div><div class="sum-count">${totalUnits}</div><div class="sum-bu">total meals impacted</div></div>
       <div class="sum-card"><div class="sum-locale">Swaps / Shorts</div><div class="sum-count">${swaps} / ${shorts}</div><div class="sum-bu">by type</div></div>
     </div>`;
 
@@ -986,6 +1050,11 @@ document.getElementById('btn-reset').addEventListener('click', ()=>{
   ['step3','step4','step5','step6'].forEach(id=> document.getElementById(id).setAttribute('data-disabled','true'));
 });
 
+document.getElementById('toggle-flat-credit').addEventListener('change', e=>{
+  includeFlatCredit = e.target.checked;
+  if(!document.getElementById('step4').hasAttribute('data-disabled')) renderBulkDownloads();
+});
+
 /* =================================================================
    BULK ERROR EXPORT
 ================================================================= */
@@ -994,6 +1063,16 @@ function buildBulkErrorRows(){
   state.auditLog.forEach(r=>{
     if(r.categoryIndex===null || r.categoryIndex===undefined || isNaN(r.categoryIndex)) return;
     const cat = RECIPE_CATEGORIES[r.categoryIndex];
+    const qty = r.qty || 1;
+    const perMeal = pricePerMealForBox(r.boxId);
+    let compAmount = null;
+    if(perMeal !== null){
+      compAmount = perMeal * qty;
+      if(includeFlatCredit) compAmount += FLAT_CREDIT_EUR * qty;
+      compAmount = round2(compAmount);
+    } else if(includeFlatCredit){
+      compAmount = round2(FLAT_CREDIT_EUR * qty);
+    }
     const row = {
       'customer id': stripLeadingLetters(r.customerId),
       'box id': stripTrailingLetters(r.boxId),
@@ -1005,7 +1084,7 @@ function buildBulkErrorRows(){
       'ingredient': '',
       'recipe name': r.recipeName || 'Unknown',
       'compensation type': 'credit',
-      'compensation amount': '',
+      'compensation amount': compAmount === null ? '' : fmt2(compAmount),
       'recipe index': r.slot,
       'culinary sku': r.recipeCode || '',
       'comment': r.type==='SWAP' ? `Swap to ${r.substituteSlot}: ${r.substituteRecipeName||'Unknown'}` : 'Shortage'
@@ -1079,6 +1158,7 @@ function buildCrmRows(){
   const resultByLocale = { 'de-DE':[], 'sv-SE':[], 'da-DK':[] };
   const resultRows = [];
   const manualReviewRows = [];
+  const generatedRowsByMarket = {};
   let genericCount = 0, mixedCount = 0;
 
   Object.values(byCustomer).forEach(cust=>{
@@ -1121,6 +1201,20 @@ function buildCrmRows(){
     const outRow = { business_unit: tpl.business_unit, customer_id: cust.customerId, locale: cfg.locale, content, subjectline: tpl.subjectline, preheader: tpl.preheader, voucher:'' };
     resultByLocale[cfg.locale].push(outRow);
     resultRows.push({ market:cust.market, customerId:cust.customerId, week:cust.week, locale:cfg.locale, reason });
+    generatedRowsByMarket[cust.market] = generatedRowsByMarket[cust.market] || [];
+    generatedRowsByMarket[cust.market].push({ outRow, reason });
+  });
+
+  // Always include the fixed QA/monitoring customer IDs in each market's
+  // export, giving each one the most complex email variant that was
+  // actually generated for that market this session. If a market had no
+  // incidents this session, there's nothing to give them, so it's skipped.
+  Object.keys(QA_SENTINEL_CUSTOMERS).forEach(market=>{
+    const cfg = MARKET_CONFIG[market];
+    const candidates = generatedRowsByMarket[market];
+    if(!cfg || !candidates || !candidates.length) return;
+    const best = candidates.slice().sort((a,b)=> (REASON_COMPLEXITY[b.reason]||0) - (REASON_COMPLEXITY[a.reason]||0))[0];
+    resultByLocale[cfg.locale].push(Object.assign({}, best.outRow, { customer_id: QA_SENTINEL_CUSTOMERS[market] }));
   });
 
   return { resultByLocale, resultRows, manualReviewRows, genericCount, mixedCount };
