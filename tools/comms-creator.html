@@ -172,12 +172,12 @@
     transition:border-color .15s ease, background .15s ease;
   }
   .locale-tab .tab-count{font-family:'IBM Plex Mono', monospace;font-weight:500;font-size:11px;color:#7a7a70;background:var(--natural-2);padding:1px 6px;border-radius:999px;}
-  .locale-tab.active{border-color:var(--carbon);background:var(--saffron);color:var(--carbon);}
-  .locale-tab.active .tab-count{background:rgba(20,20,20,0.14);color:var(--carbon);}
+  .locale-tab.active{border-color:#E8C339;background:#FFF3C4;color:var(--carbon);}
+  .locale-tab.active .tab-count{background:rgba(20,20,20,0.08);color:var(--carbon);}
   .locale-tab.incomplete::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--warn);}
   .locale-tab.complete::after{content:"";width:7px;height:7px;border-radius:50%;background:#22C55E;}
-  .locale-tab.active.incomplete::after,
-  .locale-tab.active.complete::after{background:var(--carbon);}
+  .locale-tab.active.incomplete::after{background:var(--warn);}
+  .locale-tab.active.complete::after{background:#1a9e42;}
   .locale-tab.skipped{opacity:0.5;}
   .locale-tab.skipped::after{background:#9b9a8f;}
 
@@ -225,19 +225,19 @@
 
   .toolbar{
     display:flex;align-items:center;gap:6px;margin-bottom:0;flex-wrap:wrap;
-    background:var(--carbon);border-radius:var(--radius-sm) var(--radius-sm) 0 0;
-    padding:9px 10px;border:1.5px solid var(--carbon);border-bottom:none;
+    background:var(--natural-2);border-radius:var(--radius-sm) var(--radius-sm) 0 0;
+    padding:9px 10px;border:1.5px solid #B9B6A4;border-bottom:1px solid var(--line);
   }
   .tb-btn{
-    appearance:none;cursor:pointer;border:none;background:var(--saffron);color:var(--carbon);
+    appearance:none;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--carbon);
     width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
-    font-size:13px;font-weight:700;transition:box-shadow .15s ease, transform .1s ease;
+    font-size:13px;font-weight:700;transition:border-color .15s ease, background .15s ease;
   }
-  .tb-btn:hover{box-shadow:0 0 0 3px rgba(255,200,0,0.35);}
+  .tb-btn:hover{border-color:var(--saffron);background:#FFFDF3;}
   .tb-btn:active{transform:translateY(1px);}
   .tb-btn.italic-label{font-style:italic;}
-  .tb-sep{width:1px;align-self:stretch;background:rgba(241,241,234,0.18);margin:0 2px;}
-  .tb-hint{font-size:11px;color:#C9C7B8;margin-left:2px;}
+  .tb-sep{width:1px;align-self:stretch;background:var(--line);margin:0 2px;}
+  .tb-hint{font-size:11px;color:#8a897d;margin-left:2px;}
   .toolbar .mtag-menu{top:calc(100% + 8px);}
   .editable-content{border-radius:0 0 var(--radius-sm) var(--radius-sm);border-top:none;}
 
