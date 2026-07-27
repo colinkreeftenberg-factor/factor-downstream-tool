@@ -23,6 +23,23 @@ async function callSlack(method, body) {
   return data;
 }
 
+// Slack documents conversations.replies and users.info as GET-style
+// "read" methods (`GET https://slack.com/api/<method>`), distinct from
+// write methods like chat.postMessage that explicitly support a JSON POST
+// body. Sending them as GET with query params matches Slack's own
+// documented usage exactly, rather than relying on POST JSON parsing that
+// isn't guaranteed for every method.
+async function callSlackGet(method, params) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`https://slack.com/api/${method}?${qs}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${SLACK_BOT_TOKEN}` },
+  });
+  const data = await res.json();
+  if (!data.ok) throw new Error(`Slack ${method} failed: ${data.error}`);
+  return data;
+}
+
 /**
  * Posts a top-level message that will act as a thread parent. Returns the
  * {channel, ts} address needed to read replies later — this is the piece
@@ -47,7 +64,7 @@ async function resolveUserName(userId) {
   if (!userId) return null;
   if (userNameCache.has(userId)) return userNameCache.get(userId);
   try {
-    const data = await callSlack('users.info', { user: userId });
+    const data = await callSlackGet('users.info', { user: userId });
     const name = data.user?.profile?.display_name || data.user?.real_name || userId;
     userNameCache.set(userId, name);
     return name;
@@ -64,7 +81,7 @@ export async function fetchThreadReplies(channel, ts) {
   if (!configured()) return { skipped: true, reason: 'SLACK_BOT_TOKEN / SLACK_CHANNEL_ID not configured yet' };
   if (!channel || !ts) return { ok: true, messages: [] };
 
-  const data = await callSlack('conversations.replies', { channel, ts });
+  const data = await callSlackGet('conversations.replies', { channel, ts });
   const replies = (data.messages || []).filter((m) => m.ts !== ts);
 
   const messages = await Promise.all(
