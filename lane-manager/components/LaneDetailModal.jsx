@@ -60,7 +60,9 @@ export default function LaneDetailModal({ lane, onClose, onSaved }) {
     try {
       const res = await fetch(`/api/lane-thread?channel=${encodeURIComponent(addr.channel)}&ts=${encodeURIComponent(addr.ts)}`);
       const data = await res.json();
-      if (data.skipped) {
+      if (!res.ok) {
+        setThreadError(data.detail || data.error || `Request failed (${res.status})`);
+      } else if (data.skipped) {
         setThreadError(data.reason);
       } else if (data.ok) {
         setThreadMessages(data.messages || []);
