@@ -110,26 +110,8 @@ thead th {
   font-weight: 600;
   white-space: nowrap;
   position: sticky;
-  top: 22px;
-  background: var(--carbon);
-}
-
-.group-band-row th {
-  text-align: left;
-  padding: 3px 12px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-  position: sticky;
   top: 0;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  height: 22px;
-}
-.group-band-cell {
-  color: var(--text-muted);
+  background: var(--carbon);
 }
 
 tbody td {
@@ -383,6 +365,15 @@ tbody tr:hover {
   color: var(--carbon);
   background: var(--saffron);
 }
+.tab-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--red-light);
+  margin-left: 6px;
+  vertical-align: middle;
+}
 
 .search-box {
   padding: 8px 12px;
@@ -402,6 +393,18 @@ tbody tr:hover {
 .badge-delayed { background: var(--urgent-bg); color: var(--red); }
 .badge-missing { background: #FFF6DE; color: #8a6400; }
 .badge-stale { background: #f0f1ec; color: var(--text-muted); }
+.badge-shipped {
+  background: var(--saffron);
+  color: var(--carbon);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+}
+.badge-shipped img {
+  width: 11px;
+  height: 11px;
+}
 
 @media print {
   .topbar, .filter-row, .btn, .no-print, .all-lanes-section { display: none !important; }

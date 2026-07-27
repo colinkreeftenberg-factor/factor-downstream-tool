@@ -20,8 +20,6 @@ exactly as it does today, untouched.
 - **Today** section: lanes whose Date falls on today
 - **All lanes** section: everything, FACTOR_ + DACH together, deduplicated,
   **sorted by Date**
-- **Summary stat strip** with the **"Check & notify Slack" button (with the
-  Slack logo) on the far right of the same row**
 - Auto-refreshes every 3 minutes, plus manual Refresh
 - **Global search box only** — the old per-column filter row (dropdowns +
   text inputs under each header) was removed since the search box covers it
@@ -31,58 +29,55 @@ exactly as it does today, untouched.
   gets a neutral gray badge automatically)
 - Flags — badges only: *Delayed* (planned vs actual dispatch discrepancy
   only), *Dispatching soon* (blue), *Missing info*, *Stale*
-- **Table headers**: carbon background, white text, with a colored band
-  above three column pairs to cluster them visually (Arrival, Dispatch,
-  Trailer/Reg — see `SUMMARY_GROUPS` in `lib/columns.js` for the colors) —
-  purely visual, the table still scrolls and behaves exactly as before
+- **Table headers**: carbon background, white text throughout. Three
+  column pairs get a colored underline instead of a separate banner row,
+  to cluster them visually without adding extra header height (Arrival,
+  Dispatch, Trailer/Reg — see `SUMMARY_GROUPS` in `lib/columns.js` for the
+  colors) — purely visual, the table still scrolls and behaves exactly as
+  before
 - CSV export, print daily sheet
 - Click a Load Reference to open the detail popup — a **Slack widget sits
   on top** of the lane details (Slack logo + "Request Update" button, plus
   the thread's replies, refreshing every 3 minutes while open) — **works
   for DACH lanes too**, not just Factor, even though DACH's source sheet
   stays read-only for everything else
+- **Slack Updates tab shows a small red dot** when a lane still visible in
+  the dashboard has a Slack message newer than the last time you opened
+  that tab (tracked per-browser via `localStorage`, since this is a real
+  deployed app rather than a sandboxed artifact)
 - New lane form with Week/Day/Courier dropdowns
 - FACTOR_ badge dark Carbon/white text, DACH badge `#18849F`/white text
 - Factor brand palette, Plus Jakarta Sans, wordmark in header
 
 ## Notifications (Slack)
 
-Three ways to trigger a Slack message now:
-1. **"Check & notify Slack"** button in the stat strip — runs the three
-   automated checks (missing reg, truck status, dispatching soon) on demand
-2. **Cron**, every 5 minutes once deployed (respects dedup markers)
-3. **"Request Slack update"** button in a lane's detail popup — a plain
-   ad-hoc ping for that specific lane, no condition needed
+Slack messages are **only ever sent by pressing a button** — nothing
+fires automatically anymore. The one path that remains is the
+**"Request Update" button** (Slack logo, at the top of a lane's detail
+popup) — a plain ad-hoc ping for that specific lane, no condition needed,
+and it works for DACH lanes too (see the "Slack thread replies" section
+below for the sheet setup this needs).
 
-All three need `SLACK_WEBHOOK_URL` set (see below) or they just show
-"Not configured" instead of failing silently.
+The three *automated* condition checks that used to exist (missing reg,
+truck status/arrival, dispatching soon) — via both a 5-minute cron and a
+manual "Check & notify Slack" button — have been retired per your steer.
+Their code still lives in `lib/notify.js` (`runNotifyCheck`) and the
+`/api/notify` / `/api/notify-manual` routes exist but are no longer
+called from the UI or a schedule (the cron entry was removed from
+`vercel.json`). If you ever want them back, wiring the button back into
+`pages/index.js` and re-adding the cron block is all it'd take — nothing
+was deleted, just disconnected.
 
-1. **Create a Slack Incoming Webhook** for whichever channel you want
-   alerts in: [api.slack.com/messaging/webhooks](https://api.slack.com/messaging/webhooks)
-   (self-serve Slack app setting, shouldn't need admin approval the way
-   the OAuth client did). Paste the URL into `SLACK_WEBHOOK_URL` in
-   `.env.local` (and in Vercel's env vars once deployed).
-2. **Add three empty columns** to the Factor Extra Source sheet, exactly
-   named: `Notified Missing Reg`, `Notified Truck Status`, `Notified
-   Dispatch Soon`. These are dedup markers for the *cron* run only — the
-   manual button ignores them on purpose, so clicking it always does a
-   real check regardless of what's already been sent.
+`SLACK_WEBHOOK_URL` and `CRON_SECRET` are therefore no longer required —
+only `SLACK_BOT_TOKEN` and `SLACK_CHANNEL_ID` (below) matter now.
 
-Set `CRON_SECRET` (any random string) in both `.env.local` and Vercel's
-env vars so the cron endpoint can't be triggered by anyone who finds the
-URL. The manual button's endpoint (`/api/notify-manual`) has no secret —
-it's meant to be clickable by anyone using the dashboard.
-
-If Slack isn't the right channel, the checks live in `lib/notify.js` and
-`lib/dateUtils.js` — only `postToSlack()` would need to change.
 
 ### Slack thread replies
 
 The "Request Update" button (Slack logo + text, at the top of the lane
 popup) posts through a **bot token** instead of the webhook, because only
 that gives back the message address (`channel` + `ts`) needed to read
-replies to it later. The other two notification paths (stat-strip
-button, cron) are unchanged and still use `SLACK_WEBHOOK_URL`.
+replies to it later.
 
 1. Open your Slack app: <https://api.slack.com/apps/A0994PFMTGQ>
 2. **OAuth & Permissions** → **Bot Token Scopes** → add:
@@ -220,14 +215,6 @@ git push -u origin main
 **After the first deploy:**
 - Vercel gives you a URL like `lane-dashboard-yourname.vercel.app` — that's
   the link to share with your Verden DC colleagues
-- If you set `SLACK_WEBHOOK_URL` and `CRON_SECRET`, the cron job in
-  `vercel.json` starts running automatically every 5 minutes
-- **Check your Vercel plan's cron limits** — some plans restrict how
-  frequently cron jobs can run (free/Hobby tiers have historically limited
-  this to once a day rather than every 5 minutes). If the 5-minute
-  schedule gets silently downgraded, the "Check & notify Slack" button
-  still works on-demand regardless of plan, so that's the reliable
-  fallback either way
 - Any time you push a new commit to `main`, Vercel redeploys automatically
 
 **No login gate, so:**

@@ -4,7 +4,8 @@ import {
   toDateInputValue,
   toTimeInputValue,
   isDispatchingSoon,
-  isDispatchDelayed,
+  isArrivalDelayed,
+  isShipped,
   isMissingInfoSoon,
   isStale,
   parseFlexibleDate,
@@ -21,10 +22,11 @@ function displayValue(lane, field) {
 
 export function computeFlags(lane) {
   const urgent = isDispatchingSoon(lane['Date'], lane['Actual Dispatch time'] || lane['Planned Dispatch Time'], 3);
-  const delayed = isDispatchDelayed(lane['Date'], lane['Planned Dispatch Time'], lane['Actual Dispatch time']);
+  const delayed = isArrivalDelayed(lane['Date'], lane['Planned Arrival Time'], lane['Actual Arrival time']);
+  const shipped = isShipped(lane['Actual Dispatch time']);
   const missingInfo = isMissingInfoSoon(lane['Date'], lane['Planned Dispatch Time'], lane['Vehicle Registration Number'], 4);
   const stale = lane.source === 'factor' && isStale(lane['Created at'], lane['Load Status'], 2);
-  return { urgent, delayed, missingInfo, stale };
+  return { urgent, delayed, shipped, missingInfo, stale };
 }
 
 export default function LaneTable({ lanes, onQuickEdit, onOpenDetail, globalSearch = '', sortByDate = false }) {
@@ -54,56 +56,47 @@ export default function LaneTable({ lanes, onQuickEdit, onOpenDetail, globalSear
     return <p style={{ color: 'var(--text-muted)', padding: 20 }}>No lanes here yet.</p>;
   }
 
-  // Builds the colored "band" row above the real column headers — pairs
-  // named in SUMMARY_GROUPS get a single spanning, colored cell; every
-  // other column gets a blank spacer cell of the same height. Relies on
-  // SUMMARY_FIELDS already listing each group's two headers back-to-back.
-  const allColumnHeaders = ['__brand__', ...SUMMARY_FIELDS.map((f) => f.header)];
-  const bandCells = [];
-  for (let i = 0; i < allColumnHeaders.length; i++) {
-    const header = allColumnHeaders[i];
-    const group = SUMMARY_GROUPS.find((g) => g.headers[0] === header);
-    if (group && allColumnHeaders[i + 1] === group.headers[1]) {
-      bandCells.push({ key: header, label: group.label, colSpan: 2, background: group.color, color: group.textColor });
-      i++; // skip the second column of the pair, it's covered by colSpan
-    } else {
-      bandCells.push({ key: header, label: '', colSpan: 1 });
-    }
-  }
+  // Maps a column header to its group color, if it belongs to one — used
+  // to underline just that cell rather than adding a whole extra header
+  // row. The header itself stays carbon/white throughout.
+  const groupColorByHeader = {};
+  SUMMARY_GROUPS.forEach((g) => {
+    g.headers.forEach((h) => {
+      groupColorByHeader[h] = g.color;
+    });
+  });
 
   return (
     <div className="card" style={{ overflow: 'auto', maxHeight: '65vh' }}>
       <table>
         <thead>
-          <tr className="group-band-row">
-            {bandCells.map((c) => (
-              <th
-                key={c.key}
-                colSpan={c.colSpan}
-                className="group-band-cell"
-                style={c.label ? { background: c.background, color: c.color } : undefined}
-              >
-                {c.label}
-              </th>
-            ))}
-          </tr>
           <tr>
             <th>Brand</th>
-            {SUMMARY_FIELDS.map((f) => (
-              <th key={f.header}>{f.label}</th>
-            ))}
+            {SUMMARY_FIELDS.map((f) => {
+              const groupColor = groupColorByHeader[f.header];
+              return (
+                <th key={f.header} style={groupColor ? { boxShadow: `inset 0 -3px 0 0 ${groupColor}` } : undefined}>
+                  {f.label}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
           {filtered.map((lane) => {
-            const { urgent, delayed, missingInfo, stale } = computeFlags(lane);
+            const { urgent, delayed, shipped, missingInfo, stale } = computeFlags(lane);
             return (
               <tr key={`${lane.source}-${lane._rowNumber}`}>
                 <td>
                   <span className={`badge ${lane.source === 'factor' ? 'badge-factor' : 'badge-german'}`}>
                     {lane.source === 'factor' ? 'FACTOR_' : 'DACH'}
                   </span>
-                  {delayed && <span className="badge badge-delayed" title="Actual dispatch differs from planned"> ⚠ delayed</span>}
+                  {shipped && (
+                    <span className="badge badge-shipped" title="Actual dispatch time recorded">
+                      <img src="/shipped-truck-icon.png" alt="" /> Shipped
+                    </span>
+                  )}
+                  {delayed && <span className="badge badge-delayed" title="Past planned arrival time with no actual arrival yet"> ⚠ delayed</span>}
                   {urgent && <span className="badge badge-soon" title="Dispatching within 3 hours"> ⏱ soon</span>}
                   {missingInfo && <span className="badge badge-missing" title="Missing vehicle reg, dispatch within 4h"> missing info</span>}
                   {stale && <span className="badge badge-stale" title="Created a while ago, no status update"> stale</span>}

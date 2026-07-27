@@ -129,6 +129,33 @@ export function isOverdueOrDelayed(dateValue, plannedTimeValue, actualTimeValue,
 }
 
 /**
+ * "Delayed" badge trigger, redefined around arrival rather than dispatch:
+ * fires when the lane is today, the planned arrival time has already
+ * passed, and there's still no actual arrival time recorded. Doesn't fire
+ * once an actual arrival is logged, however late it was.
+ */
+export function isArrivalDelayed(dateValue, plannedArrivalValue, actualArrivalValue) {
+  if (!isToday(dateValue)) return false;
+  if (String(actualArrivalValue || '').trim()) return false; // already arrived, not delayed anymore
+
+  const hhmm = toTimeInputValue(plannedArrivalValue);
+  if (!hhmm) return false;
+  const [h, m] = hhmm.split(':').map(Number);
+  const now = new Date();
+  const planned = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+  return now > planned;
+}
+
+/**
+ * "Shipped" badge trigger: true whenever an actual dispatch time has been
+ * recorded at all, regardless of whether it was later than planned —
+ * lateness is what the (separate) delayed/arrival flag is for.
+ */
+export function isShipped(actualDispatchValue) {
+  return Boolean(String(actualDispatchValue || '').trim());
+}
+
+/**
  * "Delayed" badge trigger: only fires on an actual discrepancy between
  * planned and actual dispatch time — not on arrival, and not just because
  * the planned time has passed with nothing recorded yet.

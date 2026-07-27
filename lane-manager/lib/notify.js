@@ -92,7 +92,7 @@ export async function requestLaneUpdate(loadReference, source, dispatchTimeDispl
   const result = await postThreadRoot(text);
   if (result.skipped) return result;
 
-  await recordThread({ loadReference, source, channel: result.channel, ts: result.ts });
+  const saveResult = await recordThread({ loadReference, source, channel: result.channel, ts: result.ts });
   await logBacklogEntry({
     loadReference,
     source,
@@ -101,5 +101,10 @@ export async function requestLaneUpdate(loadReference, source, dispatchTimeDispl
     newValue: text,
   });
 
-  return { ok: true, channel: result.channel, ts: result.ts };
+  return {
+    ok: true,
+    channel: result.channel,
+    ts: result.ts,
+    trackingWarning: saveResult.ok ? null : `Sent to Slack, but couldn't save the thread for tracking: ${saveResult.reason}`,
+  };
 }

@@ -7,8 +7,10 @@ import SlackUpdatesTab from '../components/SlackUpdatesTab';
 import HistoryTab from '../components/HistoryTab';
 import { isToday } from '../lib/dateUtils';
 import { downloadCSV } from '../lib/csvExport';
+import { KEY_HEADER } from '../lib/columns';
 
 const AUTO_REFRESH_MS = 3 * 60 * 1000; // 3 minutes
+const SLACK_SEEN_KEY = 'laneManagerSlackUpdatesSeenTs';
 
 function EmailToolPlaceholder() {
   return (
@@ -27,8 +29,33 @@ export default function Dashboard() {
   const [editing, setEditing] = useState(null);
   const [detailLane, setDetailLane] = useState(null);
   const [search, setSearch] = useState('');
-  const [notifying, setNotifying] = useState(false);
-  const [notifyResult, setNotifyResult] = useState(null);
+  const [hasNewSlackUpdates, setHasNewSlackUpdates] = useState(false);
+
+  // Checks whether any lane still visible in the dashboard has a Slack
+  // message newer than the last time this browser looked at the Slack
+  // Updates tab — that's what lights up the dot on the tab. Uses
+  // localStorage (this is a real deployed app, not a Claude artifact, so
+  // that's fine here) so it persists across reloads for this person.
+  const checkSlackUpdates = useCallback(async (currentLanes) => {
+    try {
+      const res = await fetch('/api/slack-updates');
+      if (!res.ok) return;
+      const data = await res.json();
+      const visibleRefs = new Set(currentLanes.map((l) => l[KEY_HEADER]));
+      let latest = 0;
+      (data.tickets || []).forEach((t) => {
+        if (!visibleRefs.has(t.loadReference)) return;
+        (t.messages || []).forEach((m) => {
+          const ms = Number(m.ts) * 1000;
+          if (ms > latest) latest = ms;
+        });
+      });
+      const seen = Number(window.localStorage.getItem(SLACK_SEEN_KEY) || 0);
+      setHasNewSlackUpdates(latest > seen);
+    } catch {
+      // Non-critical — just skip lighting up the dot this cycle.
+    }
+  }, []);
 
   const loadLanes = useCallback(async () => {
     setError(null);
@@ -37,18 +64,25 @@ export default function Dashboard() {
       if (!res.ok) throw new Error((await res.json()).error || 'Failed to load lanes');
       const data = await res.json();
       setLanes(data.lanes);
+      checkSlackUpdates(data.lanes);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [checkSlackUpdates]);
 
   useEffect(() => {
     loadLanes();
     const interval = setInterval(loadLanes, AUTO_REFRESH_MS);
     return () => clearInterval(interval);
   }, [loadLanes]);
+
+  function openSlackUpdatesTab() {
+    setTab('slack-updates');
+    setHasNewSlackUpdates(false);
+    window.localStorage.setItem(SLACK_SEEN_KEY, String(Date.now()));
+  }
 
   const todayLanes = useMemo(() => lanes.filter((l) => isToday(l['Date'])), [lanes]);
 
@@ -63,20 +97,6 @@ export default function Dashboard() {
     });
     return { total: lanes.length, today: todayLanes.length, urgent, delayed, missingInfo, stale };
   }, [lanes, todayLanes]);
-
-  async function handleNotifyNow() {
-    setNotifying(true);
-    setNotifyResult(null);
-    try {
-      const res = await fetch('/api/notify-manual', { method: 'POST' });
-      const data = await res.json();
-      setNotifyResult(data.skipped ? `Not configured: ${data.reason}` : `Sent ${data.sent} Slack notification(s).`);
-    } catch (err) {
-      setNotifyResult('Failed to run notification check.');
-    } finally {
-      setNotifying(false);
-    }
-  }
 
   return (
     <div className="page">
@@ -111,8 +131,9 @@ export default function Dashboard() {
         <button className={`tab-btn ${tab === 'lanes' ? 'tab-btn-active' : ''}`} onClick={() => setTab('lanes')}>
           Lanes
         </button>
-        <button className={`tab-btn ${tab === 'slack-updates' ? 'tab-btn-active' : ''}`} onClick={() => setTab('slack-updates')}>
+        <button className={`tab-btn ${tab === 'slack-updates' ? 'tab-btn-active' : ''}`} onClick={openSlackUpdatesTab}>
           Slack Updates
+          {hasNewSlackUpdates && <span className="tab-dot" />}
         </button>
         <button className={`tab-btn ${tab === 'history' ? 'tab-btn-active' : ''}`} onClick={() => setTab('history')}>
           History
@@ -161,12 +182,7 @@ export default function Dashboard() {
                     <div className="stat-label">All lanes</div>
                   </div>
                 </div>
-                <button className="btn slack-btn" onClick={handleNotifyNow} disabled={notifying}>
-                  <img src="/slack-logo.png" alt="" />
-                  {notifying ? 'Checking…' : 'Check & notify Slack'}
-                </button>
               </div>
-              {notifyResult && <p className="notify-result">{notifyResult}</p>}
 
               <div className="section-header-row">
                 <h2 className="section-heading">Today</h2>

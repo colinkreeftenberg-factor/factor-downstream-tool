@@ -103,7 +103,7 @@ export default function LaneDetailModal({ lane, onClose, onSaved }) {
       if (data.skipped) {
         setNotifyMsg(`Not configured: ${data.reason}`);
       } else {
-        setNotifyMsg('Update request sent to Slack.');
+        setNotifyMsg(data.trackingWarning || 'Update request sent to Slack.');
         if (data.channel && data.ts) setThreadAddr({ channel: data.channel, ts: data.ts });
       }
     } catch (err) {
