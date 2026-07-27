@@ -1,6 +1,16 @@
 import { readSheetAsObjects, updateRowCells } from './googleSheets';
 import { KEY_HEADER } from './columns';
 import { isDispatchingSoon, isOverdueOrDelayed, isMissingInfoSoon } from './dateUtils';
+import { postThreadRoot } from './slack';
+
+// Header names for the thread address written back to the sheet after a
+// "Request Slack update" post. Add these two as empty columns on the
+// Factor Extra Source sheet (exact spelling) — same pattern as the
+// dedup MARK columns below.
+export const THREAD_MARK = {
+  channel: 'Slack Thread Channel',
+  ts: 'Slack Thread TS',
+};
 
 const FACTOR_SHEET_ID = process.env.FACTOR_EXTRA_SOURCE_SHEET_ID;
 const FACTOR_TAB = process.env.FACTOR_EXTRA_SOURCE_TAB || 'Sheet1';
@@ -78,11 +88,28 @@ async function postToSlack(text) {
 /**
  * Ad-hoc "please update me" request for a single lane, triggered from the
  * detail popup — not tied to any automated condition.
+ *
+ * Unlike the automated checks above (which fire-and-forget through the
+ * webhook), this one needs to know *which* Slack message it just posted so
+ * a reply thread can be read back later. That means going through the bot
+ * token (chat.postMessage) instead of the webhook, and writing the
+ * resulting {channel, ts} onto the lane's row so the popup can find the
+ * thread again on a future load.
  */
-export async function requestLaneUpdate(loadReference) {
-  if (!SLACK_WEBHOOK_URL) {
-    return { skipped: true, reason: 'SLACK_WEBHOOK_URL not configured yet' };
+export async function requestLaneUpdate(loadReference, rowNumber) {
+  const result = await postThreadRoot(`:bell: Update requested for *${loadReference}* — please reply in this thread with the latest status.`);
+  if (result.skipped) return result;
+
+  if (rowNumber) {
+    const { headers } = await readSheetAsObjects(FACTOR_SHEET_ID, FACTOR_TAB, { requireNonEmpty: KEY_HEADER });
+    const hasThreadColumns = Object.values(THREAD_MARK).every((h) => headers.includes(h));
+    if (hasThreadColumns) {
+      await updateRowCells(FACTOR_SHEET_ID, FACTOR_TAB, headers, rowNumber, {
+        [THREAD_MARK.channel]: result.channel,
+        [THREAD_MARK.ts]: result.ts,
+      });
+    }
   }
-  await postToSlack(`:bell: Update requested for *${loadReference}* — please share the latest status.`);
-  return { ok: true };
+
+  return { ok: true, channel: result.channel, ts: result.ts };
 }
