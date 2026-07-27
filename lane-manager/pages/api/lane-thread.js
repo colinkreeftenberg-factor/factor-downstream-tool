@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     const result = await fetchThreadReplies(channel, ts);
     return res.status(200).json(result);
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: 'Failed to fetch thread', detail: err.message });
+    console.error('lane-thread error', { channel, ts, message: err.message });
+    return res.status(500).json({ error: 'Failed to fetch thread', detail: err.message, channel, ts });
   }
 }
