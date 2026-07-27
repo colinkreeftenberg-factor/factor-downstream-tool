@@ -68,41 +68,6 @@ it's meant to be clickable by anyone using the dashboard.
 If Slack isn't the right channel, the checks live in `lib/notify.js` and
 `lib/dateUtils.js` — only `postToSlack()` would need to change.
 
-### Slack thread replies
-
-The "Request Slack update" button now posts through a **bot token**
-instead of the webhook, because only that gives back the message address
-(`channel` + `ts`) needed to read replies to it later. The other two
-notification paths (stat-strip button, cron) are unchanged and still use
-`SLACK_WEBHOOK_URL`.
-
-1. Open your Slack app: <https://api.slack.com/apps/A0994PFMTGQ>
-2. **OAuth & Permissions** → **Bot Token Scopes** → add:
-   - `chat:write` (to post)
-   - `channels:history` if the channel is public, or `groups:history` if
-     it's private (to read replies)
-   - `users:read` (optional — resolves reply authors to display names
-     instead of raw user IDs)
-3. **Install/reinstall** the app to your workspace, then copy the **Bot
-   User OAuth Token** (`xoxb-...`).
-4. Invite the bot to the channel: `/invite @YourBotName`.
-5. Get the channel ID (right-click the channel → **View channel details**
-   → copy the ID at the bottom, looks like `C0XXXXXXX`).
-6. Set `SLACK_BOT_TOKEN` and `SLACK_CHANNEL_ID` in `.env.local` and in
-   Vercel's env vars.
-7. **Add two empty columns** to the Factor Extra Source sheet, exactly
-   named: `Slack Thread Channel`, `Slack Thread TS`. These store where
-   each lane's thread lives — once present, they flow into the lane
-   object automatically the same way every other column does, so the
-   popup can find its thread with no extra plumbing.
-
-The popup fetches replies when it opens and polls every 3 minutes while
-it stays open — same cadence as the dashboard's own auto-refresh — rather
-than Slack pushing to us via the Events API. That keeps this to "add a
-token and two columns" instead of standing up a public webhook receiver
-with signature verification. If you outgrow polling later, `lib/slack.js`
-is the one file that would need a real-time counterpart.
-
 ## Not in here
 
 - Email sending — dropped per your last steer, not needed

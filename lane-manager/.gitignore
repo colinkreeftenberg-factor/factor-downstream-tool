@@ -1,0 +1,19 @@
+# dependencies
+node_modules/
+
+# next.js build output
+.next/
+out/
+
+# env files — these hold real secrets (Slack bot token, Google service
+# account key) and must never be committed
+.env
+.env.local
+.env.*.local
+
+# vercel
+.vercel
+
+# misc
+.DS_Store
+*.log
