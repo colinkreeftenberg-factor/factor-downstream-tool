@@ -190,12 +190,34 @@ export default function LaneDetailModal({ lane, onClose, onSaved }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
-        <h2>
-          {lane['Load Reference'] || 'Lane details'}{' '}
-          <span className={`badge ${lane.source === 'factor' ? 'badge-factor' : 'badge-german'}`}>
-            {brandLabel(lane.source)}
-          </span>
-        </h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 6 }}>
+          <h2 style={{ margin: 0 }}>
+            {lane['Load Reference'] || 'Lane details'}{' '}
+            <span className={`badge ${lane.source === 'factor' ? 'badge-factor' : 'badge-german'}`}>
+              {brandLabel(lane.source)}
+            </span>
+          </h2>
+          <button
+            type="button"
+            className="btn"
+            onClick={handleEmailCarrier}
+            disabled={emailing}
+            style={{ flexShrink: 0, fontSize: 12, padding: '6px 10px' }}
+          >
+            {emailing ? 'Looking up…' : 'Email carrier'}
+          </button>
+        </div>
+        {(emailMsg || carrierEmail) && (
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'right', margin: '4px 0 0' }}>
+            {emailMsg}
+            {carrierEmail && (
+              <>
+                {' '}
+                <a href={mailtoFallbackHref()} className="lane-link">Not on Gmail? Use default mail app</a>
+              </>
+            )}
+          </p>
+        )}
         {infoLine && <p className="detail-infoline">{infoLine}</p>}
 
         {!lane.editable && (
@@ -249,22 +271,6 @@ export default function LaneDetailModal({ lane, onClose, onSaved }) {
             {notifying ? 'Sending…' : 'Request Update'}
           </button>
           {notifyMsg && <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '6px 0 0' }}>{notifyMsg}</p>}
-        </div>
-
-        {/* Email carrier — opens a prefilled Gmail draft, person hits send themselves */}
-        <div className="slack-widget">
-          <div className="slack-widget-header">
-            <span className="slack-widget-title">✉️ Email carrier</span>
-          </div>
-          <button type="button" className="btn" onClick={handleEmailCarrier} disabled={emailing}>
-            {emailing ? 'Looking up…' : `Email ${lane['Carrier'] || 'carrier'}`}
-          </button>
-          {emailMsg && <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '8px 0 0' }}>{emailMsg}</p>}
-          {carrierEmail && (
-            <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0' }}>
-              Not on Gmail? <a href={mailtoFallbackHref()} className="lane-link">Open with your default mail app instead</a>.
-            </p>
-          )}
         </div>
 
         <div className="field">
