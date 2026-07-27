@@ -150,6 +150,30 @@ the actual save/request the person is waiting on — so a missing or
 misnamed `backlog` tab won't break editing or Slack requests, it'll just
 mean nothing shows up in the History tab until the tab/headers are fixed.
 
+## Emailing carriers
+
+The "Email carrier" button (in the lane detail popup, right below the
+Slack widget) opens a **prefilled Gmail compose window** — subject, body,
+and the carrier's address already filled in — and the person just reviews
+and hits send themselves. Deliberately not sent through any email API:
+- No service account, API key, or domain verification needed at all
+- Sends from the person's own Gmail, with their own name/reputation, and
+  replies land straight in their own inbox
+- The trade-off: nothing is tracked as "sent" on our side, since the
+  actual send happens outside the app in Gmail's own tab. The app logs
+  "Email drafted" to the History tab the moment the button is clicked —
+  that's the most it can honestly claim
+
+**Setup**: the carrier's email address comes from the same "links" tab
+already used for the carrier dropdown — column **G** is the carrier name,
+column **H** is the email address. If a carrier has no value in H, the
+button will say so ("No email on file for X") instead of failing silently.
+
+If someone isn't using Gmail as their default, there's also a small
+"Open with your default mail app instead" link that uses a plain
+`mailto:` — plainer (no rich formatting, some clients truncate long
+bodies) but works with Outlook and anything else.
+
 ## Not in here
 
 - Email sending — dropped per your last steer, not needed

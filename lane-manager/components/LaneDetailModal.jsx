@@ -35,6 +35,9 @@ export default function LaneDetailModal({ lane, onClose, onSaved }) {
   const [error, setError] = useState(null);
   const [notifying, setNotifying] = useState(false);
   const [notifyMsg, setNotifyMsg] = useState(null);
+  const [emailing, setEmailing] = useState(false);
+  const [emailMsg, setEmailMsg] = useState(null);
+  const [carrierEmail, setCarrierEmail] = useState(null);
 
   // Thread address starts from whatever's already known for this lane
   // (attached by /api/lanes from the "Slack Threads" tab — works the same
@@ -111,6 +114,55 @@ export default function LaneDetailModal({ lane, onClose, onSaved }) {
     } finally {
       setNotifying(false);
     }
+  }
+
+  async function handleEmailCarrier() {
+    const carrier = lane['Carrier'];
+    if (!carrier) {
+      setEmailMsg('No carrier set on this lane yet.');
+      return;
+    }
+    setEmailing(true);
+    setEmailMsg(null);
+    try {
+      const res = await fetch('/api/carrier-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          carrier,
+          loadReference: lane['Load Reference'],
+          source: lane.source,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || data.error || 'Failed to look up carrier email');
+      if (!data.email) {
+        setEmailMsg(`No email on file for ${carrier} — add one to the "links" tab, column H.`);
+        return;
+      }
+      setCarrierEmail(data.email);
+
+      const dispatchDisplay = toTimeInputValue(lane['Planned Dispatch Time']);
+      const dispatchClause = dispatchDisplay ? ` (planned dispatch time ${dispatchDisplay})` : '';
+      const subject = `Update request – ${lane['Load Reference']}`;
+      const body = `Hi,\n\nCould you please share the latest status for load ${lane['Load Reference']}${dispatchClause}?\n\nThanks!`;
+
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(data.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.open(gmailUrl, '_blank');
+      setEmailMsg(`Opened a draft to ${data.email} in Gmail — review and hit send there.`);
+    } catch (err) {
+      setEmailMsg('Failed to look up carrier email.');
+    } finally {
+      setEmailing(false);
+    }
+  }
+
+  function mailtoFallbackHref() {
+    const dispatchDisplay = toTimeInputValue(lane['Planned Dispatch Time']);
+    const dispatchClause = dispatchDisplay ? ` (planned dispatch time ${dispatchDisplay})` : '';
+    const subject = `Update request – ${lane['Load Reference']}`;
+    const body = `Hi,\n\nCould you please share the latest status for load ${lane['Load Reference']}${dispatchClause}?\n\nThanks!`;
+    return `mailto:${carrierEmail || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
 
   async function handleSave() {
@@ -197,6 +249,22 @@ export default function LaneDetailModal({ lane, onClose, onSaved }) {
             {notifying ? 'Sending…' : 'Request Update'}
           </button>
           {notifyMsg && <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '6px 0 0' }}>{notifyMsg}</p>}
+        </div>
+
+        {/* Email carrier — opens a prefilled Gmail draft, person hits send themselves */}
+        <div className="slack-widget">
+          <div className="slack-widget-header">
+            <span className="slack-widget-title">✉️ Email carrier</span>
+          </div>
+          <button type="button" className="btn" onClick={handleEmailCarrier} disabled={emailing}>
+            {emailing ? 'Looking up…' : `Email ${lane['Carrier'] || 'carrier'}`}
+          </button>
+          {emailMsg && <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '8px 0 0' }}>{emailMsg}</p>}
+          {carrierEmail && (
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0' }}>
+              Not on Gmail? <a href={mailtoFallbackHref()} className="lane-link">Open with your default mail app instead</a>.
+            </p>
+          )}
         </div>
 
         <div className="field">

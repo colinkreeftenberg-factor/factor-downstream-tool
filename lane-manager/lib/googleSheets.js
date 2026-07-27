@@ -125,6 +125,22 @@ export async function updateRowCells(spreadsheetId, tabName, headers, rowNumber,
   });
 }
 
+/**
+ * Reads two columns side by side (e.g. carrier name + email on the
+ * "links" tab) and returns non-empty [colA, colB] pairs.
+ */
+export async function readColumnPairs(spreadsheetId, tabName, colALetter, colBLetter) {
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${tabName}!${colALetter}2:${colBLetter}1000`,
+  });
+  const data = res.data.values || [];
+  return data
+    .map((r) => [String(r[0] || '').trim(), String(r[1] || '').trim()])
+    .filter(([a]) => a);
+}
+
 function columnIndexToLetter(idx) {
   let letter = '';
   let n = idx;
