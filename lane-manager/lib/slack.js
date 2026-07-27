@@ -74,24 +74,29 @@ async function resolveUserName(userId) {
 }
 
 /**
- * Fetches replies to a thread (excluding the parent message itself),
- * newest last, with display names resolved where possible.
+ * Fetches a thread's messages, newest first, with display names resolved
+ * where possible. By default excludes the root/parent message (the
+ * "update requested" ping itself) since callers that already know they
+ * triggered it don't need it repeated — pass includeRoot: true for views
+ * (like the Slack Updates ticket feed) that show the full conversation.
  */
-export async function fetchThreadReplies(channel, ts) {
+export async function fetchThread(channel, ts, { includeRoot = false } = {}) {
   if (!configured()) return { skipped: true, reason: 'SLACK_BOT_TOKEN / SLACK_CHANNEL_ID not configured yet' };
   if (!channel || !ts) return { ok: true, messages: [] };
 
   const data = await callSlackGet('conversations.replies', { channel, ts });
-  const replies = (data.messages || []).filter((m) => m.ts !== ts);
+  const raw = includeRoot ? (data.messages || []) : (data.messages || []).filter((m) => m.ts !== ts);
 
   const messages = await Promise.all(
-    replies.map(async (m) => ({
+    raw.map(async (m) => ({
       ts: m.ts,
       text: m.text || '',
       user: await resolveUserName(m.user),
       time: new Date(Number(m.ts) * 1000).toISOString(),
+      isRoot: m.ts === ts,
     }))
   );
 
+  messages.sort((a, b) => Number(b.ts) - Number(a.ts)); // newest first
   return { ok: true, messages };
 }

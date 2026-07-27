@@ -1,4 +1,4 @@
-import { fetchThreadReplies } from '../../lib/slack';
+import { fetchThread } from '../../lib/slack';
 
 // GET /api/lane-thread?channel=C0XXXX&ts=1234.5678
 // Pulled by the detail popup on open and on its own poll timer — this is
@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   if (!channel || !ts) return res.status(200).json({ ok: true, messages: [] });
 
   try {
-    const result = await fetchThreadReplies(channel, ts);
+    const result = await fetchThread(channel, ts);
     return res.status(200).json(result);
   } catch (err) {
     console.error('lane-thread error', { channel, ts, message: err.message });

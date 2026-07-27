@@ -1,5 +1,7 @@
 import { readSheetAsObjects, appendRow } from '../../../lib/googleSheets';
 import { KEY_HEADER } from '../../../lib/columns';
+import { getAllThreads } from '../../../lib/slackThreads';
+import { logBacklogEntry } from '../../../lib/backlog';
 
 const FACTOR_SHEET_ID = process.env.FACTOR_EXTRA_SOURCE_SHEET_ID;
 const FACTOR_TAB = process.env.FACTOR_EXTRA_SOURCE_TAB || 'Sheet1';
@@ -55,8 +57,31 @@ async function handleGet(req, res) {
         editable: false,
       }));
 
+    const allLanes = [...factorLanes, ...dachLanes];
+
+    // Attach each lane's known Slack threads (if any), newest first, so
+    // the detail popup can show/poll the latest one without a separate
+    // round trip, and works the same for DACH lanes even though we can
+    // never write onto their (read-only) source row.
+    let threadsByRef = new Map();
+    try {
+      const allThreads = await getAllThreads();
+      threadsByRef = allThreads.reduce((map, t) => {
+        if (!map.has(t.loadReference)) map.set(t.loadReference, []);
+        map.get(t.loadReference).push(t);
+        return map;
+      }, new Map());
+    } catch (err) {
+      console.error('Failed to load Slack threads (tab may not exist yet)', err.message);
+    }
+
+    allLanes.forEach((l) => {
+      const threads = (threadsByRef.get(l[KEY_HEADER]) || []).slice().sort((a, b) => new Date(b.requestedAt) - new Date(a.requestedAt));
+      l._slackThreads = threads;
+    });
+
     return res.status(200).json({
-      lanes: [...factorLanes, ...dachLanes],
+      lanes: allLanes,
       factorHeaders: factor.headers,
       masterHeaders: master.headers,
     });
@@ -73,6 +98,12 @@ async function handleCreate(req, res) {
     values['Created at'] = values['Created at'] || new Date().toISOString();
 
     await appendRow(FACTOR_SHEET_ID, FACTOR_TAB, headers, values);
+    await logBacklogEntry({
+      loadReference: values[KEY_HEADER] || '(unknown)',
+      source: 'factor',
+      type: 'Lane created',
+      newValue: values[KEY_HEADER] || '',
+    });
     return res.status(201).json({ ok: true });
   } catch (err) {
     console.error(err);

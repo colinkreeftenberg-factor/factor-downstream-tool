@@ -86,13 +86,13 @@ export async function readColumnValues(spreadsheetId, tabName, columnLetter) {
  * header not present in `values` is written as an empty cell, same as the
  * buildMasterRow behaviour in the existing sync script.
  */
-export async function appendRow(spreadsheetId, tabName, headers, values) {
+export async function appendRow(spreadsheetId, tabName, headers, values, opts = {}) {
   const sheets = getSheetsClient();
   const row = headers.map((h) => (values[h] !== undefined ? values[h] : ''));
   await sheets.spreadsheets.values.append({
     spreadsheetId,
     range: tabName,
-    valueInputOption: 'USER_ENTERED',
+    valueInputOption: opts.valueInputOption || 'USER_ENTERED',
     insertDataOption: 'INSERT_ROWS',
     requestBody: { values: [row] },
   });

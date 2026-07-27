@@ -12,8 +12,11 @@ exactly as it does today, untouched.
 ## What's here
 
 - **Verden Lane Manager** — page title and heading
-- **Two tabs**: "Lanes" (the dashboard) and "Email" (placeholder — "this
-  module will be enabled later" — ready for when the email tool gets built)
+- **Four tabs**: "Lanes" (the dashboard), "Slack Updates" (ticketing-style
+  feed of Slack thread replies per lane), "History" (backlog of every
+  tool-driven change), and "Email" (placeholder — "this module will be
+  enabled later")
+- Tabs are rounded pills — **yellow when active**, light gray otherwise
 - **Today** section: lanes whose Date falls on today
 - **All lanes** section: everything, FACTOR_ + DACH together, deduplicated,
   **sorted by Date**
@@ -28,13 +31,18 @@ exactly as it does today, untouched.
   gets a neutral gray badge automatically)
 - Flags — badges only: *Delayed* (planned vs actual dispatch discrepancy
   only), *Dispatching soon* (blue), *Missing info*, *Stale*
+- **Table headers**: carbon background, white text, with a colored band
+  above three column pairs to cluster them visually (Arrival, Dispatch,
+  Trailer/Reg — see `SUMMARY_GROUPS` in `lib/columns.js` for the colors) —
+  purely visual, the table still scrolls and behaves exactly as before
 - CSV export, print daily sheet
-- Click a Load Reference to open the detail popup — colored sections for
-  Arrival/Dispatch/Trailer & driver/Bay & loaders/Condition/Loading, plus a
-  **"Request Slack update" button** (Factor lanes only) for one-off "please
-  update me" pings that aren't tied to any automated condition
+- Click a Load Reference to open the detail popup — a **Slack widget sits
+  on top** of the lane details (Slack logo + "Request Update" button, plus
+  the thread's replies, refreshing every 3 minutes while open) — **works
+  for DACH lanes too**, not just Factor, even though DACH's source sheet
+  stays read-only for everything else
 - New lane form with Week/Day/Courier dropdowns
-- FACTOR_ badge dark Carbon/white text, DACH neutral
+- FACTOR_ badge dark Carbon/white text, DACH badge `#18849F`/white text
 - Factor brand palette, Plus Jakarta Sans, wordmark in header
 
 ## Notifications (Slack)
@@ -70,11 +78,11 @@ If Slack isn't the right channel, the checks live in `lib/notify.js` and
 
 ### Slack thread replies
 
-The "Request Slack update" button now posts through a **bot token**
-instead of the webhook, because only that gives back the message address
-(`channel` + `ts`) needed to read replies to it later. The other two
-notification paths (stat-strip button, cron) are unchanged and still use
-`SLACK_WEBHOOK_URL`.
+The "Request Update" button (Slack logo + text, at the top of the lane
+popup) posts through a **bot token** instead of the webhook, because only
+that gives back the message address (`channel` + `ts`) needed to read
+replies to it later. The other two notification paths (stat-strip
+button, cron) are unchanged and still use `SLACK_WEBHOOK_URL`.
 
 1. Open your Slack app: <https://api.slack.com/apps/A0994PFMTGQ>
 2. **OAuth & Permissions** → **Bot Token Scopes** → add:
@@ -90,18 +98,62 @@ notification paths (stat-strip button, cron) are unchanged and still use
    → copy the ID at the bottom, looks like `C0XXXXXXX`).
 6. Set `SLACK_BOT_TOKEN` and `SLACK_CHANNEL_ID` in `.env.local` and in
    Vercel's env vars.
-7. **Add two empty columns** to the Factor Extra Source sheet, exactly
-   named: `Slack Thread Channel`, `Slack Thread TS`. These store where
-   each lane's thread lives — once present, they flow into the lane
-   object automatically the same way every other column does, so the
-   popup can find its thread with no extra plumbing.
+7. **Add a new tab** to the Factor Extra Source spreadsheet named
+   `Slack Threads` (override the name via `SLACK_THREADS_TAB` if you'd
+   rather call it something else), with these headers, exactly:
+   `Load Reference`, `Source`, `Slack Channel`, `Slack TS`, `Requested At`.
+
+This tab — not a column on the lane's own row — is what makes "Request
+Update" work for **DACH lanes too**, since we can never get write access
+to the DACH source sheet (the WA Liste sync owns it and would overwrite
+anything we wrote there). Every click on "Request Update" appends a new
+row here rather than overwriting the last one, so if a lane gets pinged
+more than once, nothing is lost — the popup widget shows the most recent
+thread, and the Slack Updates tab (below) shows the full history across
+all of them.
+
+If you already set up the old `Slack Thread Channel` / `Slack Thread TS`
+columns directly on the Factor Extra Source sheet from an earlier version
+of this tool, those are no longer used — safe to delete, or just ignore.
 
 The popup fetches replies when it opens and polls every 3 minutes while
 it stays open — same cadence as the dashboard's own auto-refresh — rather
 than Slack pushing to us via the Events API. That keeps this to "add a
-token and two columns" instead of standing up a public webhook receiver
-with signature verification. If you outgrow polling later, `lib/slack.js`
-is the one file that would need a real-time counterpart.
+token and a tab" instead of standing up a public webhook receiver with
+signature verification. If you outgrow polling later, `lib/slack.js` is
+the one file that would need a real-time counterpart.
+
+### Slack Updates tab (in the dashboard)
+
+A ticketing-style feed, one card per lane, showing every message from
+every thread ever opened for it (across both Factor and DACH lanes),
+newest first — 3 shown by default with a "Show N more" to expand. It
+reads the same `Slack Threads` tab above, so no extra sheet setup is
+needed once that tab exists. Only lanes still present in the current
+lane list show up here — once a lane ages out of its source sheet, its
+Slack updates disappear from this tab too (the filtering happens
+client-side against the live `/api/lanes` result).
+
+### History tab (backlog)
+
+Every tool-driven change — field edits saved from the popup or the
+quick-edit cell click, new lanes created, and "Request Update" clicks —
+gets appended to a **`backlog` tab** you create in the Factor Extra
+Source spreadsheet (override the name via `BACKLOG_TAB` env var if
+you'd rather call it something else). Add these headers, exactly:
+`Timestamp`, `Load Reference`, `Source`, `Type`, `Field`, `Old Value`,
+`New Value`.
+
+Same visibility rule as Slack Updates: the History tab only shows
+entries for lanes still present in the current lane list, filtered
+client-side. Older entries for lanes that have since been archived out
+of the source sheet stay in the `backlog` tab itself (nothing is
+deleted) — they just won't show up here anymore.
+
+A backlog write failure is logged to the server console but never blocks
+the actual save/request the person is waiting on — so a missing or
+misnamed `backlog` tab won't break editing or Slack requests, it'll just
+mean nothing shows up in the History tab until the tab/headers are fixed.
 
 ## Not in here
 

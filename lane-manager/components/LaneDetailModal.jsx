@@ -4,8 +4,6 @@ import { toDateInputValue, toTimeInputValue } from '../lib/dateUtils';
 
 const LOAD_STATUS_HEADER = 'Load Status';
 const NOTES_HEADER = 'Notes, Issues Detected:';
-const THREAD_CHANNEL_HEADER = 'Slack Thread Channel';
-const THREAD_TS_HEADER = 'Slack Thread TS';
 
 // Same cadence as the dashboard's own auto-refresh (pages/index.js), so a
 // reply shows up here on roughly the same rhythm the rest of the app
@@ -38,12 +36,15 @@ export default function LaneDetailModal({ lane, onClose, onSaved }) {
   const [notifying, setNotifying] = useState(false);
   const [notifyMsg, setNotifyMsg] = useState(null);
 
-  // Thread address starts from whatever's already on the sheet row (from a
-  // past request); once a new request is sent we get a fresh address back
-  // immediately and don't have to wait for the lane list to reload.
+  // Thread address starts from whatever's already known for this lane
+  // (attached by /api/lanes from the "Slack Threads" tab — works the same
+  // for DACH lanes since that mapping never touches their source sheet).
+  // Once a new request is sent we get a fresh address back immediately
+  // and don't have to wait for the lane list to reload.
+  const latestKnownThread = (lane._slackThreads && lane._slackThreads[0]) || null;
   const [threadAddr, setThreadAddr] = useState(() => ({
-    channel: lane[THREAD_CHANNEL_HEADER] || null,
-    ts: lane[THREAD_TS_HEADER] || null,
+    channel: latestKnownThread?.channel || null,
+    ts: latestKnownThread?.ts || null,
   }));
   const [threadMessages, setThreadMessages] = useState([]);
   const [threadLoading, setThreadLoading] = useState(false);
@@ -92,7 +93,11 @@ export default function LaneDetailModal({ lane, onClose, onSaved }) {
       const res = await fetch('/api/notify-lane', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ loadReference: lane['Load Reference'], rowNumber: lane._rowNumber }),
+        body: JSON.stringify({
+          loadReference: lane['Load Reference'],
+          source: lane.source,
+          dispatchTimeDisplay: toTimeInputValue(lane['Planned Dispatch Time']),
+        }),
       });
       const data = await res.json();
       if (data.skipped) {
@@ -144,9 +149,55 @@ export default function LaneDetailModal({ lane, onClose, onSaved }) {
         {!lane.editable && (
           <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
             DACH lanes are read-only here — they come from the WA Liste sync and would be
-            overwritten on its next run.
+            overwritten on its next run. Slack update requests still work though.
           </p>
         )}
+
+        {/* Slack widget — sits on top of the lane details, per your steer */}
+        <div className="slack-widget">
+          <div className="slack-widget-header">
+            <span className="slack-widget-title">
+              <img src="/slack-logo.png" alt="" style={{ width: 14, height: 14 }} />
+              Slack updates
+            </span>
+            {threadAddr.channel && (
+              <button type="button" className="slack-widget-refresh" onClick={() => loadThread(threadAddr)} disabled={threadLoading}>
+                {threadLoading ? 'Refreshing…' : 'Refresh'}
+              </button>
+            )}
+          </div>
+
+          {threadError && <p className="slack-widget-empty">{threadError}</p>}
+          {!threadError && threadAddr.channel && threadMessages.length === 0 && (
+            <p className="slack-widget-empty">No replies yet.</p>
+          )}
+          {!threadAddr.channel && !threadError && (
+            <p className="slack-widget-empty">No update requested yet for this lane.</p>
+          )}
+          {threadMessages.length > 0 && (
+            <div className="slack-widget-messages">
+              {threadMessages.map((m) => (
+                <div key={m.ts} className="slack-widget-message">
+                  <strong>{m.user}</strong>
+                  <span className="slack-widget-message-meta">{new Date(m.time).toLocaleString()}</span>
+                  <div>{m.text}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="btn slack-btn"
+            onClick={handleRequestUpdate}
+            disabled={notifying}
+            style={{ marginTop: 10 }}
+          >
+            <img src="/slack-logo.png" alt="" />
+            {notifying ? 'Sending…' : 'Request Update'}
+          </button>
+          {notifyMsg && <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '6px 0 0' }}>{notifyMsg}</p>}
+        </div>
 
         <div className="field">
           <label>Load status</label>
@@ -192,47 +243,8 @@ export default function LaneDetailModal({ lane, onClose, onSaved }) {
         </div>
 
         {error && <p style={{ color: '#b42318', fontSize: 13 }}>{error}</p>}
-        {notifyMsg && <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{notifyMsg}</p>}
-
-        {(threadAddr.channel || threadMessages.length > 0) && (
-          <div className="field">
-            <label>
-              Slack thread{' '}
-              <button
-                type="button"
-                onClick={() => loadThread(threadAddr)}
-                disabled={threadLoading}
-                style={{ fontSize: 11, marginLeft: 8, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline' }}
-              >
-                {threadLoading ? 'Refreshing…' : 'Refresh'}
-              </button>
-            </label>
-            {threadError && <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{threadError}</p>}
-            {!threadError && threadMessages.length === 0 && (
-              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>No replies yet.</p>
-            )}
-            {threadMessages.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto' }}>
-                {threadMessages.map((m) => (
-                  <div key={m.ts} style={{ fontSize: 13, background: 'var(--surface-muted, #f5f5f5)', borderRadius: 6, padding: '6px 10px' }}>
-                    <strong>{m.user}</strong>{' '}
-                    <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>
-                      {new Date(m.time).toLocaleString()}
-                    </span>
-                    <div>{m.text}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
         <div className="modal-actions">
-          {lane.editable && (
-            <button type="button" className="btn" onClick={handleRequestUpdate} disabled={notifying} style={{ marginRight: 'auto' }}>
-              {notifying ? 'Sending…' : 'Request Slack update'}
-            </button>
-          )}
           <button type="button" className="btn" onClick={onClose}>
             Close
           </button>

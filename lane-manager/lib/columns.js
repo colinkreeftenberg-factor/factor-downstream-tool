@@ -79,6 +79,15 @@ export const DETAIL_SECTIONS = [
   },
 ];
 
+// Groupings for the *summary table* header (dashboard, not the popup) —
+// a colored band above these column pairs so they visually cluster while
+// keeping the table itself exactly as scrollable/functional as before.
+export const SUMMARY_GROUPS = [
+  { headers: ['Planned Arrival Time', 'Actual Arrival time'], label: 'Arrival', color: '#C79C00', textColor: '#ffffff' },
+  { headers: ['Planned Dispatch Time', 'Actual Dispatch time'], label: 'Dispatch', color: '#61DFFF', textColor: '#141414' },
+  { headers: ['Trailer Number', 'Vehicle Registration Number'], label: 'Trailer', color: '#75C26D', textColor: '#141414' },
+];
+
 // Fields the create-lane form fills in directly (the rest get filled in
 // later via the detail popup, once the lane is actually happening).
 export const CREATE_FIELDS = [

@@ -3,6 +3,8 @@ import Head from 'next/head';
 import LaneTable, { computeFlags } from '../components/LaneTable';
 import LaneDetailModal from '../components/LaneDetailModal';
 import { CreateLaneModal, EditCellModal } from '../components/LaneForm';
+import SlackUpdatesTab from '../components/SlackUpdatesTab';
+import HistoryTab from '../components/HistoryTab';
 import { isToday } from '../lib/dateUtils';
 import { downloadCSV } from '../lib/csvExport';
 
@@ -109,14 +111,22 @@ export default function Dashboard() {
         <button className={`tab-btn ${tab === 'lanes' ? 'tab-btn-active' : ''}`} onClick={() => setTab('lanes')}>
           Lanes
         </button>
+        <button className={`tab-btn ${tab === 'slack-updates' ? 'tab-btn-active' : ''}`} onClick={() => setTab('slack-updates')}>
+          Slack Updates
+        </button>
+        <button className={`tab-btn ${tab === 'history' ? 'tab-btn-active' : ''}`} onClick={() => setTab('history')}>
+          History
+        </button>
         <button className={`tab-btn ${tab === 'email' ? 'tab-btn-active' : ''}`} onClick={() => setTab('email')}>
           Email
         </button>
       </div>
 
-      {tab === 'email' ? (
-        <EmailToolPlaceholder />
-      ) : (
+      {tab === 'email' && <EmailToolPlaceholder />}
+      {tab === 'slack-updates' && <SlackUpdatesTab lanes={lanes} />}
+      {tab === 'history' && <HistoryTab lanes={lanes} />}
+
+      {tab === 'lanes' && (
         <>
           {error && <p style={{ color: '#b42318' }}>{error}</p>}
 

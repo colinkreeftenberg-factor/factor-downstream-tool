@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { SUMMARY_FIELDS } from '../lib/columns';
+import { SUMMARY_FIELDS, SUMMARY_GROUPS } from '../lib/columns';
 import {
   toDateInputValue,
   toTimeInputValue,
@@ -54,10 +54,39 @@ export default function LaneTable({ lanes, onQuickEdit, onOpenDetail, globalSear
     return <p style={{ color: 'var(--text-muted)', padding: 20 }}>No lanes here yet.</p>;
   }
 
+  // Builds the colored "band" row above the real column headers — pairs
+  // named in SUMMARY_GROUPS get a single spanning, colored cell; every
+  // other column gets a blank spacer cell of the same height. Relies on
+  // SUMMARY_FIELDS already listing each group's two headers back-to-back.
+  const allColumnHeaders = ['__brand__', ...SUMMARY_FIELDS.map((f) => f.header)];
+  const bandCells = [];
+  for (let i = 0; i < allColumnHeaders.length; i++) {
+    const header = allColumnHeaders[i];
+    const group = SUMMARY_GROUPS.find((g) => g.headers[0] === header);
+    if (group && allColumnHeaders[i + 1] === group.headers[1]) {
+      bandCells.push({ key: header, label: group.label, colSpan: 2, background: group.color, color: group.textColor });
+      i++; // skip the second column of the pair, it's covered by colSpan
+    } else {
+      bandCells.push({ key: header, label: '', colSpan: 1 });
+    }
+  }
+
   return (
     <div className="card" style={{ overflow: 'auto', maxHeight: '65vh' }}>
       <table>
         <thead>
+          <tr className="group-band-row">
+            {bandCells.map((c) => (
+              <th
+                key={c.key}
+                colSpan={c.colSpan}
+                className="group-band-cell"
+                style={c.label ? { background: c.background, color: c.color } : undefined}
+              >
+                {c.label}
+              </th>
+            ))}
+          </tr>
           <tr>
             <th>Brand</th>
             {SUMMARY_FIELDS.map((f) => (
