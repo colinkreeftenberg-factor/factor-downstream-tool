@@ -5,20 +5,13 @@ import LaneDetailModal from '../components/LaneDetailModal';
 import { CreateLaneModal, EditCellModal } from '../components/LaneForm';
 import SlackUpdatesTab from '../components/SlackUpdatesTab';
 import HistoryTab from '../components/HistoryTab';
+import EmailTab from '../components/EmailTab';
 import { isToday } from '../lib/dateUtils';
 import { downloadCSV } from '../lib/csvExport';
 import { KEY_HEADER } from '../lib/columns';
 
 const AUTO_REFRESH_MS = 3 * 60 * 1000; // 3 minutes
 const SLACK_SEEN_KEY = 'laneManagerSlackUpdatesSeenTs';
-
-function EmailToolPlaceholder() {
-  return (
-    <div className="card" style={{ padding: '48px 24px', textAlign: 'center' }}>
-      <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>This module will be enabled later.</p>
-    </div>
-  );
-}
 
 export default function Dashboard() {
   const [tab, setTab] = useState('lanes');
@@ -143,7 +136,7 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {tab === 'email' && <EmailToolPlaceholder />}
+      {tab === 'email' && <EmailTab lanes={lanes} />}
       {tab === 'slack-updates' && <SlackUpdatesTab lanes={lanes} />}
       {tab === 'history' && <HistoryTab lanes={lanes} />}
 

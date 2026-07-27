@@ -14,8 +14,8 @@ exactly as it does today, untouched.
 - **Verden Lane Manager** — page title and heading
 - **Four tabs**: "Lanes" (the dashboard), "Slack Updates" (ticketing-style
   feed of Slack thread replies per lane), "History" (backlog of every
-  tool-driven change), and "Email" (placeholder — "this module will be
-  enabled later")
+  tool-driven change), and "Email" (build a transport-request email,
+  opens as a prefilled Gmail draft — see below)
 - Tabs are rounded pills — **yellow when active**, light gray otherwise
 - **Today** section: lanes whose Date falls on today
 - **All lanes** section: everything, FACTOR_ + DACH together, deduplicated,
@@ -173,6 +173,41 @@ If someone isn't using Gmail as their default, there's also a small
 "Open with your default mail app instead" link that uses a plain
 `mailto:` — plainer (no rich formatting, some clients truncate long
 bodies) but works with Outlook and anything else.
+
+### Email tab — transport requests
+
+The **Email** tab replaces the old "Send Transport Request" popup from
+the Apps Script version, using the same prefilled-Gmail-draft approach as
+above rather than a server-side send (same reasoning: no service account
+needed, and it works today rather than being blocked on Google admin
+access).
+
+**One real difference from the old version, worth knowing up front**: the
+old Apps Script sent a styled HTML email (colored table) via
+`MailApp.sendEmail({htmlBody: ...})`, which only works when a script runs
+as a real, authorized Google account. Gmail's compose-link trick can only
+prefill **plain text** — there's no way around that from a browser popup.
+The new version keeps the same information (location, collection day/time,
+trailer count, load reference) as a plain emoji-labeled list instead of a
+table. If that's a dealbreaker, the only way to get real HTML back would
+be a server-side send through one of the email-API options (Resend,
+Postmark, etc.) discussed separately — the Apps Script's `MailApp` route
+itself can't be replicated here without a Google account able to run
+Apps Script, which is exactly what's currently blocked.
+
+Fields: recipient (type directly, or pick a carrier to look up their
+email from the links tab), Factor team code, week, destination, load
+reference, collection day/time, and number of trailers. There's also a
+"prefill from an existing lane" dropdown that copies over what it can
+(destination, load reference, collection day, the lane's planned dispatch
+time, and week if that column's filled in) and looks up the lane's
+carrier's email automatically.
+
+"Generate preview" builds the subject/body from the fields above into
+editable boxes — tweak the wording if needed, then "Open in Gmail" (or
+the `mailto:` fallback) to actually send. Every send attempt (successful
+open, not confirmed delivery) logs to the History tab as "Transport
+request emailed".
 
 ## Not in here
 
