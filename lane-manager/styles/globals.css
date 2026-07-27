@@ -148,8 +148,8 @@ tbody tr:hover {
   font-weight: 600;
 }
 
-.badge-factor { background: var(--carbon); color: #fff; }
-.badge-german { background: #18849F; color: #fff; }
+.badge-factor { background: var(--carbon); color: #fff; min-width: 20px; text-align: center; }
+.badge-german { background: #18849F; color: #fff; min-width: 20px; text-align: center; }
 .badge-sent { background: var(--sent-bg); color: var(--sent); }
 .badge-pending { background: var(--pending-bg); color: var(--pending); }
 .badge-soon { background: #E6F1FB; color: var(--blue); margin-left: 4px; }
@@ -394,8 +394,8 @@ tbody tr:hover {
 .badge-missing { background: #FFF6DE; color: #8a6400; }
 .badge-stale { background: #f0f1ec; color: var(--text-muted); }
 .badge-shipped {
-  background: var(--saffron);
-  color: var(--carbon);
+  background: #FFF3D1;
+  color: #8a6400;
   display: inline-flex;
   align-items: center;
   gap: 4px;

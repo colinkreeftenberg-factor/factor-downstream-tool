@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { KEY_HEADER } from '../lib/columns';
+import { KEY_HEADER, brandLabel } from '../lib/columns';
 
 const VISIBLE_COUNT = 3;
 
@@ -13,7 +13,7 @@ function TicketCard({ ticket }) {
       <div className="ticket-card-header">
         <span className="ticket-card-ref">{ticket.loadReference}</span>
         <span className={`badge ${ticket.source === 'factor' ? 'badge-factor' : 'badge-german'}`}>
-          {ticket.source === 'factor' ? 'FACTOR_' : 'DACH'}
+          {brandLabel(ticket.source)}
         </span>
       </div>
       <div className="ticket-messages">

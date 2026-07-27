@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { KEY_HEADER } from '../lib/columns';
+import { KEY_HEADER, brandLabel } from '../lib/columns';
 
 export default function HistoryTab({ lanes }) {
   const [entries, setEntries] = useState([]);
@@ -65,7 +65,7 @@ export default function HistoryTab({ lanes }) {
                   <td>{e.loadReference}</td>
                   <td>
                     <span className={`badge ${e.source === 'factor' ? 'badge-factor' : 'badge-german'}`}>
-                      {e.source === 'factor' ? 'FACTOR_' : 'DACH'}
+                      {brandLabel(e.source)}
                     </span>
                   </td>
                   <td>{e.type}</td>

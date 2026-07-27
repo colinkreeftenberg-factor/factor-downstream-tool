@@ -5,6 +5,13 @@
 
 export const KEY_HEADER = 'Load Reference';
 
+// Short brand badge text — kept to 2 letters each so FA and DE line up
+// evenly regardless of source, instead of 'FACTOR_' vs 'DACH' being
+// visibly different widths next to each other in a table.
+export function brandLabel(source) {
+  return source === 'factor' ? 'FA' : 'DE';
+}
+
 export const SUMMARY_FIELDS = [
   { header: 'Load Reference', label: 'Load reference', type: 'text' },
   { header: 'Carrier', label: 'Courier', type: 'text' },
