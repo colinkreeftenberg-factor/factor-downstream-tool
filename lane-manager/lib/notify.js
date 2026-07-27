@@ -104,10 +104,23 @@ export async function requestLaneUpdate(loadReference, rowNumber) {
     const { headers } = await readSheetAsObjects(FACTOR_SHEET_ID, FACTOR_TAB, { requireNonEmpty: KEY_HEADER });
     const hasThreadColumns = Object.values(THREAD_MARK).every((h) => headers.includes(h));
     if (hasThreadColumns) {
-      await updateRowCells(FACTOR_SHEET_ID, FACTOR_TAB, headers, rowNumber, {
-        [THREAD_MARK.channel]: result.channel,
-        [THREAD_MARK.ts]: result.ts,
-      });
+      await updateRowCells(
+        FACTOR_SHEET_ID,
+        FACTOR_TAB,
+        headers,
+        rowNumber,
+        {
+          [THREAD_MARK.channel]: result.channel,
+          [THREAD_MARK.ts]: result.ts,
+        },
+        // RAW, not USER_ENTERED: the ts (e.g. "1785174429.987750") looks
+        // numeric, and USER_ENTERED lets Sheets auto-parse it as a number
+        // — which then gets displayed (and read back via the API) using
+        // the sheet's locale number formatting, e.g. periods as thousands
+        // separators. That silently corrupts the value we need to send
+        // back to Slack byte-for-byte. RAW stores it as literal text.
+        { valueInputOption: 'RAW' }
+      );
     }
   }
 

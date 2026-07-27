@@ -103,7 +103,7 @@ export async function appendRow(spreadsheetId, tabName, headers, values) {
  * same "only overwrite what changed" behaviour as syncDashboardToSource's
  * mergedRow logic. `updates` is a partial object keyed by header name.
  */
-export async function updateRowCells(spreadsheetId, tabName, headers, rowNumber, updates) {
+export async function updateRowCells(spreadsheetId, tabName, headers, rowNumber, updates, opts = {}) {
   const sheets = getSheetsClient();
 
   const data = [];
@@ -121,7 +121,7 @@ export async function updateRowCells(spreadsheetId, tabName, headers, rowNumber,
 
   await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId,
-    requestBody: { valueInputOption: 'USER_ENTERED', data },
+    requestBody: { valueInputOption: opts.valueInputOption || 'USER_ENTERED', data },
   });
 }
 
