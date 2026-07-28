@@ -23,6 +23,17 @@ export default function Dashboard() {
   const [detailLane, setDetailLane] = useState(null);
   const [search, setSearch] = useState('');
   const [hasNewSlackUpdates, setHasNewSlackUpdates] = useState(false);
+  const [activeFilter, setActiveFilter] = useState(null); // null | 'today' | 'urgent' | 'delayed' | 'missingInfo' | 'stale'
+
+  function toggleFilter(key) {
+    setActiveFilter((current) => (current === key ? null : key));
+  }
+
+  function matchesActiveFilter(lane) {
+    if (!activeFilter) return true;
+    if (activeFilter === 'today') return isToday(lane['Date']);
+    return computeFlags(lane)[activeFilter];
+  }
 
   // Checks whether any lane still visible in the dashboard has a Slack
   // message newer than the last time this browser looked at the Slack
@@ -78,6 +89,8 @@ export default function Dashboard() {
   }
 
   const todayLanes = useMemo(() => lanes.filter((l) => isToday(l['Date'])), [lanes]);
+  const filteredTodayLanes = useMemo(() => todayLanes.filter(matchesActiveFilter), [todayLanes, activeFilter]);
+  const filteredAllLanes = useMemo(() => lanes.filter(matchesActiveFilter), [lanes, activeFilter]);
 
   const stats = useMemo(() => {
     let urgent = 0, delayed = 0, missingInfo = 0, stale = 0;
@@ -149,38 +162,58 @@ export default function Dashboard() {
           ) : (
             <>
               <div className="stat-strip no-print">
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <div className="stat-card">
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div
+                    className={`stat-card stat-card-clickable ${activeFilter === 'today' ? 'stat-card-active' : ''}`}
+                    onClick={() => toggleFilter('today')}
+                  >
                     <div className="stat-value">{stats.today}</div>
                     <div className="stat-label">Today</div>
                   </div>
-                  <div className={`stat-card ${stats.urgent ? 'stat-warn' : ''}`}>
+                  <div
+                    className={`stat-card stat-card-clickable ${stats.urgent ? 'stat-warn' : ''} ${activeFilter === 'urgent' ? 'stat-card-active' : ''}`}
+                    onClick={() => toggleFilter('urgent')}
+                  >
                     <div className="stat-value">{stats.urgent}</div>
                     <div className="stat-label">Dispatching soon</div>
                   </div>
-                  <div className={`stat-card ${stats.delayed ? 'stat-warn' : ''}`}>
+                  <div
+                    className={`stat-card stat-card-clickable ${stats.delayed ? 'stat-warn' : ''} ${activeFilter === 'delayed' ? 'stat-card-active' : ''}`}
+                    onClick={() => toggleFilter('delayed')}
+                  >
                     <div className="stat-value">{stats.delayed}</div>
                     <div className="stat-label">Delayed</div>
                   </div>
-                  <div className={`stat-card ${stats.missingInfo ? 'stat-warn' : ''}`}>
+                  <div
+                    className={`stat-card stat-card-clickable ${stats.missingInfo ? 'stat-warn' : ''} ${activeFilter === 'missingInfo' ? 'stat-card-active' : ''}`}
+                    onClick={() => toggleFilter('missingInfo')}
+                  >
                     <div className="stat-value">{stats.missingInfo}</div>
                     <div className="stat-label">Missing info</div>
                   </div>
-                  <div className={`stat-card ${stats.stale ? 'stat-warn' : ''}`}>
+                  <div
+                    className={`stat-card stat-card-clickable ${stats.stale ? 'stat-warn' : ''} ${activeFilter === 'stale' ? 'stat-card-active' : ''}`}
+                    onClick={() => toggleFilter('stale')}
+                  >
                     <div className="stat-value">{stats.stale}</div>
                     <div className="stat-label">Stale</div>
                   </div>
-                  <div className="stat-card">
+                  <div className="stat-card" onClick={() => setActiveFilter(null)} style={{ cursor: 'pointer' }}>
                     <div className="stat-value">{stats.total}</div>
                     <div className="stat-label">All lanes</div>
                   </div>
+                  {activeFilter && (
+                    <button className="btn" onClick={() => setActiveFilter(null)}>
+                      ✕ Clear filter
+                    </button>
+                  )}
                 </div>
               </div>
 
               <div className="section-header-row">
                 <h2 className="section-heading">Today</h2>
                 <div className="no-print">
-                  <button className="btn" onClick={() => downloadCSV(todayLanes, `today-lanes-${new Date().toISOString().slice(0, 10)}.csv`)}>
+                  <button className="btn" onClick={() => downloadCSV(filteredTodayLanes, `today-lanes-${new Date().toISOString().slice(0, 10)}.csv`)}>
                     Export today (CSV)
                   </button>
                   <button className="btn" onClick={() => window.print()}>
@@ -189,7 +222,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <LaneTable
-                lanes={todayLanes}
+                lanes={filteredTodayLanes}
                 globalSearch={search}
                 onQuickEdit={(lane, field, value) => setEditing({ lane, field, value })}
                 onOpenDetail={(lane) => setDetailLane(lane)}
@@ -199,13 +232,13 @@ export default function Dashboard() {
                 <div className="section-header-row" style={{ marginTop: 28 }}>
                   <h2 className="section-heading">All lanes</h2>
                   <div className="no-print">
-                    <button className="btn" onClick={() => downloadCSV(lanes, 'all-lanes.csv')}>
+                    <button className="btn" onClick={() => downloadCSV(filteredAllLanes, 'all-lanes.csv')}>
                       Export all (CSV)
                     </button>
                   </div>
                 </div>
                 <LaneTable
-                  lanes={lanes}
+                  lanes={filteredAllLanes}
                   globalSearch={search}
                   sortByDate
                   onQuickEdit={(lane, field, value) => setEditing({ lane, field, value })}

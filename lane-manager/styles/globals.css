@@ -242,6 +242,47 @@ tbody tr:hover {
   gap: 4px 16px;
 }
 
+.detail-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px 16px;
+}
+
+.email-group {
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.email-group-a { background: #F5F5F0; }
+.email-group-b { background: #EEEFEC; }
+.email-group .field:last-child { margin-bottom: 0; }
+
+.combobox-wrap {
+  position: relative;
+}
+.combobox-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-top: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 20;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+.combobox-item {
+  padding: 8px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.combobox-item:hover {
+  background: var(--bg);
+}
+
 .detail-grid input:disabled {
   background: var(--bg);
   color: var(--text-muted);
@@ -330,6 +371,19 @@ tbody tr:hover {
   letter-spacing: 0.02em;
 }
 .stat-card.stat-warn .stat-value { color: var(--red); }
+
+.stat-card-clickable {
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.stat-card-clickable:hover {
+  border-color: var(--saffron);
+}
+.stat-card-active {
+  border: 2px solid var(--saffron);
+  padding: 9px 15px; /* compensate for the thicker border so size doesn't jump */
+  box-shadow: 0 0 0 2px rgba(255, 200, 0, 0.15);
+}
 
 .slack-btn {
   display: flex;
