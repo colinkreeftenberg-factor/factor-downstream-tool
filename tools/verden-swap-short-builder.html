@@ -175,7 +175,7 @@
 
     <div class="btn-row" style="margin:2px 0 16px; align-items:center;">
       <label class="toggle-switch"><input type="checkbox" id="toggle-flat-credit" checked><span class="toggle-slider"></span></label>
-      <span style="font-size:12.5px; color:var(--ink-dim);">Include €5 goodwill credit per meal in bulk error compensation</span>
+      <span style="font-size:12.5px; color:var(--ink-dim);">Compensate swaps €5/meal — turn off for a like-for-like swap you don't want to compensate (shortages are always price-per-meal, unaffected by this)</span>
     </div>
 
     <div class="form-grid">
@@ -295,6 +295,11 @@ const REASON_COMPLEXITY = { generic: 0, swap: 1, short: 1, swap_multiple: 2, sho
 // on top of the calculated per-meal box price for the bulk error export.
 const FLAT_CREDIT_EUR = 5;
 let includeFlatCredit = true;
+
+// Shortage fallback, used only when a box has no price data at all (rare —
+// the price sheet covers all markets, but a box can still be missing from
+// it). Same ratio as the 5€/120kr swap credit, applied to 11€.
+const SHORTAGE_FALLBACK = { TZ: 11, TV: 264, TK: 264 };
 
 // Box price data (BoxPriceTZ tab) covers all markets despite the name.
 // SKUs look like "TZ-CBU-10-1-0" / "TK-CBU-6-1-0" — the number after CBU
@@ -1064,14 +1069,21 @@ function buildBulkErrorRows(){
     if(r.categoryIndex===null || r.categoryIndex===undefined || isNaN(r.categoryIndex)) return;
     const cat = RECIPE_CATEGORIES[r.categoryIndex];
     const qty = r.qty || 1;
-    const perMeal = pricePerMealForBox(r.boxId);
     let compAmount = null;
-    if(perMeal !== null){
-      compAmount = perMeal * qty;
-      if(includeFlatCredit) compAmount += FLAT_CREDIT_EUR * qty;
-      compAmount = round2(compAmount);
-    } else if(includeFlatCredit){
-      compAmount = round2(FLAT_CREDIT_EUR * qty);
+    if(r.type === 'SWAP'){
+      // The toggle is only for swaps: €5/meal by default, or €0 when it's
+      // switched off (e.g. a like-for-like swap we don't want to
+      // compensate at all). Never price-based, regardless of box price data.
+      compAmount = round2(includeFlatCredit ? FLAT_CREDIT_EUR * qty : 0);
+    } else {
+      // Shortage is always price-per-meal — the toggle above has no effect here.
+      const perMeal = pricePerMealForBox(r.boxId);
+      if(perMeal !== null){
+        compAmount = round2(perMeal * qty);
+      } else {
+        const fallback = SHORTAGE_FALLBACK[r.market];
+        compAmount = fallback != null ? round2(fallback * qty) : null;
+      }
     }
     const row = {
       'customer id': stripLeadingLetters(r.customerId),
