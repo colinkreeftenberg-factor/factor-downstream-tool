@@ -24,7 +24,7 @@ export function computeFlags(lane) {
   const urgent = isDispatchingSoon(lane['Date'], lane['Actual Dispatch time'] || lane['Planned Dispatch Time'], 3);
   const delayed = isArrivalDelayed(lane['Date'], lane['Planned Arrival Time'], lane['Actual Arrival time']);
   const shipped = isShipped(lane['Actual Dispatch time']);
-  const missingInfo = isMissingInfoSoon(lane['Date'], lane['Planned Dispatch Time'], lane['Vehicle Registration Number'], 4);
+  const missingInfo = isMissingInfoSoon(lane['Date'], lane['Planned Dispatch Time'], lane['Vehicle Registration'], 4);
   const stale = lane.source === 'factor' && isStale(lane['Created at'], lane['Load Status'], 2);
   return { urgent, delayed, shipped, missingInfo, stale };
 }

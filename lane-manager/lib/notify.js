@@ -43,7 +43,7 @@ export async function runNotifyCheck({ force = false } = {}) {
     const ref = lane[KEY_HEADER];
     const messages = [];
 
-    if ((force || !lane[MARK.missingReg]) && isMissingInfoSoon(lane['Date'], lane['Planned Dispatch Time'], lane['Vehicle Registration Number'], 4)) {
+    if ((force || !lane[MARK.missingReg]) && isMissingInfoSoon(lane['Date'], lane['Planned Dispatch Time'], lane['Vehicle Registration'], 4)) {
       messages.push({ mark: MARK.missingReg, text: `:warning: *${ref}* dispatches within 4h and still has no vehicle registration number.` });
     }
 

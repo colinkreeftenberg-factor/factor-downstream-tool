@@ -1,9 +1,15 @@
 import { readSheetAsObjects, updateRowCells } from '../../../lib/googleSheets';
-import { KEY_HEADER } from '../../../lib/columns';
+import { KEY_HEADER, HEADER_ALIASES, applyHeaderAliases } from '../../../lib/columns';
 import { logBacklogEntry } from '../../../lib/backlog';
 
 const FACTOR_SHEET_ID = process.env.FACTOR_EXTRA_SOURCE_SHEET_ID;
 const FACTOR_TAB = process.env.FACTOR_EXTRA_SOURCE_TAB || 'Sheet1';
+
+function existingValue(row, header) {
+  if (row[header] !== undefined) return row[header];
+  const alias = HEADER_ALIASES[header];
+  return alias && row[alias] !== undefined ? row[alias] : '';
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'PATCH') {
@@ -30,10 +36,11 @@ export default async function handler(req, res) {
     const loadReference = existingRow ? existingRow[KEY_HEADER] : '(unknown)';
     const changedFields = Object.keys(updates).filter((h) => h !== 'Updated at');
 
-    await updateRowCells(FACTOR_SHEET_ID, FACTOR_TAB, headers, rowNumber, updates);
+    const aliasedUpdates = applyHeaderAliases(updates, headers);
+    await updateRowCells(FACTOR_SHEET_ID, FACTOR_TAB, headers, rowNumber, aliasedUpdates);
 
     for (const field of changedFields) {
-      const oldValue = existingRow ? existingRow[field] || '' : '';
+      const oldValue = existingRow ? existingValue(existingRow, field) : '';
       const newValue = updates[field] || '';
       if (String(oldValue) === String(newValue)) continue; // no real change, skip the noise
       await logBacklogEntry({

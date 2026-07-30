@@ -5,6 +5,29 @@
 
 export const KEY_HEADER = 'Load Reference';
 
+// Your actual sheet header is "Courier", but the app uses "Carrier" as its
+// internal field name throughout the UI (table, forms, detail popup). This
+// alias makes sure writes land on the real column instead of being
+// silently skipped for not matching literally.
+export const HEADER_ALIASES = { Carrier: 'Courier' };
+
+/**
+ * Translates internal field names to their real sheet header before a
+ * write, only when the internal name isn't itself a real header on this
+ * sheet (so it's safe to call even if your sheet's real header ever
+ * changes back to matching the internal name exactly).
+ */
+export function applyHeaderAliases(values, realHeaders) {
+  const out = { ...values };
+  for (const [internalKey, realHeader] of Object.entries(HEADER_ALIASES)) {
+    if (internalKey in out && !realHeaders.includes(internalKey) && realHeaders.includes(realHeader)) {
+      out[realHeader] = out[internalKey];
+      delete out[internalKey];
+    }
+  }
+  return out;
+}
+
 // Short brand badge text — kept to 2 letters each so FA and DE line up
 // evenly regardless of source, instead of 'FACTOR_' vs 'DACH' being
 // visibly different widths next to each other in a table.
@@ -22,8 +45,8 @@ export const SUMMARY_FIELDS = [
   { header: 'Actual Arrival time', label: 'Actual arrival', type: 'time' },
   { header: 'Planned Dispatch Time', label: 'Planned dispatch time', type: 'time' },
   { header: 'Actual Dispatch time', label: 'Actual dispatch time', type: 'time' },
-  { header: 'Trailer Number', label: 'Trailer number', type: 'text' },
-  { header: 'Vehicle Registration Number', label: 'Vehicle registration number', type: 'text' },
+  { header: 'Trailer number', label: 'Trailer number', type: 'text' },
+  { header: 'Vehicle Registration', label: 'Vehicle registration number', type: 'text' },
 ];
 
 // Fields only shown in the detail popup. Trailer Utilization and Dispatch
@@ -67,7 +90,7 @@ export const DETAIL_SECTIONS = [
   {
     title: 'Trailer & driver',
     color: 'green',
-    headers: ['Trailer Number', 'Vehicle Registration Number', 'Driver Name', 'Trailer Type Actual'],
+    headers: ['Trailer number', 'Vehicle Registration', 'Driver Name', 'Trailer Type Actual'],
   },
   {
     title: 'Bay & loaders',
@@ -92,7 +115,7 @@ export const DETAIL_SECTIONS = [
 export const SUMMARY_GROUPS = [
   { headers: ['Planned Arrival Time', 'Actual Arrival time'], label: 'Arrival', color: '#C79C00', textColor: '#ffffff' },
   { headers: ['Planned Dispatch Time', 'Actual Dispatch time'], label: 'Dispatch', color: '#61DFFF', textColor: '#141414' },
-  { headers: ['Trailer Number', 'Vehicle Registration Number'], label: 'Trailer', color: '#75C26D', textColor: '#141414' },
+  { headers: ['Trailer number', 'Vehicle Registration'], label: 'Trailer', color: '#75C26D', textColor: '#141414' },
 ];
 
 // Fields the create-lane form fills in directly (the rest get filled in
@@ -105,6 +128,6 @@ export const CREATE_FIELDS = [
   'Date',
   'Planned Arrival Time',
   'Planned Dispatch Time',
-  'Trailer Number',
-  'Vehicle Registration Number',
+  'Trailer number',
+  'Vehicle Registration',
 ];

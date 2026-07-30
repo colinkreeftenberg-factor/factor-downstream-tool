@@ -1,5 +1,5 @@
 import { readSheetAsObjects, appendRow } from '../../../lib/googleSheets';
-import { KEY_HEADER } from '../../../lib/columns';
+import { KEY_HEADER, applyHeaderAliases } from '../../../lib/columns';
 import { getAllThreads } from '../../../lib/slackThreads';
 import { logBacklogEntry } from '../../../lib/backlog';
 
@@ -97,7 +97,8 @@ async function handleCreate(req, res) {
     const values = req.body || {};
     values['Created at'] = values['Created at'] || new Date().toISOString();
 
-    await appendRow(FACTOR_SHEET_ID, FACTOR_TAB, headers, values);
+    const aliasedValues = applyHeaderAliases(values, headers);
+    await appendRow(FACTOR_SHEET_ID, FACTOR_TAB, headers, aliasedValues);
     await logBacklogEntry({
       loadReference: values[KEY_HEADER] || '(unknown)',
       source: 'factor',
