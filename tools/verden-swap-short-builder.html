@@ -784,9 +784,15 @@ let slotComboRef = null;
 function getSlotOptionsFor(week, market){
   const cfg = MARKET_CONFIG[market];
   if(!week || !cfg) return [];
+  // Never hide a slot just because its translated name is missing (e.g.
+  // FE-code recipes, which the name lookup doesn't cover) — that made
+  // genuinely-real slots impossible to select at all. Fall back to the
+  // recipe code, or the bare slot number if even that's missing.
   return (state.weekSlotOptions.get(weekKey(week))||[])
-    .filter(o=> o[cfg.nameKey] && o[cfg.nameKey] !== '#N/A')
-    .map(o=> ({ slot:o.slot, label:o[cfg.nameKey], code:o.code }))
+    .map(o=>{
+      const hasName = o[cfg.nameKey] && o[cfg.nameKey] !== '#N/A';
+      return { slot:o.slot, label: hasName ? o[cfg.nameKey] : 'No name available', code:o.code, unnamed: !hasName };
+    })
     .sort((a,b)=> a.slot.localeCompare(b.slot, undefined, {numeric:true}));
 }
 function mountSlotCombo(week, market){
