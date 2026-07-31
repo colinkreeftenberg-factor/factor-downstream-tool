@@ -498,16 +498,32 @@ function fileSafe(s){ return s.replace(/-/g,'_'); }
 function escapeHtml(s){ return (s==null?'':String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function htmlList(items){ return '<ul>' + items.map(n=>`<li>${escapeHtml(n)}</li>`).join('') + '</ul>'; }
 
+/* Looks up a column by trying several possible header names in order —
+   the underlying data source has switched naming conventions before
+   (Title Case like "HF Week" vs snake_case like "hellofresh_week"), so
+   any header lookup that only tries one spelling is one pipeline change
+   away from silently returning nothing. Returns -1 if none match. */
+function findCol(header, ...candidates){
+  for(const c of candidates){
+    const i = header.findIndex(h => h.toLowerCase() === c.toLowerCase());
+    if(i>=0) return i;
+  }
+  return -1;
+}
+// "31/07/2026 08:11" -> "31/07/2026" — used as a production-day fallback
+// when there's no explicit production_day column in the feed.
+function dateOnlyFromPick(v){ if(!v) return ''; return String(v).trim().split(/\s+/)[0]; }
+
 /* =================================================================
    BUILDERS
 ================================================================= */
 function buildBartenderIndex(rows){
   const header = rows[0].map(h=>(h||'').toString().trim());
   const idx = {
-    boxId: header.indexOf('physical_box_id'),
-    line: header.indexOf('assembly_line_id'),
-    firstPick: header.indexOf('first_pick_time'),
-    day: header.indexOf('production_day')
+    boxId: findCol(header, 'physical_box_id'),
+    line: findCol(header, 'assembly_line_id'),
+    firstPick: findCol(header, 'first_pick_time'),
+    day: findCol(header, 'production_day')
   };
   const byLine = new Map();
   for(let i=1;i<rows.length;i++){
@@ -515,7 +531,12 @@ function buildBartenderIndex(rows){
     if(!r || !r[idx.boxId]) continue;
     const boxIdRaw = r[idx.boxId].toString().trim();
     const line = (r[idx.line]||'').toString().trim().toUpperCase();
-    const rec = { boxIdRaw, boxIdNorm: normalizeBoxId(boxIdRaw), line, firstPick: r[idx.firstPick], productionDay: (r[idx.day]||'').toString().trim() };
+    const firstPick = r[idx.firstPick];
+    // No explicit production_day column in the live feed — derive it from
+    // the date portion of first_pick_time instead of leaving every box
+    // with the same blank value (which made day-filtering a no-op).
+    const productionDay = idx.day>=0 ? (r[idx.day]||'').toString().trim() : dateOnlyFromPick(firstPick);
+    const rec = { boxIdRaw, boxIdNorm: normalizeBoxId(boxIdRaw), line, firstPick, productionDay };
     if(!byLine.has(line)) byLine.set(line, []);
     byLine.get(line).push(rec);
   }
@@ -526,11 +547,11 @@ function buildBartenderIndex(rows){
 function buildOdlIndex(rows){
   const header = rows[0].map(h=>(h||'').toString().trim());
   const idx = {
-    week: header.indexOf('HF Week'),
-    boxId: header.indexOf('Box ID'),
-    boxId2: header.indexOf('Box ID 2'),
-    customerId: header.indexOf('Customer ID'),
-    mealSwap: header.indexOf('Meal Swap')
+    week: findCol(header, 'HF Week', 'hellofresh_week'),
+    boxId: findCol(header, 'Box ID', 'parent_boxid'),
+    boxId2: findCol(header, 'Box ID 2', 'boxid'),
+    customerId: findCol(header, 'Customer ID', 'customer_id'),
+    mealSwap: findCol(header, 'Meal Swap', 'meal_swap')
   };
   const map = new Map();
   for(let i=1;i<rows.length;i++){
