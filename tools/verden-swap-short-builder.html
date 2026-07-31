@@ -584,7 +584,6 @@ function buildRecipeIndex(rows){
   const idx = { week:0, slotGer: header.indexOf('Slot GER'), slotNor: header.indexOf('Slot NOR'), slotBnl: header.indexOf('Slot BNL'), code: header.indexOf('Code'),
     german: header.indexOf('German Name'), swedish: header.indexOf('Swedish Name'), danish: header.indexOf('Danish Name') };
   const byKey = new Map();
-  const byWeek = new Map();
   for(let i=headerIdx+1;i<rows.length;i++){
     const r = rows[i];
     if(!r || !r[idx.week]) continue;
@@ -607,10 +606,25 @@ function buildRecipeIndex(rows){
       swedish: idx.swedish>=0 ? (r[idx.swedish]||'').toString().trim() : '',
       danish: idx.danish>=0 ? (r[idx.danish]||'').toString().trim() : ''
     };
-    byKey.set(wk+'|'+slot, entry);
+    const mapKey = wk+'|'+slot;
+    const existing = byKey.get(mapKey);
+    // The sheet sometimes has a leftover blank row for the same week+slot
+    // alongside the real, filled-in one (this is what was causing the
+    // affected-slot picker to show a duplicate "No name available" entry
+    // next to the real recipe for the same slot). Prefer whichever entry
+    // actually has a code; only fall back to "last one wins" when neither
+    // or both do, so a real duplicate week collision doesn't silently
+    // discard real data either.
+    if(!existing || (!existing.code && entry.code)){
+      byKey.set(mapKey, entry);
+    }
+  }
+  const byWeek = new Map();
+  byKey.forEach((entry, mapKey)=>{
+    const wk = mapKey.slice(0, mapKey.lastIndexOf('|'));
     if(!byWeek.has(wk)) byWeek.set(wk, []);
     byWeek.get(wk).push(entry);
-  }
+  });
   return { byKey, byWeek };
 }
 
