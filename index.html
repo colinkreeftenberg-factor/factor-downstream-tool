@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>FACTOR_EU — Swap &amp; Shortage Applications</title>
+<title>FACTOR_EU — Downstream and Reporting Tools</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -157,7 +157,7 @@
       <div class="hero-logo"><img src="assets/logo.png" alt="Factor logo" /></div>
       <div class="hero-eyebrow">Internal Ops Tooling</div>
       <h1 class="hero-title">FACTOR_EU</h1>
-      <div class="hero-subtitle">Swap &amp; Shortage Applications</div>
+      <div class="hero-subtitle">Downstream and Reporting Tools</div>
       <div class="hero-desc">A suite of tools to plan, manage and communicate swap &amp; shortage impacts — from production floor to customer-ready comms — across BNL, DE, SE and DK.</div>
     </div>
     <div class="hero-photo"><img src="assets/hero.png" alt="Factor meal box" /></div>
@@ -202,103 +202,46 @@
 
 const TOOLS = [
 
+  // 1. Strategic Swapping - Box Files
   {
-
     name: "De Kas - Proactive Swap & Shortage Manager",
-
     description: "Before production: plan swaps & shortages into box-files",
-
     href: "tools/swap-shortage-manager.html",
-
     tags: ["NL","BE"],
-
     category: "Strategic Swapping - Box Files",
-
   },
-
   {
-
     name: "Verden - Proactive Swap & Shortage Manager",
-
     description: "Before production: plan swaps & shortages into box-files",
-
     href: "tools/swap_shortage_manager_verden_3.html",
-
     tags: ["SE","DK","DE"],
-
     category: "Strategic Swapping - Box Files"
-
   },
 
+  // 2. Downstream Communications & Compensation
   {
-
     name: "De Kas - Swap & Shorts",
-
     description: "Used by Downstream Team for Comms and Compensations",
-
     href: "tools/bnl-swaps-after-production.html",
-
     tags: ["NL", "BE", "FR-BE"],
-
     category: "Downstream Communications & Compensation",
-
   },
-
   {
-
     name: "Verden - Swap & Shorts",
-
     description: "Used by Downstream Team for Comms and Compensations",
-
     href: "tools/verden-swap-short-builder.html",
-
     tags: ["DE", "SE", "DK"],
-
     category: "Downstream Communications & Compensation",
-
   },
-    {
-
+  {
     name: "Downstream - Communication Creator",
-
     description: "Used by Downstream Team for self-written communication",
-
     href: "tools/comms-creator.html",
-
     tags: ["All Markets"],
-
     category: "Downstream Communications & Compensation",
-
   },
 
-  {
-
-    name: "Swap & Shortage - CRM Guide",
-
-    description: "",
-
-    href: "https://hellofresh.atlassian.net/wiki/spaces/EUF/pages/6760202365/Swap+Shortage+Tools+User+Guide+BNL+DE-SE-DK",
-
-    tags: [],
-
-    category: "Confluence SOPs"
-
-  },
-
-  {
-
-    name: "Backend sheet",
-
-    description: "",
-
-    href: "https://docs.google.com/spreadsheets/d/1DjYDHfwKLRkQzlEj22whxrBjdk9T36VRQqMGE91l17U/edit?gid=0#gid=0",
-
-    tags: [],
-
-    category: "Backup Data"
-
-  },
-
+  // 3. Middle Mile Management
   {
     name: "Lane Manager",
     description: "Manage middle mile lane allocations and transport planning.",
@@ -307,35 +250,44 @@ const TOOLS = [
     category: "Middle Mile Management"
   },
 
+  // 4. Reporting
   {
+    name: "Error Reporting",
+    description: "All dynamic reporting on errors",
+    href: "https://reporting-factor-eu.vercel.app/",
+    tags: ["All Markets"],
+    category: "Reporting"
+  },
 
+  // 5. Everything else
+  {
+    name: "Swap & Shortage - CRM Guide",
+    description: "",
+    href: "https://hellofresh.atlassian.net/wiki/spaces/EUF/pages/6760202365/Swap+Shortage+Tools+User+Guide+BNL+DE-SE-DK",
+    tags: [],
+    category: "Confluence SOPs"
+  },
+  {
+    name: "Backend sheet",
+    description: "",
+    href: "https://docs.google.com/spreadsheets/d/1DjYDHfwKLRkQzlEj22whxrBjdk9T36VRQqMGE91l17U/edit?gid=0#gid=0",
+    tags: [],
+    category: "Backup Data"
+  },
+  {
     name: "Verden - Bulk Export Builder",
-
     description: "Build & export customer compensation files.",
-
     href: "tools/factor_compensation_export_builder_3.html",
-
     tags: ["Ops", "Comp"],
-
     category: "Archived Tools"
-
   },
-  
-  
   {
-
     name: "Verden - CRM EXPORT BUILDER",
-
     description: "Build & export customer communication files.",
-
     href: "tools/de-se-dk-tool.html",
-
     tags: ["Ops", "Comms"],
-
     category: "Archived Tools"
-
   },
-
 
 ];
 
