@@ -649,7 +649,9 @@ function buildProductionIndex(rows, odlIndex){
     if(!r || !r[idx.boxId]) continue;
     const customerId = (r[idx.customerId]||'').toString().trim();
     const boxIdRaw = r[idx.boxId].toString().trim();
-    const rawLanguage = lookupOdlLanguage(odlIndex, boxIdRaw);
+    let rawLanguage = lookupOdlLanguage(odlIndex, boxIdRaw);
+    // TT-prefix boxes are always Netherlands (NLD) — fall back if ODL doesn't cover them
+    if (!rawLanguage && boxIdRaw.toUpperCase().startsWith('TT')) rawLanguage = 'NLD';
     const normalizedLocale = normalizeLocale(rawLanguage, boxIdRaw);
     records.push({
       boxIdRaw: boxIdRaw,

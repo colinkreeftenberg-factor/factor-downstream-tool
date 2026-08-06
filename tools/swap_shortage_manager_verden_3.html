@@ -674,11 +674,11 @@
 
   // ================= DE ODL =================
   function processOdlRows(rows){
-    const hIdx = findHeaderRowIndex(rows, 'box id');
+    const hIdx = findHeaderRowIndex(rows, 'boxid');
     const objs = rowsToObjects(rows, hIdx);
     state.odlRows = objs.map(r=>({
       customerId: getField(r,'Customer ID','customer_id'),
-      boxId: getField(r,'Box ID','box_id')
+      boxId: getField(r,'Box ID','box_id','boxid')
     })).filter(r=>r.boxId);
     state.odlByExact = new Map();
     state.odlByStripped = new Map();
