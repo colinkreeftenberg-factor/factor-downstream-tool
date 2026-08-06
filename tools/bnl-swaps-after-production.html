@@ -571,6 +571,7 @@ function buildOdlLanguageIndex(rows){
   const byBoxIdExact = new Map();
   const byBoxIdStripped = new Map();
   const byCustomerId = new Map();
+  const byCustomerIdNumeric = new Map();
   let count = 0;
   for(let i=headerIdx+1;i<rows.length;i++){
     const r = rows[i];
@@ -582,9 +583,11 @@ function buildOdlLanguageIndex(rows){
     const stripped = stripTrailingLetters(boxId);
     if(!byBoxIdStripped.has(stripped)) byBoxIdStripped.set(stripped, language);
     if(customerId && !byCustomerId.has(customerId)) byCustomerId.set(customerId, language);
+    const numericCustId = stripLeadingLetters(customerId);
+    if(numericCustId && !byCustomerIdNumeric.has(numericCustId)) byCustomerIdNumeric.set(numericCustId, language);
     count++;
   }
-  return { byBoxIdExact, byBoxIdStripped, byCustomerId, count };
+  return { byBoxIdExact, byBoxIdStripped, byCustomerId, byCustomerIdNumeric, count };
 }
 
 function lookupOdlLanguage(odlIndex, boxIdRaw, customerId){
@@ -593,6 +596,8 @@ function lookupOdlLanguage(odlIndex, boxIdRaw, customerId){
   const stripped = stripTrailingLetters(boxIdRaw);
   if(odlIndex.byBoxIdStripped.has(stripped)) return odlIndex.byBoxIdStripped.get(stripped);
   if(customerId && odlIndex.byCustomerId.has(customerId)) return odlIndex.byCustomerId.get(customerId);
+  const numericCustId = stripLeadingLetters(customerId || '');
+  if(numericCustId && odlIndex.byCustomerIdNumeric && odlIndex.byCustomerIdNumeric.has(numericCustId)) return odlIndex.byCustomerIdNumeric.get(numericCustId);
   return '';
 }
 
