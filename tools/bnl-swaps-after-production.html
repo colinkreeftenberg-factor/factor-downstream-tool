@@ -587,11 +587,12 @@ function buildOdlLanguageIndex(rows){
   return { byBoxIdExact, byBoxIdStripped, byCustomerId, count };
 }
 
-function lookupOdlLanguage(odlIndex, boxIdRaw){
+function lookupOdlLanguage(odlIndex, boxIdRaw, customerId){
   if(!odlIndex) return '';
   if(odlIndex.byBoxIdExact.has(boxIdRaw)) return odlIndex.byBoxIdExact.get(boxIdRaw);
   const stripped = stripTrailingLetters(boxIdRaw);
   if(odlIndex.byBoxIdStripped.has(stripped)) return odlIndex.byBoxIdStripped.get(stripped);
+  if(customerId && odlIndex.byCustomerId.has(customerId)) return odlIndex.byCustomerId.get(customerId);
   return '';
 }
 
@@ -649,7 +650,7 @@ function buildProductionIndex(rows, odlIndex){
     if(!r || !r[idx.boxId]) continue;
     const customerId = (r[idx.customerId]||'').toString().trim();
     const boxIdRaw = r[idx.boxId].toString().trim();
-    let rawLanguage = lookupOdlLanguage(odlIndex, boxIdRaw);
+    let rawLanguage = lookupOdlLanguage(odlIndex, boxIdRaw, customerId);
     // TT-prefix boxes are always Netherlands (NLD) — fall back if ODL doesn't cover them
     if (!rawLanguage && boxIdRaw.toUpperCase().startsWith('TT')) rawLanguage = 'NLD';
     const normalizedLocale = normalizeLocale(rawLanguage, boxIdRaw);
