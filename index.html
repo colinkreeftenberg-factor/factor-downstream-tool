@@ -3,150 +3,184 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>FACTOR_EU — Downstream and Reporting Tools</title>
+<title>FACTOR_EU — Internal Ops Tools</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --carbon:#141414; --natural:#F1F1EA; --natural-2:#E7E6DC;
-    --saffron:#FFC800; --line:#D9D7C9;
-    --radius:22px; --radius-sm:14px;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{background:var(--natural); color:var(--carbon); font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif; -webkit-font-smoothing:antialiased;}
-
-  /* HERO */
-  .hero{
-    position:relative; background:var(--carbon); color:var(--natural);
-    overflow:hidden; padding:0;
-  }
-  .hero-inner{
-    max-width:1120px; margin:0 auto; display:grid; grid-template-columns:1.05fr 0.95fr;
-    align-items:center; gap:40px; padding:64px 32px;
-  }
-  .hero-logo{width:44px;height:44px;border-radius:11px;overflow:hidden;margin-bottom:28px;}
-  .hero-logo img{width:100%;height:100%;display:block;object-fit:cover;}
-  .hero-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#9a998f;margin-bottom:14px;}
-  .hero-title{
-    font-weight:800; font-size:56px; letter-spacing:-0.02em; line-height:1.02; margin:0;
-    border-bottom:6px solid var(--saffron); display:inline-block; padding-bottom:8px;
-  }
-  .hero-subtitle{font-size:18px; font-weight:500; color:#c9c8bd; margin:20px 0 0; max-width:420px; line-height:1.5;}
-  .hero-desc{font-size:13.5px; color:#8a897d; margin-top:16px; max-width:460px; line-height:1.6;}
-  .hero-photo{
-    position:relative; border-radius:var(--radius); overflow:hidden; aspect-ratio:4/3.1;
-    background:#e9ddcf;
-  }
-  .hero-photo img{width:100%;height:100%;object-fit:cover;display:block;}
-
-  @media (max-width: 860px){
-    .hero-inner{grid-template-columns:1fr; padding:48px 24px;}
-    .hero-title{font-size:40px;}
-    .hero-photo{order:-1;}
+  :root {
+    --carbon: #141414;
+    --natural: #F1F1EA;
+    --natural-2: #E7E6DC;
+    --saffron: #FFC800;
+    --line: #D9D7C9;
+    --radius: 16px;
   }
 
-  /* TOOLS SECTION */
-  .wrap{max-width:1120px;margin:0 auto;padding:56px 32px 96px;}
-  .section-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:10px;}
-  .section-head:not(:first-of-type){margin-top:56px;} 
-  
-  /* Section title with yellow accent underline */
-  .section-title{
-    font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#5b5b54;
-    border-bottom:3px solid var(--saffron);
-    display:inline-block;
-    padding-bottom:4px;
-  }
-  .section-count{font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:#8a897d;}
-
-  .tool-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
-  
-  /* Compact Grid for Button Lists */
-  .mini-grid {
-    display:grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 18px;
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--natural);
+    color: var(--carbon);
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 
-  @media (max-width: 860px){
-    .tool-grid, .mini-grid {grid-template-columns:1fr;}
-  }
-
-  .tool-card{
-    background:#FBFBF7; border:1px solid var(--line); border-radius:var(--radius);
-    padding:20px 22px; display:flex; flex-direction:column; gap:8px; text-decoration:none; color:inherit;
-    transition:.15s border-color, .15s transform, .15s box-shadow, .15s background;
-    position:relative; overflow:hidden;
-  }
-  .tool-card:hover{border-color:var(--carbon); transform:translateY(-2px); box-shadow:0 10px 24px rgba(20,20,20,0.08);}
-  .tool-card::after{
-    content:'→'; position:absolute; top:20px; right:22px; font-size:16px; color:#c9c7ba;
-    transition:.15s color, .15s transform;
-  }
-  .tool-card:hover::after{color:var(--carbon); transform:translateX(3px);}
-
-  .tool-name{
-    font-size:14px; font-weight:800; letter-spacing:-0.01em; max-width:85%;
-    text-transform:uppercase; 
-  }
-  
-  .tool-desc{font-size:12.5px; color:#5b5b54; line-height:1.5; max-width:92%;}
-  .tool-tags{display:flex; gap:6px; flex-wrap:wrap; margin-top:auto;}
-  .tag{
-    font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.03em;
-    background:var(--natural-2); border:1px solid var(--line); color:#5b5b54;
-    padding:3px 9px; border-radius:999px;
-  }
-
-  /* Accent variant — used to sub-group cards within a category without adding extra structure */
-  .tool-card.accent-grey{background:var(--natural-2); border-color:#c9c7ba;}
-  .tool-card.accent-grey .tool-desc{color:#7a7969;}
-
-  /* COMPACT MINI BUTTON VARIANT */
-  .tool-card.mini-card {
-    padding: 14px 44px 14px 20px;
-    min-height: 0;
-    height: 58px;
-    flex-direction: row;
+  /* ── HERO ── */
+  .hero { background: var(--carbon); padding: 28px 32px; }
+  .hero-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 32px;
     align-items: center;
-    border-radius: var(--radius-sm);
   }
-  .tool-card.mini-card .tool-name {
-    font-size: 12.5px;
-    max-width: 100%;
+  .hero-logo {
+    width: 34px; height: 34px;
+    border-radius: 8px; overflow: hidden; margin-bottom: 14px;
   }
-  .tool-card.mini-card::after {
-    top: 50%;
-    transform: translateY(-50%);
-    right: 20px;
-    font-size: 15px;
+  .hero-logo img { width: 100%; height: 100%; display: block; object-fit: cover; }
+  .hero-eyebrow {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase;
+    color: #6a6958; margin-bottom: 8px;
   }
-  .tool-card.mini-card:hover::after {
-    transform: translateY(-50%) translateX(3px);
+  .hero-title {
+    font-size: 44px; font-weight: 800; letter-spacing: -0.025em;
+    color: var(--natural); margin: 0; line-height: 1;
+    border-bottom: 4px solid var(--saffron);
+    display: inline-block; padding-bottom: 6px;
+  }
+  .hero-sub {
+    font-size: 13.5px; font-weight: 500; color: #6a6958; margin-top: 10px;
+  }
+  .hero-photo {
+    width: 230px; height: 164px;
+    border-radius: 14px; overflow: hidden; flex-shrink: 0;
+  }
+  .hero-photo img { width: 100%; height: 100%; display: block; object-fit: cover; }
+
+  @media (max-width: 700px) {
+    .hero-inner { grid-template-columns: 1fr; }
+    .hero-photo { display: none; }
+    .hero-title { font-size: 34px; }
   }
 
-  .add-card{
-    border:1.5px dashed #c9c7ba; border-radius:var(--radius); padding:26px;
-    display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:6px;
-    color:#9a998f; font-size:13px; min-height:100%;
+  /* ── LAYOUT ── */
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 26px 32px 48px; }
+
+  /* ── 2-COLUMN GRID for sections ── */
+  .sections-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 28px;
+    align-items: start;
   }
-  .add-card.mini-card {
-    padding: 14px 20px;
-    min-height: 0;
-    height: 58px;
-    flex-direction: row;
+  @media (max-width: 700px) { .sections-grid { grid-template-columns: 1fr; } }
+
+  /* ── CATEGORY HEADER ── */
+  .cat-header {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 7px;
+  }
+  .cat-label {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 9px; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase; color: #9a998f; white-space: nowrap;
+  }
+  .cat-rule { flex: 1; height: 1px; background: var(--line); }
+
+  /* ── TOOL LIST (button panel) ── */
+  .tool-list {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #FBFBF7;
+    overflow: hidden;
+  }
+
+  /* ── TOOL ROW ── */
+  .tool-row {
+    display: flex;
     align-items: center;
+    padding: 10px 13px;
+    min-height: 44px;
+    text-decoration: none;
+    color: var(--carbon);
     gap: 10px;
-    justify-content: flex-start;
-    border-radius: var(--radius-sm);
-    font-size: 11.5px;
+    transition: background 0.12s;
   }
-  .add-card .plus{font-size:22px; font-weight:700; color:#c9c7ba;}
-  .add-card.mini-card .plus {line-height:1; margin-top:-2px; font-size:18px;}
+  .tool-row:not(:last-child) { border-bottom: 1px solid var(--line); }
+  .tool-row:hover { background: rgba(20,20,20,0.042); }
+  .tool-row:hover .row-arrow { color: var(--carbon); transform: translateX(2px); }
 
-  footer{margin-top:56px; font-size:11.5px; color:#9b9a8f; text-align:center;}
-  a.quiet{color:inherit; text-decoration:underline; text-underline-offset:2px;}
+  .row-name {
+    font-size: 12.5px; font-weight: 600; letter-spacing: -0.01em;
+    flex: 1; min-width: 0; line-height: 1.3;
+  }
+  .row-tags {
+    display: flex; gap: 4px; flex-wrap: wrap;
+    justify-content: flex-end; flex-shrink: 0;
+  }
+  .row-arrow {
+    font-size: 12px; color: #c9c7ba; flex-shrink: 0;
+    transition: color 0.12s, transform 0.12s;
+  }
+
+  /* ── TAGS — every market its own color ── */
+  .tag {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 9px; font-weight: 600; letter-spacing: 0.05em;
+    padding: 2px 7px; border-radius: 999px;
+    border: 1px solid transparent; white-space: nowrap;
+  }
+  /* NL  — Ocean teal   */
+  .tag-NL     { background:rgba(24,132,159,.12);  border-color:rgba(24,132,159,.4);  color:#0b5e74; }
+  /* BE  — Pistachio    */
+  .tag-BE     { background:rgba(117,194,109,.13); border-color:rgba(117,194,109,.45);color:#1b5c16; }
+  /* FR-BE — Watermelon */
+  .tag-FR-BE  { background:rgba(255,88,93,.1);    border-color:rgba(255,88,93,.38);  color:#bf2b2e; }
+  /* SE  — Sky          */
+  .tag-SE     { background:rgba(97,223,255,.15);  border-color:rgba(97,223,255,.52); color:#1a7a96; }
+  /* DK  — Cherry       */
+  .tag-DK     { background:rgba(155,38,41,.1);    border-color:rgba(155,38,41,.35);  color:#7a1f22; }
+  /* DE  — Dijon gold   */
+  .tag-DE     { background:rgba(199,156,0,.12);   border-color:rgba(199,156,0,.42);  color:#7a5e00; }
+  /* All Markets — Saffron */
+  .tag-All    { background:rgba(255,200,0,.14);   border-color:rgba(255,200,0,.5);   color:#7a5f00; }
+
+  /* ── RESOURCES ── */
+  .resources {
+    margin-top: 28px; padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .res-toggle {
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer; user-select: none;
+  }
+  .res-label {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 9px; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase; color: #b8b7a8; white-space: nowrap;
+  }
+  .res-rule { flex: 1; height: 1px; background: var(--line); }
+  .res-chevron { font-size: 9px; color: #b8b7a8; transition: transform 0.2s; }
+  .res-chevron.open { transform: rotate(180deg); }
+  .res-body { display: flex; gap: 6px; flex-wrap: wrap; padding-top: 10px; }
+  .res-pill {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 10.5px; color: #8a897d; text-decoration: none;
+    padding: 4px 11px; border: 1px solid var(--line);
+    border-radius: 999px; background: var(--natural-2);
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .res-pill:hover { border-color: #8a897d; color: var(--carbon); }
+
+  /* ── FOOTER ── */
+  footer {
+    margin-top: 26px; padding-top: 14px;
+    border-top: 1px solid var(--line);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 10.5px; color: #b8b7a8;
+  }
 </style>
 </head>
 <body>
@@ -154,280 +188,136 @@
 <div class="hero">
   <div class="hero-inner">
     <div>
-      <div class="hero-logo"><img src="assets/logo.png" alt="Factor logo" /></div>
+      <div class="hero-logo"><img src="assets/logo.png" alt="Factor" /></div>
       <div class="hero-eyebrow">Internal Ops Tooling</div>
       <h1 class="hero-title">FACTOR_EU</h1>
-      <div class="hero-subtitle">Downstream and Reporting Tools</div>
-      <div class="hero-desc">A suite of tools to plan, manage and communicate swap &amp; shortage impacts — from production floor to customer-ready comms — across BNL, DE, SE and DK.</div>
+      <div class="hero-sub">Swap, Shortage &amp; Middle Mile Applications</div>
     </div>
-    <div class="hero-photo"><img src="assets/hero.png" alt="Factor meal box" /></div>
+    <div class="hero-photo"><img src="assets/hero.png" alt="" /></div>
   </div>
 </div>
 
-<div class="wrap">
+<main class="wrap">
+  <div class="sections-grid" id="toolSections"></div>
 
-  <!-- Categories are generated dynamically from the TOOLS array -->
-  <div id="toolSections"></div>
+  <div class="resources">
+    <div class="res-toggle" onclick="toggleRes()">
+      <span class="res-label">References &amp; Archives</span>
+      <span class="res-rule"></span>
+      <span class="res-chevron" id="chevron">▾</span>
+    </div>
+    <div class="res-body" id="resBody" style="display:none"></div>
+  </div>
 
-  <footer>
-    Factor · internal tools · made &amp; maintained by <strong>Colin Kreeftenberg</strong> — questions, edits or new tools go to him.
-  </footer>
-
-</div>
-
-  <!-- Categories are generated dynamically from the TOOLS array -->
-
-  <div id="toolSections"></div>
-
-  <footer>
-
-    Factor · internal tools · made &amp; maintained by <strong>Colin Kreeftenberg</strong> — questions, edits or new tools go to him.
-
-  </footer>
-
-</div>
-
-  <footer>Factor · internal tools · made &amp; maintained by <strong>Colin Kreeftenberg</strong> — questions, edits or new tools go to him.</footer>
-</div>
+  <footer>Factor · internal tools · built &amp; maintained by <strong>Colin Kreeftenberg</strong></footer>
+</main>
 
 <script>
 
-/* =================================================================
-
-   TOOLS — add items here.
-
-   Categories are created automatically from the category field.
-
-================================================================= */
-
+/* ── Active tools ── */
 const TOOLS = [
-
-  // 1. Strategic Swapping - Box Files
   {
-    name: "De Kas - Proactive Swap & Shortage Manager",
-    description: "Before production: plan swaps & shortages into box-files",
+    name: "De Kas — Proactive Swap & Shortage Manager",
     href: "tools/swap-shortage-manager.html",
     tags: ["NL","BE"],
-    category: "Strategic Swapping - Box Files",
+    category: "Strategic Swapping — Box Files",
   },
   {
-    name: "Verden - Proactive Swap & Shortage Manager",
-    description: "Before production: plan swaps & shortages into box-files",
+    name: "Verden — Proactive Swap & Shortage Manager",
     href: "tools/swap_shortage_manager_verden_3.html",
     tags: ["SE","DK","DE"],
-    category: "Strategic Swapping - Box Files"
+    category: "Strategic Swapping — Box Files",
   },
-
-  // 2. Downstream Communications & Compensation
   {
-    name: "De Kas - Swap & Shorts",
-    description: "Used by Downstream Team for Comms and Compensations",
+    name: "De Kas — Swap & Shorts",
     href: "tools/bnl-swaps-after-production.html",
-    tags: ["NL", "BE", "FR-BE"],
+    tags: ["NL","BE","FR-BE"],
     category: "Downstream Communications & Compensation",
   },
   {
-    name: "Verden - Swap & Shorts",
-    description: "Used by Downstream Team for Comms and Compensations",
+    name: "Verden — Swap & Shorts",
     href: "tools/verden-swap-short-builder.html",
-    tags: ["DE", "SE", "DK"],
+    tags: ["DE","SE","DK"],
     category: "Downstream Communications & Compensation",
   },
   {
-    name: "Downstream - Communication Creator",
-    description: "Used by Downstream Team for self-written communication",
+    name: "Downstream — Communication Creator",
     href: "tools/comms-creator.html",
     tags: ["All Markets"],
     category: "Downstream Communications & Compensation",
   },
-
-  // 3. Middle Mile Management
   {
     name: "Lane Manager",
-    description: "Manage middle mile lane allocations and transport planning.",
-    href: "https://lane-manager-factor-eu.vercel.app/",
+    href: "lane-manager/",
     tags: ["All Markets"],
-    category: "Middle Mile Management"
+    category: "Middle Mile Management",
   },
-
-  // 4. Reporting
   {
     name: "Error Reporting",
-    description: "All dynamic reporting on errors",
-    href: "https://reporting-factor-eu.vercel.app/",
+    href: "#",
     tags: ["All Markets"],
-    category: "Reporting"
+    category: "Reporting",
   },
-
-  // 5. Everything else
-  {
-    name: "Swap & Shortage - CRM Guide",
-    description: "",
-    href: "https://hellofresh.atlassian.net/wiki/spaces/EUF/pages/6760202365/Swap+Shortage+Tools+User+Guide+BNL+DE-SE-DK",
-    tags: [],
-    category: "Confluence SOPs"
-  },
-  {
-    name: "Backend sheet",
-    description: "",
-    href: "https://docs.google.com/spreadsheets/d/1DjYDHfwKLRkQzlEj22whxrBjdk9T36VRQqMGE91l17U/edit?gid=0#gid=0",
-    tags: [],
-    category: "Backup Data"
-  },
-  {
-    name: "Verden - Bulk Export Builder",
-    description: "Build & export customer compensation files.",
-    href: "tools/factor_compensation_export_builder_3.html",
-    tags: ["Ops", "Comp"],
-    category: "Archived Tools"
-  },
-  {
-    name: "Verden - CRM EXPORT BUILDER",
-    description: "Build & export customer communication files.",
-    href: "tools/de-se-dk-tool.html",
-    tags: ["Ops", "Comms"],
-    category: "Archived Tools"
-  },
-
 ];
 
-function renderTools() {
-
-  const container = document.getElementById("toolSections");
-
-  // Group tools by category
-
-  const groupedTools = TOOLS.reduce((groups, tool) => {
-
-    if (!groups[tool.category]) {
-
-      groups[tool.category] = [];
-
-    }
-
-    groups[tool.category].push(tool);
-
-    return groups;
-
-  }, {});
-
-  // Create HTML for every category
-
-  container.innerHTML = Object.entries(groupedTools)
-
-    .map(([category, tools]) => {
-
-      const isMiniSection = 
-
-        category.includes("SOP") ||
-
-        category.includes("links");
-
-      const cards = tools.map(tool => {
-
-        if (isMiniSection) {
-
-          return `
-
-            <a 
-
-              class="tool-card mini-card"
-
-              href="${tool.href}"
-
-              target="_blank"
-
-              rel="noopener"
-
-            >
-
-              <div class="tool-name">${tool.name}</div>
-
-            </a>
-
-          `;
-
-        }
-
-        return `
-
-          <a 
-
-            class="tool-card${tool.accent ? ' accent-' + tool.accent : ''}"
-
-            href="${tool.href}"
-
-            target="${tool.href.startsWith('http') ? '_blank' : '_self'}"
-
-            rel="noopener"
-
-          >
-
-            <div class="tool-name">${tool.name}</div>
-
-            <div class="tool-desc">
-
-              ${tool.description || ""}
-
-            </div>
-
-            <div class="tool-tags">
-
-              ${
-
-                tool.tags
-
-                  .map(tag => `<span class="tag">${tag}</span>`)
-
-                  .join("")
-
-              }
-
-            </div>
-
-          </a>
-
-        `;
-
-      }).join("");
-
-      return `
-
-        <div class="section-head">
-
-          <div class="section-title">
-
-            ${category}
-
-          </div>
-
-          <div class="section-count">
-
-            ${tools.length} ${tools.length === 1 ? "tool" : "tools"}
-
-          </div>
-
-        </div>
-
-        <div class="${isMiniSection ? "mini-grid" : "tool-grid"}">
-
-          ${cards}
-
-
-
-        </div>
-
-      `;
-
-    })
-
-    .join("");
-
+/* ── Reference / archive links ── */
+const RESOURCES = [
+  { name: "Swap & Shortage CRM Guide", href: "https://hellofresh.atlassian.net/wiki/spaces/EUF/pages/6760202365/Swap+Shortage+Tools+User+Guide+BNL+DE-SE-DK" },
+  { name: "Backend Sheet", href: "https://docs.google.com/spreadsheets/d/1DjYDHfwKLRkQzlEj22whxrBjdk9T36VRQqMGE91l17U/edit?gid=0#gid=0" },
+  { name: "Bulk Export Builder (archived)", href: "tools/factor_compensation_export_builder_3.html" },
+  { name: "CRM Export Builder (archived)", href: "tools/de-se-dk-tool.html" },
+];
+
+function tagHtml(tag) {
+  /* Use the first word of "All Markets" as class key */
+  const cls = tag === "All Markets" ? "All" : tag.replace("-","\\-");
+  return `<span class="tag tag-${tag === "All Markets" ? "All" : tag}">${tag}</span>`;
 }
 
-renderTools();
+function render() {
+  const groups = {};
+  TOOLS.forEach(t => {
+    if (!groups[t.category]) groups[t.category] = [];
+    groups[t.category].push(t);
+  });
 
+  document.getElementById('toolSections').innerHTML =
+    Object.entries(groups).map(([cat, tools]) => `
+      <div>
+        <div class="cat-header">
+          <span class="cat-label">${cat}</span>
+          <span class="cat-rule"></span>
+        </div>
+        <div class="tool-list">
+          ${tools.map(t => `
+            <a class="tool-row"
+               href="${t.href}"
+               target="${t.href.startsWith('http') ? '_blank' : '_self'}"
+               rel="noopener">
+              <span class="row-name">${t.name}</span>
+              <span class="row-tags">${t.tags.map(tagHtml).join('')}</span>
+              <span class="row-arrow">→</span>
+            </a>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+
+  document.getElementById('resBody').innerHTML =
+    RESOURCES.map(r =>
+      `<a class="res-pill" href="${r.href}" target="_blank" rel="noopener">${r.name}</a>`
+    ).join('');
+}
+
+function toggleRes() {
+  const body = document.getElementById('resBody');
+  const chev = document.getElementById('chevron');
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'flex';
+  chev.classList.toggle('open', !open);
+}
+
+render();
 </script>
-
 </body>
 </html>
