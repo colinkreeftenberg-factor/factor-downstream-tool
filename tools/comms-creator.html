@@ -785,6 +785,31 @@ function wireEditor(id, opts){
       }
     }
   });
+  el.addEventListener('paste', (e) => {
+    e.preventDefault();
+    if(opts.singleLine){
+      // Single-line fields: strip everything, paste as plain text only
+      const text = (e.clipboardData.getData('text/plain')||'').replace(/[\r\n]+/g,' ').trim();
+      document.execCommand('insertHTML', false, escHtml(text));
+    } else {
+      // Content field: try to preserve bold, italic, links, lists and paragraph breaks
+      const html = e.clipboardData.getData('text/html');
+      if(html){
+        document.execCommand('insertHTML', false, sanitizePastedHtml(html));
+      } else {
+        // Plain-text fallback: double newline → paragraph break, single → line break
+        const text = e.clipboardData.getData('text/plain')||'';
+        const converted = text
+          .split(/\n\n+/)
+          .map(para => para.split('\n').map(line => escHtml(line)).join('<br>'))
+          .filter(p => p.replace(/<br>/g,'').trim())
+          .join('<br><br>');
+        document.execCommand('insertHTML', false, converted);
+      }
+    }
+    el.dataset.empty = el.textContent.trim()==='' ? 'true' : 'false';
+    liveUpdate();
+  });
   el.addEventListener('input', () => {
     el.dataset.empty = el.textContent.trim() === '' ? 'true' : 'false';
     liveUpdate();
@@ -896,6 +921,48 @@ function sanitizeContentHtml(html){
     return out;
   }
   return walk(container).trim();
+}
+
+// Sanitizer used specifically for pasted HTML in the content field.
+// Converts paragraphs/divs to <br><br> and preserves bold, italic, links, and lists.
+// Also detects bold/italic carried via inline styles (e.g. from Google Docs/Outlook).
+function sanitizePastedHtml(html){
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  function walk(node){
+    let out = '';
+    node.childNodes.forEach(child => {
+      if(child.nodeType === Node.TEXT_NODE){
+        out += child.textContent.replace(/\u200B/g,'');
+      } else if(child.nodeType === Node.ELEMENT_NODE){
+        const tag = child.tagName;
+        const style = (child.getAttribute('style')||'').toLowerCase();
+        const fwm = style.match(/font-weight\s*:\s*(\w+)/);
+        const fsm = style.match(/font-style\s*:\s*(\w+)/);
+        const isBold = tag==='B'||tag==='STRONG'||(fwm&&(fwm[1]==='bold'||parseInt(fwm[1])>=600));
+        const isItalic = tag==='I'||tag==='EM'||(fsm&&fsm[1]==='italic');
+        const inner = walk(child);
+        let wrapped = inner;
+        if(isBold && isItalic){ wrapped = inner ? '<b><i>'+inner+'</i></b>' : ''; }
+        else if(isBold){ wrapped = inner ? '<b>'+inner+'</b>' : ''; }
+        else if(isItalic){ wrapped = inner ? '<i>'+inner+'</i>' : ''; }
+        if(tag==='BR'){ out += '<br>'; }
+        else if(tag==='A'){
+          const href = child.getAttribute('href')||'#';
+          out += '<a href="'+escHtml(href)+'">'+inner+'</a>';
+        } else if(tag==='LI'){ out += '<li>'+wrapped+'</li>'; }
+        else if(tag==='UL'||tag==='OL'){ out += wrapped; }
+        else if(tag==='P'||tag==='DIV'||tag==='H1'||tag==='H2'||tag==='H3'){
+          if(wrapped.trim()) out += wrapped+'<br><br>';
+        } else { out += wrapped; }
+      }
+    });
+    return out;
+  }
+  let result = walk(tmp);
+  result = result.replace(/(<br>\s*){3,}/gi,'<br><br>');
+  result = result.replace(/(<br>\s*)+$/i,'');
+  return result.trim();
 }
 
 /* =================================================================
