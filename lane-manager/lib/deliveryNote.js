@@ -4,7 +4,8 @@
 // no column for. Same idea as columns.js — one file to edit when the sheet
 // or the paper form changes.
 
-import { parseFlexibleDate, toTimeInputValue } from './dateUtils';
+import { parseFlexibleDate, toDateInputValue, toTimeInputValue } from './dateUtils';
+import { ALL_FIELDS_BY_HEADER } from './columns';
 
 /** Fixed pick-up address — every note leaves from Verden. */
 export const PICKUP_ADDRESS = [
@@ -154,6 +155,84 @@ export function buildNoteFromLane(lane) {
     handedOverBy: '',
     driverName: str(lane['Driver Name']),
   };
+}
+
+/**
+ * The note fields that have a real home on the sheet, so anything typed or
+ * corrected in the pop-up can go back to the lane instead of only existing on
+ * paper. Everything not listed here (seal number, temperatures, yard counts,
+ * pallet exchange, the checklist, the two paperwork names) has no column to
+ * live in and stays print-only.
+ *
+ * Load Reference is deliberately absent: it's the key the sheet row is found
+ * by, so editing it on the note changes what prints, never which lane this is.
+ */
+export const WRITE_BACK_FIELDS = [
+  { header: 'Carrier', get: (n) => n.forwarder },
+  { header: 'Destination', get: (n) => n.destination1 },
+  { header: 'Date', type: 'date', get: (n) => n.loadingDate },
+  { header: 'Actual Arrival time', type: 'time', get: (n) => n.arrivalTime },
+  { header: 'Actual Dispatch time', type: 'time', get: (n) => n.departureTime },
+  { header: TRUCK_PLATE_HEADER, get: (n) => n.truckPlate },
+  { header: TRAILER_PLATE_HEADER, get: (n) => n.trailerPlate },
+  { header: 'Bay door allocation', get: (n) => n.ramp },
+  { header: 'Total Boxes Loaded', get: (n) => n.freight[0].boxes },
+  { header: 'Pallets loaded', get: (n) => n.freight[0].pallets },
+  { header: 'Loader(s)', get: (n) => n.loadedBy },
+  { header: 'Driver Name', get: (n) => n.driverName },
+];
+
+/** Which note keys feed the sheet — used to badge those inputs in the pop-up. */
+export const WRITE_BACK_NOTE_KEYS = new Set([
+  'forwarder',
+  'destination1',
+  'loadingDate',
+  'arrivalTime',
+  'departureTime',
+  'truckPlate',
+  'trailerPlate',
+  'ramp',
+  'loadedBy',
+  'driverName',
+]);
+
+/** Stores dates as YYYY-MM-DD and times as HH:MM, matching the detail popup. */
+function forSheet(type, value) {
+  const s = str(value);
+  if (!s) return '';
+  if (type === 'date') return toDateInputValue(s) || s;
+  if (type === 'time') return toTimeInputValue(s) || s;
+  return s;
+}
+
+/**
+ * Works out what the pop-up would change on the lane: every write-back field
+ * whose value differs from what the sheet currently holds.
+ *
+ * Blanks are skipped rather than written. Clearing a field on the note is
+ * usually "don't print this", not "delete it from the sheet", and the sheet is
+ * shared — so an empty box never wipes a value someone else filled in.
+ */
+export function diffForWriteBack(note, lane) {
+  const changes = [];
+  for (const field of WRITE_BACK_FIELDS) {
+    const next = forSheet(field.type, field.get(note));
+    if (!next) continue;
+    const current = forSheet(field.type, lane[field.header]);
+    if (current === next) continue;
+    changes.push({
+      header: field.header,
+      label: ALL_FIELDS_BY_HEADER[field.header]?.label || field.header,
+      from: current,
+      to: next,
+    });
+  }
+  return changes;
+}
+
+/** Turns that diff into the PATCH body /api/lanes/[id] expects. */
+export function writeBackPayload(changes) {
+  return Object.fromEntries(changes.map((c) => [c.header, c.to]));
 }
 
 /**

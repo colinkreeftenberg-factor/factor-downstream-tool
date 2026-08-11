@@ -1,13 +1,23 @@
 // Übergabeschein tab: pick a lane, check/complete the fields in the pop-up,
 // print an A4 handover note for the transporter.
 //
-// Nothing here writes back to the sheet — the note is a print artefact, so a
-// correction made just before printing stays on the paper.
+// Anything typed here that has a home on the sheet (plates, actual times, ramp,
+// counts, driver) goes back to the lane on print, so filling in the note counts
+// as filling in the lane. The rest of the form — seal number, temperatures, yard
+// counts, pallet exchange, the checklist — has no column and stays on paper.
 
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import DeliveryNoteSheet from './DeliveryNoteSheet';
-import { applyRefrigeratedChange, buildNoteFromLane, CHECKLIST, YARD_COLUMNS } from '../lib/deliveryNote';
+import {
+  applyRefrigeratedChange,
+  buildNoteFromLane,
+  CHECKLIST,
+  diffForWriteBack,
+  WRITE_BACK_NOTE_KEYS,
+  writeBackPayload,
+  YARD_COLUMNS,
+} from '../lib/deliveryNote';
 import { isToday } from '../lib/dateUtils';
 import { KEY_HEADER } from '../lib/columns';
 
@@ -42,7 +52,7 @@ function printNote() {
   window.print();
 }
 
-export default function DeliveryNoteTab({ lanes }) {
+export default function DeliveryNoteTab({ lanes, onLaneUpdated }) {
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState('today'); // 'today' | 'all'
   const [note, setNote] = useState(null);
@@ -73,10 +83,9 @@ export default function DeliveryNoteTab({ lanes }) {
     setNoteLane(null);
   }
 
-  function handlePrint() {
-    if (note.preparedBy) window.localStorage.setItem(PREPARED_BY_KEY, note.preparedBy);
-    if (note.handedOverBy) window.localStorage.setItem(HANDED_OVER_BY_KEY, note.handedOverBy);
-    printNote();
+  function rememberNames(n) {
+    if (n.preparedBy) window.localStorage.setItem(PREPARED_BY_KEY, n.preparedBy);
+    if (n.handedOverBy) window.localStorage.setItem(HANDED_OVER_BY_KEY, n.handedOverBy);
   }
 
   return (
@@ -147,10 +156,21 @@ export default function DeliveryNoteTab({ lanes }) {
           setNote={setNote}
           lane={noteLane}
           onClose={closeNote}
-          onPrint={handlePrint}
+          onBeforePrint={rememberNames}
+          onLaneUpdated={onLaneUpdated}
+          onSavedToLane={(written) => setNoteLane((prev) => ({ ...prev, ...written }))}
         />
       )}
     </>
+  );
+}
+
+/** Marks an input whose value goes back to the lane, not just onto the paper. */
+function LaneBadge() {
+  return (
+    <span className="dn-wb-badge" title="Saved back to the lane when you print">
+      ↩ lane
+    </span>
   );
 }
 
@@ -160,6 +180,7 @@ function NoteField({ note, setNote, name, label, hint, disabled, placeholder }) 
     <div className="field">
       <label>
         {label}
+        {WRITE_BACK_NOTE_KEYS.has(name) ? <LaneBadge /> : null}
         {hint ? <span className="dn-hint"> {hint}</span> : null}
       </label>
       <input
@@ -172,9 +193,48 @@ function NoteField({ note, setNote, name, label, hint, disabled, placeholder }) 
   );
 }
 
-function DeliveryNoteModal({ note, setNote, lane, onClose, onPrint }) {
+function DeliveryNoteModal({ note, setNote, lane, onClose, onBeforePrint, onLaneUpdated, onSavedToLane }) {
   const [mounted, setMounted] = useState(false);
+  const [saveBack, setSaveBack] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
   useEffect(() => setMounted(true), []);
+
+  // What the pop-up would change on the lane. DACH lanes come from the master
+  // sheet and are read-only here — the WA Liste sync would overwrite anything
+  // we wrote, and the row number wouldn't even point at the right sheet.
+  const changes = useMemo(() => (lane?.editable ? diffForWriteBack(note, lane) : []), [note, lane]);
+  const willSave = saveBack && changes.length > 0;
+
+  async function handlePrint() {
+    onBeforePrint(note);
+    setSaveError(null);
+
+    if (willSave) {
+      setSaving(true);
+      const payload = writeBackPayload(changes);
+      try {
+        const res = await fetch(`/api/lanes/${lane._rowNumber}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error((await res.json()).error || 'Failed to update the lane');
+        // Fold the written values into this lane snapshot so reprinting doesn't
+        // offer the same changes a second time, then refresh the dashboard.
+        if (onSavedToLane) onSavedToLane(payload);
+        if (onLaneUpdated) onLaneUpdated();
+      } catch (err) {
+        // The driver is waiting at the ramp, so print anyway and be loud about
+        // the lane not having been updated.
+        setSaveError(`${err.message} — the note printed, but the lane was not updated.`);
+      } finally {
+        setSaving(false);
+      }
+    }
+
+    printNote();
+  }
 
   function setFreight(key, value) {
     setNote((n) => {
@@ -212,7 +272,7 @@ function DeliveryNoteModal({ note, setNote, lane, onClose, onPrint }) {
             <fieldset className="dn-fs">
               <legend>Adressen &amp; Informationen</legend>
               <div className="dn-fs-grid">
-                <NoteField note={note} setNote={setNote} name="reference" label="Referenz / Reference" />
+                <NoteField note={note} setNote={setNote} name="reference" label="Referenz / Reference" hint="· print only" />
                 <NoteField note={note} setNote={setNote} name="forwarder" label="LKW Spedition / Forwarder" />
                 <NoteField note={note} setNote={setNote} name="destination1" label="1. Entladestelle / 1st delivery address" />
                 <NoteField note={note} setNote={setNote} name="destination2" label="2. Entladestelle / 2nd delivery address" />
@@ -280,11 +340,17 @@ function DeliveryNoteModal({ note, setNote, lane, onClose, onPrint }) {
                   <input value={note.freight[0].load || ''} onChange={(e) => setFreight('load', e.target.value)} />
                 </div>
                 <div className="field">
-                  <label>Boxen / Boxes</label>
+                  <label>
+                    Boxen / Boxes
+                    <LaneBadge />
+                  </label>
                   <input value={note.freight[0].boxes || ''} onChange={(e) => setFreight('boxes', e.target.value)} />
                 </div>
                 <div className="field">
-                  <label>Palettenzahl / Pallets</label>
+                  <label>
+                    Palettenzahl / Pallets
+                    <LaneBadge />
+                  </label>
                   <input value={note.freight[0].pallets || ''} onChange={(e) => setFreight('pallets', e.target.value)} />
                 </div>
                 <div className="field">
@@ -354,12 +420,56 @@ function DeliveryNoteModal({ note, setNote, lane, onClose, onPrint }) {
               </div>
             </fieldset>
 
+            <div className="dn-wb">
+              {!lane?.editable ? (
+                <p className="dn-wb-empty">
+                  This is a DACH Logs lane — read-only here, so the note prints without touching the
+                  lane.
+                </p>
+              ) : changes.length === 0 ? (
+                <p className="dn-wb-empty">
+                  Nothing new to save back — the note matches the lane. Fields marked{' '}
+                  <span className="dn-wb-badge">↩ lane</span> update the lane when you change them.
+                </p>
+              ) : (
+                <>
+                  <label className="dn-wb-toggle">
+                    <input
+                      type="checkbox"
+                      checked={saveBack}
+                      onChange={(e) => setSaveBack(e.target.checked)}
+                    />
+                    <span>
+                      Also save {changes.length} change{changes.length === 1 ? '' : 's'} back to the
+                      lane
+                    </span>
+                  </label>
+                  <ul className="dn-wb-list">
+                    {changes.map((c) => (
+                      <li key={c.header}>
+                        <span className="dn-wb-field">{c.label}</span>
+                        <span className="dn-wb-from">{c.from || 'empty'}</span>
+                        <span className="dn-wb-arrow">→</span>
+                        <span className="dn-wb-to">{c.to}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="dn-wb-note">
+                    Cleared fields are never written — an empty box here won't wipe a value on the
+                    sheet.
+                  </p>
+                </>
+              )}
+            </div>
+
+            {saveError && <p className="dn-wb-error">{saveError}</p>}
+
             <div className="modal-actions">
               <button type="button" className="btn" onClick={onClose}>
                 Cancel
               </button>
-              <button type="button" className="btn btn-primary" onClick={onPrint}>
-                Print / Drucken
+              <button type="button" className="btn btn-primary" onClick={handlePrint} disabled={saving}>
+                {saving ? 'Saving…' : willSave ? 'Save & print' : 'Print / Drucken'}
               </button>
             </div>
           </div>

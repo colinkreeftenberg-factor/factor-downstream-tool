@@ -157,7 +157,7 @@ export default function Dashboard() {
       </div>
 
       {tab === 'email' && <EmailTab lanes={lanes} />}
-      {tab === 'delivery-notes' && <DeliveryNoteTab lanes={lanes} />}
+      {tab === 'delivery-notes' && <DeliveryNoteTab lanes={lanes} onLaneUpdated={loadLanes} />}
       {tab === 'slack-updates' && <SlackUpdatesTab lanes={lanes} />}
       {tab === 'history' && <HistoryTab lanes={lanes} />}
 
