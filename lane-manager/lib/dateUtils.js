@@ -37,16 +37,19 @@ export function toTimeInputValue(value) {
   if (!value) return '';
   const s = String(value).trim();
 
-  const hm = s.match(/^(\d{1,2}):(\d{2})/);
-  if (hm) return `${hm[1].padStart(2, '0')}:${hm[2]}`;
-
-  const ampm = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  // AM/PM first: a 12-hour string like "4:23:00 PM" also matches the plain
+  // HH:MM pattern below, and would silently come back as 04:23.
+  const ampm = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AP])\.?M\.?$/i);
   if (ampm) {
     let h = +ampm[1];
-    if (/PM/i.test(ampm[3]) && h < 12) h += 12;
-    if (/AM/i.test(ampm[3]) && h === 12) h = 0;
+    const isPM = /^p$/i.test(ampm[3]);
+    if (isPM && h < 12) h += 12;
+    if (!isPM && h === 12) h = 0;
     return `${String(h).padStart(2, '0')}:${ampm[2]}`;
   }
+
+  const hm = s.match(/^(\d{1,2}):(\d{2})/);
+  if (hm) return `${hm[1].padStart(2, '0')}:${hm[2]}`;
 
   return '';
 }
