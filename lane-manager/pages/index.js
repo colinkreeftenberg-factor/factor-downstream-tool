@@ -6,6 +6,7 @@ import { CreateLaneModal, EditCellModal } from '../components/LaneForm';
 import SlackUpdatesTab from '../components/SlackUpdatesTab';
 import HistoryTab from '../components/HistoryTab';
 import EmailTab from '../components/EmailTab';
+import DeliveryNoteTab from '../components/DeliveryNoteTab';
 import { isToday } from '../lib/dateUtils';
 import { downloadCSV } from '../lib/csvExport';
 import { KEY_HEADER } from '../lib/columns';
@@ -147,9 +148,16 @@ export default function Dashboard() {
         <button className={`tab-btn ${tab === 'email' ? 'tab-btn-active' : ''}`} onClick={() => setTab('email')}>
           Email
         </button>
+        <button
+          className={`tab-btn ${tab === 'delivery-notes' ? 'tab-btn-active' : ''}`}
+          onClick={() => setTab('delivery-notes')}
+        >
+          Delivery Notes
+        </button>
       </div>
 
       {tab === 'email' && <EmailTab lanes={lanes} />}
+      {tab === 'delivery-notes' && <DeliveryNoteTab lanes={lanes} />}
       {tab === 'slack-updates' && <SlackUpdatesTab lanes={lanes} />}
       {tab === 'history' && <HistoryTab lanes={lanes} />}
 

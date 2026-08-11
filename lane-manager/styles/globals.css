@@ -1,4 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+/* IBM Plex Sans is the web substitute for Simplon Norm per the brand guide —
+   used on the delivery note for the English sub-labels and accents. */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 
 :root {
   /* Factor brand palette, pulled from the brand guidelines PDF */
@@ -619,4 +621,443 @@ tbody tr:hover {
 .history-value-new {
   color: var(--green);
   font-weight: 600;
+}
+
+/* ============================================================
+   ÜBERGABESCHEIN (delivery note)
+   Two halves: the pop-up chrome (.modal-note, .dn-fs*) which is
+   screen-only, and the printable sheet (.dn-sheet) which is tuned
+   to land inside exactly one A4 page at an 8/9mm page margin.
+   Sizes are in mm/pt on purpose — this only exists to be printed.
+   Carbon + Natural throughout with a single Saffron accent bar that
+   carries no information, so a B/W printout loses nothing.
+   ============================================================ */
+
+/* ---------- pop-up: form on the left, live A4 preview on the right ---------- */
+.modal-note {
+  width: 1180px;
+  max-width: calc(100vw - 32px);
+  max-height: 90vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  overflow: hidden;
+}
+.modal-note-form {
+  overflow-y: auto;
+  padding-right: 6px;
+  max-height: calc(90vh - 40px);
+}
+.modal-note-preview {
+  border-left: 1px solid var(--border);
+  padding-left: 18px;
+  overflow: hidden;
+}
+.dn-preview-label {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+/* 210mm ≈ 794px; 0.55 keeps a full page visible next to the form. */
+.dn-preview-clip {
+  width: 437px;
+  /* 297mm at 0.55 ≈ 618px — sized to the page so there's no dead grey
+     below it, but it still scrolls on a short window. */
+  height: 620px;
+  max-height: calc(90vh - 80px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #D9D8D0;
+  border-radius: 6px;
+}
+.dn-preview-scale {
+  width: 794px;
+  transform: scale(0.55);
+  transform-origin: top left;
+}
+.dn-preview-scale .dn-sheet {
+  box-shadow: 0 2px 10px rgba(20, 20, 20, 0.18);
+}
+
+.dn-fs {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px 2px;
+  margin: 0 0 14px;
+}
+.dn-fs legend {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--carbon);
+  padding: 0 6px;
+}
+.dn-fs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 14px;
+}
+.dn-fs-grid-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.dn-fs-wide {
+  grid-column: 1 / -1;
+}
+.dn-fs .field select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+}
+.dn-fs .field input:disabled {
+  background: #F4F4EE;
+  color: var(--text-muted);
+}
+.dn-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.dn-chk-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+}
+.dn-chk-num {
+  flex: 0 0 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: var(--carbon);
+  color: #fff;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dn-chk-text {
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.3;
+}
+.dn-chk-row select {
+  flex: 0 0 120px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+}
+
+/* ---------- the printable sheet ---------- */
+.dn-sheet {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 8mm 9mm 6mm;
+  background: #fff;
+  color: var(--carbon);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 7.4pt;
+  line-height: 1.16;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+.dn-sheet * { box-sizing: border-box; }
+
+.dn-de { font-weight: 600; }
+.dn-en {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 400;
+  font-size: 6.1pt;
+  letter-spacing: 0.02em;
+  color: #5F5E57;
+}
+.dn-en-b {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 400;
+  font-size: 6.1pt;
+  color: #5F5E57;
+}
+.dn-en-block { display: block; font-weight: 400; }
+.dn-lbl { display: block; }
+.dn-lbl .dn-en { display: block; margin-top: 0.3mm; }
+
+.dn-hdr {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6mm;
+}
+.dn-wordmark {
+  font-weight: 700;
+  font-size: 17pt;
+  letter-spacing: -0.02em;
+  line-height: 0.9;
+}
+.dn-hdr-title { flex: 1; padding-bottom: 0.4mm; }
+.dn-hdr-title h1 {
+  margin: 0;
+  font-size: 11.5pt;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.dn-hdr-title .dn-en {
+  font-size: 7pt;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-top: 0.6mm;
+  display: block;
+}
+.dn-refchip {
+  border: 0.5mm solid var(--carbon);
+  border-radius: 3mm;
+  padding: 1.2mm 3mm;
+  text-align: right;
+  min-width: 50mm;
+  max-width: 74mm;
+}
+.dn-refchip .dn-en {
+  display: block;
+  font-size: 5.8pt;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.dn-refchip b {
+  display: block;
+  font-size: 9pt;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  word-break: break-all;
+}
+.dn-accentbar {
+  height: 1.6mm;
+  border-radius: 1mm;
+  background: var(--saffron);
+  margin: 1.8mm 0 2.2mm;
+}
+
+/* bento cards */
+.dn-sec {
+  border: 0.35mm solid var(--carbon);
+  border-radius: 2.6mm;
+  overflow: hidden;
+  margin-bottom: 1.6mm;
+  break-inside: avoid;
+}
+.dn-sec > h2 {
+  margin: 0;
+  padding: 1mm 2.4mm;
+  background: #E3E1D6;
+  border-bottom: 0.35mm solid var(--carbon);
+  font-size: 7pt;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: baseline;
+  gap: 2.2mm;
+}
+.dn-sec > h2 .dn-en {
+  font-size: 6.1pt;
+  letter-spacing: 0.09em;
+  text-transform: none;
+}
+
+.dn-grid { display: grid; }
+.dn-cell {
+  padding: 1.1mm 2.2mm;
+  border-right: 0.25mm solid #B9B7AC;
+  border-bottom: 0.25mm solid #B9B7AC;
+  min-height: 8.2mm;
+}
+.dn-cell:last-child { border-right: 0; }
+.dn-row-last .dn-cell { border-bottom: 0; }
+.dn-val {
+  display: block;
+  margin-top: 0.7mm;
+  font-size: 8.2pt;
+  font-weight: 600;
+  line-height: 1.15;
+  min-height: 3.9mm;
+}
+.dn-blank {
+  background: var(--natural);
+  border-radius: 1.4mm;
+  min-height: 4.8mm;
+}
+.dn-addr { font-size: 7.4pt; font-weight: 500; }
+
+.dn-box {
+  display: inline-block;
+  width: 3.4mm;
+  height: 3.4mm;
+  vertical-align: -0.5mm;
+  border: 0.3mm solid var(--carbon);
+  border-radius: 0.8mm;
+  background: #fff;
+  margin-right: 1mm;
+}
+.dn-box-on { background: var(--carbon); position: relative; }
+.dn-box-on::after {
+  content: "";
+  position: absolute;
+  left: 0.85mm;
+  top: 0.35mm;
+  width: 1.1mm;
+  height: 2mm;
+  border: 0.45mm solid #fff;
+  border-top: 0;
+  border-left: 0;
+  transform: rotate(40deg);
+}
+.dn-opt {
+  display: inline-flex;
+  align-items: baseline;
+  margin-right: 4mm;
+  white-space: nowrap;
+}
+.dn-opt-sm { margin-right: 2.6mm; font-size: 6.6pt; }
+.dn-opt-sm:last-child { margin-right: 0; }
+
+/* tables — these override the dashboard's global table rules */
+.dn-sheet table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: inherit;
+}
+.dn-sheet th,
+.dn-sheet td {
+  border-right: 0.25mm solid #B9B7AC;
+  border-bottom: 0.25mm solid #B9B7AC;
+  padding: 0.9mm 1.6mm;
+  text-align: left;
+  vertical-align: top;
+  white-space: normal;
+}
+.dn-sheet th:last-child,
+.dn-sheet td:last-child { border-right: 0; }
+.dn-sheet tbody tr:last-child td { border-bottom: 0; }
+.dn-sheet thead th {
+  position: static;
+  background: #F7F6F1;
+  color: var(--carbon);
+  font-size: 6.4pt;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+}
+.dn-sheet th .dn-en {
+  display: block;
+  font-size: 5.6pt;
+  margin-top: 0.1mm;
+  line-height: 1.1;
+}
+.dn-sheet tbody td {
+  font-size: 8.2pt;
+  font-weight: 600;
+  height: 7.4mm;
+}
+.dn-sheet tbody tr:hover { background: transparent; }
+.dn-sheet .dn-fill { background: var(--natural); }
+.dn-sheet .dn-num { text-align: right; }
+
+.dn-chk { list-style: none; margin: 0; padding: 0; }
+.dn-chk li {
+  display: flex;
+  align-items: center;
+  gap: 2.2mm;
+  padding: 0.7mm 2.2mm;
+  border-bottom: 0.25mm solid #B9B7AC;
+}
+.dn-chk li:last-child { border-bottom: 0; }
+.dn-chk .dn-n {
+  flex: 0 0 4.6mm;
+  height: 4.6mm;
+  border-radius: 1.2mm;
+  background: var(--carbon);
+  color: #fff;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 6.2pt;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dn-chk .dn-t { flex: 1; }
+.dn-chk .dn-marks { flex: 0 0 auto; white-space: nowrap; }
+
+.dn-sig { grid-template-columns: 1fr 1fr; border-top: 0.35mm solid var(--carbon); }
+.dn-sig .dn-pane {
+  padding: 1.4mm 2.2mm 1.6mm;
+  border-right: 0.35mm solid var(--carbon);
+}
+.dn-sig .dn-pane:last-child { border-right: 0; }
+.dn-sigline {
+  margin-top: 6mm;
+  border-top: 0.3mm solid var(--carbon);
+  padding-top: 0.8mm;
+  font-size: 6.1pt;
+  font-family: 'IBM Plex Sans', sans-serif;
+  color: #5F5E57;
+}
+.dn-nameline {
+  margin-top: 1.4mm;
+  background: var(--natural);
+  border-radius: 1.4mm;
+  min-height: 5.4mm;
+  padding: 0.8mm 1.4mm;
+  font-size: 8.2pt;
+  font-weight: 600;
+}
+.dn-confirm-wrap { padding: 0 2.2mm 1.8mm; }
+.dn-confirm {
+  margin-top: 1.6mm;
+  padding: 1.2mm 1.8mm;
+  border: 0.3mm solid var(--carbon);
+  border-radius: 2mm;
+  background: var(--natural);
+}
+.dn-confirm .dn-de { font-size: 7pt; }
+
+.dn-foot {
+  margin-top: auto;
+  padding-top: 1.4mm;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 5.8pt;
+  color: #5F5E57;
+  border-top: 0.25mm solid #B9B7AC;
+}
+
+/* ---------- printing ----------
+   The note lives in a portal at <body> level, hidden on screen. While
+   printing it, everything else on the page is hidden and the sheet drops
+   its own padding/min-height so the @page margin is the only margin —
+   otherwise a 297mm-tall box inside a 281mm content area spills onto a
+   second, blank page. */
+.dn-print-root { display: none; }
+
+@media print {
+  body.dn-printing > *:not(.dn-print-root) { display: none !important; }
+  body.dn-printing .dn-print-root { display: block !important; }
+  body.dn-printing .dn-sheet {
+    min-height: 0;
+    padding: 0;
+    box-shadow: none;
+  }
 }
