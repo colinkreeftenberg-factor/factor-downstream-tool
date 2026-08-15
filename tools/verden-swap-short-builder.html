@@ -530,6 +530,34 @@ function findCol(header, ...candidates){
 // when there's no explicit production_day column in the feed.
 function dateOnlyFromPick(v){ if(!v) return ''; return String(v).trim().split(/\s+/)[0]; }
 
+/* Bartender writes pick times as DD-MM-YYYY ("14-08-2026 07:49:21"), which
+   new Date() rejects outright — it returns Invalid Date, so any comparator
+   built on it yields NaN and Array.sort() silently leaves the rows exactly
+   as the sheet happened to hand them over. That made every box range a
+   positional slice of sheet rows rather than a real production window, and
+   it only looked correct for as long as the sheet stayed in time order.
+   Parse the components explicitly instead, and fall back to the native
+   parser for ISO-style dates in case the feed's format changes again.
+   Returns epoch ms, or null when the value can't be read at all. */
+function parsePickTime(v){
+  if(v===null || v===undefined || v==='') return null;
+  const s = String(v).trim();
+  const m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})(?:[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if(m){
+    const t = new Date(+m[3], +m[2]-1, +m[1], +(m[4]||0), +(m[5]||0), +(m[6]||0)).getTime();
+    return isNaN(t) ? null : t;
+  }
+  const t = new Date(s).getTime();
+  return isNaN(t) ? null : t;
+}
+// Rows whose time couldn't be read sort to the end rather than to 1970.
+function byPickTime(a,b){
+  if(a.pickTs===null && b.pickTs===null) return 0;
+  if(a.pickTs===null) return 1;
+  if(b.pickTs===null) return -1;
+  return a.pickTs - b.pickTs;
+}
+
 /* =================================================================
    BUILDERS
 ================================================================= */
@@ -546,6 +574,7 @@ function buildBartenderIndex(rows){
   // line can be reported as "that box ran on ASL4" instead of a bare
   // "not found" — ASL1 and ASL4 are separate runs and must never be mixed.
   const byBox = new Map();
+  let unparsedTimes = 0;
   for(let i=1;i<rows.length;i++){
     const r = rows[i];
     if(!r || !r[idx.boxId]) continue;
@@ -556,14 +585,15 @@ function buildBartenderIndex(rows){
     // the date portion of first_pick_time instead of leaving every box
     // with the same blank value (which made day-filtering a no-op).
     const productionDay = idx.day>=0 ? (r[idx.day]||'').toString().trim() : dateOnlyFromPick(firstPick);
-    const rec = { boxIdRaw, boxIdNorm: normalizeBoxId(boxIdRaw), line, firstPick, productionDay };
+    const rec = { boxIdRaw, boxIdNorm: normalizeBoxId(boxIdRaw), line, firstPick, pickTs: parsePickTime(firstPick), productionDay };
+    if(rec.pickTs === null) unparsedTimes++;
     if(!byLine.has(line)) byLine.set(line, []);
     byLine.get(line).push(rec);
     if(!byBox.has(rec.boxIdNorm)) byBox.set(rec.boxIdNorm, []);
     byBox.get(rec.boxIdNorm).push(rec);
   }
-  byLine.forEach(arr => arr.sort((a,b)=> new Date(a.firstPick) - new Date(b.firstPick)));
-  return { byLine, byBox };
+  byLine.forEach(arr => arr.sort(byPickTime));
+  return { byLine, byBox, unparsedTimes };
 }
 
 // Which line(s) a box was actually produced on, for error messages and the
@@ -697,7 +727,10 @@ async function loadSource(src){
       const prevValue = lineSelect.value;
       lineSelect.innerHTML = '<option value="">Select line…</option>' + lines.map(l=>`<option value="${l}">${l}</option>`).join('');
       if(lines.includes(prevValue)) lineSelect.value = prevValue;
-      setLc(src, `Loaded · ${rows.length-1} rows · ${lines.length} line(s)`, 'ok');
+      // An unreadable pick time can't be placed in a production window, so
+      // it must be visible rather than quietly dropped from every range.
+      const badTimes = builtLines.unparsedTimes;
+      setLc(src, `Loaded · ${rows.length-1} rows · ${lines.length} line(s)` + (badTimes ? ` · ⚠️ ${badTimes} unreadable first_pick_time` : ''), badTimes ? 'warn' : 'ok');
       updateLineHint();
     } else if(src==='odl'){
       const payload = await loadJson('/api/data?sheet=odl');
@@ -949,7 +982,7 @@ document.getElementById('btn-add-incident').addEventListener('click', ()=>{
   state.incidentSeq++;
   state.incidents.push({
     id: state.incidentSeq, line, firstBox, lastBox: lastBox || null, slot, slotUnknown, type, categoryIndex,
-    status: 'draft', matched: [], warnings: [], notes: [], week: null, market: null,
+    status: 'draft', matched: [], warnings: [], notes: [], week: null, market: null, rangeFrom: null, rangeTo: null,
     recipeName: null, recipeCode: null, substituteSlot: null, substituteRecipeName: null, substituteRecipeCode: null,
     substituteUnknown: false,
     checkedCount: 0, notInOdl: 0, notImpacted: 0, notConvertible: 0, usedRawSlot: 0
@@ -973,8 +1006,8 @@ function findMatches(incident){
   if(!lineRows.length){ incident.warnings.push(`No Bartender rows found for line "${incident.line}".`); incident.status='error'; return; }
 
   const firstNorm = normalizeBoxId(incident.firstBox);
-  const firstIdxAll = lineRows.findIndex(r=>r.boxIdNorm===firstNorm);
-  if(firstIdxAll===-1){
+  const firstRec = lineRows.find(r=>r.boxIdNorm===firstNorm);
+  if(!firstRec){
     const otherLines = linesForBox(incident.firstBox).filter(l=>l!==lineKey);
     incident.warnings.push(otherLines.length
       ? `First box ${incident.firstBox} ran on ${otherLines.join(' / ')}, not ${incident.line}. Lines are searched separately — re-add this incident against ${otherLines.join(' or ')}.`
@@ -982,31 +1015,55 @@ function findMatches(incident){
     incident.status='error'; return;
   }
 
-  const day = lineRows[firstIdxAll].productionDay;
-  const dayRows = lineRows.filter(r=>r.productionDay===day);
-  const firstIdx = dayRows.findIndex(r=>r.boxIdNorm===firstNorm);
-  let endIdx = dayRows.length - 1;
+  const day = firstRec.productionDay;
+  const dayRows = lineRows.filter(r=>r.productionDay===day);   // already ordered by pickTs
+
+  let lastRec = null;
   if(incident.lastBox){
     const lastNorm = normalizeBoxId(incident.lastBox);
-    const lastIdx = dayRows.findIndex((r,i)=> i>=firstIdx && r.boxIdNorm===lastNorm);
-    if(lastIdx===-1){
-      // Previously this fell back to "rest of the run", which silently turned
-      // a bounded range into everything left on the line — including when the
-      // last box belonged to the other line entirely. Stop instead.
+    lastRec = dayRows.find(r=>r.boxIdNorm===lastNorm) || null;
+    if(!lastRec){
+      // Previously an unfound last box fell back to "rest of the run", which
+      // silently turned a bounded range into everything left on the line —
+      // including when the box belonged to the other line entirely.
       const otherLines = linesForBox(incident.lastBox).filter(l=>l!==lineKey);
-      const beforeFirst = dayRows.some((r,i)=> i<firstIdx && r.boxIdNorm===lastNorm);
       if(otherLines.length){
         incident.warnings.push(`Last box ${incident.lastBox} ran on ${otherLines.join(' / ')}, not ${incident.line}. ${incident.line} and ${otherLines.join('/')} are separate runs — the range must start and end on the same line.`);
-      } else if(beforeFirst){
-        incident.warnings.push(`Last box ${incident.lastBox} was produced before ${incident.firstBox} on ${incident.line}. Swap the two box IDs.`);
+      } else if(lineRows.some(r=>r.boxIdNorm===lastNorm)){
+        incident.warnings.push(`Last box ${incident.lastBox} ran on ${incident.line} but on a different production day than ${incident.firstBox} (${day}). A range can't span two production days.`);
       } else {
         incident.warnings.push(`Last box ${incident.lastBox} not found on ${incident.line} for production day ${day}. Leave it blank to use the rest of the run, or enter a box from this run.`);
       }
       incident.status='error'; return;
     }
-    endIdx = lastIdx;
+    if(firstRec.pickTs !== null && lastRec.pickTs !== null && lastRec.pickTs < firstRec.pickTs){
+      incident.warnings.push(`Last box ${incident.lastBox} was picked at ${lastRec.firstPick}, before ${incident.firstBox} at ${firstRec.firstPick}. Swap the two box IDs.`);
+      incident.status='error'; return;
+    }
   }
-  const candidateBoxes = dayRows.slice(firstIdx, endIdx+1);
+
+  // The impacted run is the time window between the two boxes on this line,
+  // not a slice of sheet rows: row order is whatever the sheet happens to
+  // hand over, and taking positions on trust is what let a 182-box range
+  // silently balloon into thousands of customers.
+  let candidateBoxes, noTimeInRange = 0;
+  if(firstRec.pickTs === null || (lastRec && lastRec.pickTs === null)){
+    // Only reachable if the feed's time format changes again. Fall back to
+    // row order, but say so loudly rather than reporting a confident number.
+    const fi = dayRows.indexOf(firstRec);
+    const li = lastRec ? dayRows.indexOf(lastRec) : dayRows.length - 1;
+    candidateBoxes = dayRows.slice(fi, Math.max(fi, li) + 1);
+    incident.warnings.push(`first_pick_time could not be read for the range boundaries, so the range fell back to sheet row order. Check the result against Bartender before confirming.`);
+  } else {
+    candidateBoxes = dayRows.filter(r =>
+      r.pickTs !== null &&
+      r.pickTs >= firstRec.pickTs &&
+      (lastRec === null || r.pickTs <= lastRec.pickTs));
+    noTimeInRange = dayRows.filter(r => r.pickTs === null).length;
+    if(noTimeInRange) incident.warnings.push(`${noTimeInRange} box(es) on ${incident.line} have an unreadable first_pick_time and could not be placed in the range.`);
+  }
+  incident.rangeFrom = firstRec.firstPick;
+  incident.rangeTo = lastRec ? lastRec.firstPick : (candidateBoxes.length ? candidateBoxes[candidateBoxes.length-1].firstPick : firstRec.firstPick);
 
   const matched = []; let notInOdl=0, notImpacted=0, notConvertible=0, usedRawSlot=0;
   candidateBoxes.forEach(box=>{
@@ -1164,6 +1221,7 @@ function renderIncidentCard(inc){
     body += `<div class="btn-row"><button class="btn btn-ghost btn-sm" id="find-${inc.id}">Try again</button></div>`;
   } else if(inc.status==='empty' || inc.status==='matched'){
     body += `<div class="match-summary">
+      ${inc.rangeFrom ? `Range <b>${escapeHtml(inc.rangeFrom)}</b> → <b>${escapeHtml(inc.lastBox ? inc.rangeTo : inc.rangeTo + ' (end of run)')}</b><br>` : ''}
       Checked <b>${inc.checkedCount}</b> box(es) on this line/day &middot;
       <b>${inc.matched.length}</b> customer(s) / <b>${totalUnits}</b> unit(s) actually had slot ${escapeHtml(inc.slot)}
       ${inc.notInOdl ? ` &middot; ${inc.notInOdl} not found in ODL` : ''}
