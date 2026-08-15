@@ -76,6 +76,11 @@
   .match-summary b{font-weight:700;}
   .warn-line{color:var(--err);font-size:12px;margin-top:6px;}
   .ok-line{color:var(--ok);font-size:12px;margin-top:6px;}
+  .note-line{color:var(--ink-dim);font-size:12px;margin-top:6px;}
+  .field-help{font-size:11.5px;color:var(--ink-dim);margin-top:6px;line-height:1.5;}
+  .line-hint{font-size:12px;margin-top:10px;min-height:0;}
+  .line-hint.bad{color:var(--err);}
+  .line-hint.good{color:var(--ink-dim);}
 
   .combo{position:relative;max-width:360px;margin-top:10px;}
   .combo-input{cursor:text;}
@@ -169,7 +174,7 @@
   <!-- STEP 2 -->
   <div class="step" id="step2">
     <div class="step-head"><span class="step-num">02</span><span class="step-title">Add incidents</span></div>
-    <div class="step-desc">One row per affected slot. Add as many as you need, then find matches for each.</div>
+    <div class="step-desc">One row per affected slot. Add as many as you need, then find matches for each. Each assembly line is a separate production run — a box range must start and end on the same line, and only that line's boxes are searched.</div>
 
     <div id="sessionOverview"></div>
 
@@ -194,6 +199,16 @@
       <div>
         <label class="field-label">Meal Impacted</label>
         <div id="slot-combo-mount"></div>
+      </div>
+    </div>
+
+    <div class="line-hint" id="line-hint"></div>
+
+    <div class="form-grid" id="unknown-slot-row" style="margin-top:12px;display:none;">
+      <div style="grid-column:span 4;">
+        <label class="field-label">Slot number of the UNKNOWN meal (required)</label>
+        <input type="text" id="in-unknown-slot" placeholder="e.g. 301">
+        <div class="field-help">The meal has no entry in the Meal Database, so its name can't be resolved — customers will get the generic email. The slot number is still needed to work out which customers actually ordered it. Use the German slot (Slot GER); for Swedish/Danish boxes whose week is missing from the Meal Database, enter the local Nordic slot instead.</div>
       </div>
     </div>
 
@@ -473,6 +488,7 @@ const TEMPLATES = {
 ================================================================= */
 const state = {
   bartenderByLine: new Map(),
+  bartenderByBox: new Map(),    // "BOXNORM" -> [{line, productionDay, ...}]
   odlByBoxNorm: new Map(),
   recipeByKey: new Map(),       // "WEEK|SLOT" -> {code, german, swedish, danish}
   weekSlotOptions: new Map(),   // "WEEK" -> [{slot, code, german, swedish, danish}]
@@ -526,6 +542,10 @@ function buildBartenderIndex(rows){
     day: findCol(header, 'production_day')
   };
   const byLine = new Map();
+  // Every box also indexed on its own, so a box entered against the wrong
+  // line can be reported as "that box ran on ASL4" instead of a bare
+  // "not found" — ASL1 and ASL4 are separate runs and must never be mixed.
+  const byBox = new Map();
   for(let i=1;i<rows.length;i++){
     const r = rows[i];
     if(!r || !r[idx.boxId]) continue;
@@ -539,9 +559,18 @@ function buildBartenderIndex(rows){
     const rec = { boxIdRaw, boxIdNorm: normalizeBoxId(boxIdRaw), line, firstPick, productionDay };
     if(!byLine.has(line)) byLine.set(line, []);
     byLine.get(line).push(rec);
+    if(!byBox.has(rec.boxIdNorm)) byBox.set(rec.boxIdNorm, []);
+    byBox.get(rec.boxIdNorm).push(rec);
   }
   byLine.forEach(arr => arr.sort((a,b)=> new Date(a.firstPick) - new Date(b.firstPick)));
-  return byLine;
+  return { byLine, byBox };
+}
+
+// Which line(s) a box was actually produced on, for error messages and the
+// live hint under the Line picker. Normally exactly one.
+function linesForBox(boxIdRaw){
+  const recs = state.bartenderByBox.get(normalizeBoxId(boxIdRaw)) || [];
+  return Array.from(new Set(recs.map(r=>r.line)));
 }
 
 function buildOdlIndex(rows){
@@ -660,13 +689,16 @@ async function loadSource(src){
     if(src==='bartender'){
       const payload = await loadJson('/api/data?sheet=bartender');
       const rows = payload.data;
-      state.bartenderByLine = buildBartenderIndex(rows);
+      const builtLines = buildBartenderIndex(rows);
+      state.bartenderByLine = builtLines.byLine;
+      state.bartenderByBox = builtLines.byBox;
       const lines = Array.from(state.bartenderByLine.keys()).sort();
       const lineSelect = document.getElementById('in-line');
       const prevValue = lineSelect.value;
       lineSelect.innerHTML = '<option value="">Select line…</option>' + lines.map(l=>`<option value="${l}">${l}</option>`).join('');
       if(lines.includes(prevValue)) lineSelect.value = prevValue;
       setLc(src, `Loaded · ${rows.length-1} rows · ${lines.length} line(s)`, 'ok');
+      updateLineHint();
     } else if(src==='odl'){
       const payload = await loadJson('/api/data?sheet=odl');
       const rows = payload.data;
@@ -740,6 +772,19 @@ function getCurrentType(){
 }
 
 /* =================================================================
+   UNKNOWN MEAL — escape hatch for meals that simply aren't in the
+   Meal Database for that week. Without it a whole incident could not
+   be processed at all: the impacted meal couldn't be picked, and a
+   substitute with no name was filtered out of the picker entirely.
+   Choosing UNKNOWN keeps the customer matching and compensation
+   exactly as they are and only forces the generic CRM email, since
+   there is no recipe name to put in a templated one.
+================================================================= */
+const UNKNOWN_SLOT = '__UNKNOWN__';
+const UNKNOWN_LABEL = 'UNKNOWN — meal not in the Meal Database';
+function unknownOption(){ return { slot: UNKNOWN_SLOT, label: UNKNOWN_LABEL, code:'', unknown:true }; }
+
+/* =================================================================
    COMBOBOX (substitute meal picker)
 ================================================================= */
 function createCombobox({container, getOptions, placeholder, onSelect, allowFreeText}){
@@ -756,7 +801,8 @@ function createCombobox({container, getOptions, placeholder, onSelect, allowFree
     currentList = filtered;
     if(!opts.length){ panel.innerHTML = `<div class="combo-empty">${allowFreeText ? 'No meal list yet — you can still type a slot number' : 'No recipes for this week yet'}</div>`; return; }
     if(!filtered.length){ panel.innerHTML = `<div class="combo-empty">No matching recipes${allowFreeText ? ' — typed value will be used as-is' : ''}</div>`; return; }
-    panel.innerHTML = filtered.map((o,i)=>`<div class="combo-option" data-idx="${i}"><span>${escapeHtml(o.label)}</span><span class="co-meta"><span class="co-idx">#${escapeHtml(o.slot)}</span>${o.code?`<span class="co-idx">${escapeHtml(o.code)}</span>`:''}</span></div>`).join('');
+    // The UNKNOWN entry has no real slot number, so don't render a "#__UNKNOWN__" chip for it.
+    panel.innerHTML = filtered.map((o,i)=>`<div class="combo-option" data-idx="${i}"><span>${escapeHtml(o.label)}</span><span class="co-meta">${o.unknown?'':`<span class="co-idx">#${escapeHtml(o.slot)}</span>`}${o.code?`<span class="co-idx">${escapeHtml(o.code)}</span>`:''}</span></div>`).join('');
   }
   function openPanel(){ renderOptions(''); panel.style.display='block'; activeIndex=-1; }
   function closePanel(){ panel.style.display='none'; activeIndex=-1; }
@@ -830,21 +876,53 @@ function getSlotOptionsFor(week, market){
     })
     .sort((a,b)=> a.slot.localeCompare(b.slot, undefined, {numeric:true}));
 }
+function setUnknownSlotRowVisible(visible){
+  const row = document.getElementById('unknown-slot-row');
+  row.style.display = visible ? '' : 'none';
+  if(!visible) document.getElementById('in-unknown-slot').value = '';
+}
 function mountSlotCombo(week, market){
   const mount = document.getElementById('slot-combo-mount');
-  const options = getSlotOptionsFor(week, market);
+  // UNKNOWN is always offered, including when the week has no meal list at
+  // all — that's precisely the case where the operator needs it.
+  const realOptions = getSlotOptionsFor(week, market);
+  const options = [unknownOption()].concat(realOptions);
+  setUnknownSlotRowVisible(false);
   slotComboRef = createCombobox({
     container: mount,
     getOptions: ()=> options,
-    placeholder: options.length ? 'Search meal or type slot #…' : 'Type slot number (or fill in first box above)',
+    placeholder: realOptions.length ? 'Search meal, type slot # or pick UNKNOWN…' : 'Type slot number, or pick UNKNOWN',
     allowFreeText: true,
-    onSelect: ()=>{}
+    onSelect: rec=> setUnknownSlotRowVisible(!!(rec && rec.unknown))
   });
 }
 mountSlotCombo(null, null);
 
+/* Warns as soon as the first box is entered that it belongs to a different
+   assembly line than the one selected. ASL1 and ASL4 are separate runs with
+   separate box ranges and are never searched together. */
+function updateLineHint(){
+  const hint = document.getElementById('line-hint');
+  if(!hint) return;
+  const line = document.getElementById('in-line').value.trim().toUpperCase();
+  const firstBox = document.getElementById('in-firstbox').value.trim();
+  if(!line || !firstBox || !state.bartenderByBox.size){ hint.textContent = ''; hint.className = 'line-hint'; return; }
+  const boxLines = linesForBox(firstBox);
+  if(!boxLines.length){
+    hint.className = 'line-hint bad';
+    hint.textContent = `${firstBox} isn't in the Bartender feed on any line yet.`;
+  } else if(!boxLines.includes(line)){
+    hint.className = 'line-hint bad';
+    hint.textContent = `${firstBox} ran on ${boxLines.join(' / ')}, not ${line}. Lines are separate production runs — switch the line above.`;
+  } else {
+    hint.className = 'line-hint good';
+    hint.textContent = `${firstBox} confirmed on ${line}. Only ${line} boxes from that production day will be searched.`;
+  }
+}
+
 function refreshSlotOptionsFromFirstBox(){
   const firstBoxVal = document.getElementById('in-firstbox').value.trim();
+  updateLineHint();
   if(!firstBoxVal){ mountSlotCombo(null, null); return; }
   const market = detectMarket(firstBoxVal);
   const odlRow = state.odlByBoxNorm.get(normalizeBoxId(firstBoxVal));
@@ -852,36 +930,57 @@ function refreshSlotOptionsFromFirstBox(){
   mountSlotCombo(week, market);
 }
 document.getElementById('in-firstbox').addEventListener('blur', refreshSlotOptionsFromFirstBox);
+document.getElementById('in-line').addEventListener('change', updateLineHint);
 document.getElementById('btn-add-incident').addEventListener('click', ()=>{
   const line = document.getElementById('in-line').value.trim();
   const firstBox = document.getElementById('in-firstbox').value.trim();
   const lastBox = document.getElementById('in-lastbox').value.trim();
-  const slot = slotComboRef ? slotComboRef.getSlot() : '';
+  const pickedSlot = slotComboRef ? slotComboRef.getSlot() : '';
   const categoryIndex = parseInt(categorySelect.value, 10);
-  if(!line || !firstBox || !slot){ alert('Line, first box ID and affected slot are required.'); return; }
+  if(!line || !firstBox || !pickedSlot){ alert('Line, first box ID and affected slot are required.'); return; }
+
+  // UNKNOWN only removes the recipe *name*; the slot number is still what
+  // decides which customers actually ordered the meal, so it stays required.
+  const slotUnknown = pickedSlot === UNKNOWN_SLOT;
+  const slot = slotUnknown ? document.getElementById('in-unknown-slot').value.trim() : pickedSlot;
+  if(slotUnknown && !slot){ alert('Enter the slot number of the UNKNOWN meal — it is needed to find the impacted customers.'); return; }
+
   const type = getCurrentType();
   state.incidentSeq++;
   state.incidents.push({
-    id: state.incidentSeq, line, firstBox, lastBox: lastBox || null, slot, type, categoryIndex,
-    status: 'draft', matched: [], warnings: [], week: null, market: null,
+    id: state.incidentSeq, line, firstBox, lastBox: lastBox || null, slot, slotUnknown, type, categoryIndex,
+    status: 'draft', matched: [], warnings: [], notes: [], week: null, market: null,
     recipeName: null, recipeCode: null, substituteSlot: null, substituteRecipeName: null, substituteRecipeCode: null,
-    checkedCount: 0, notInOdl: 0, notImpacted: 0, notConvertible: 0
+    substituteUnknown: false,
+    checkedCount: 0, notInOdl: 0, notImpacted: 0, notConvertible: 0, usedRawSlot: 0
   });
   document.getElementById('in-firstbox').value = '';
   document.getElementById('in-lastbox').value = '';
   mountSlotCombo(null, null);
+  updateLineHint();
   renderIncidents();
 });
 
 function findMatches(incident){
   incident.warnings = [];
+  incident.notes = [];
   const lineKey = incident.line.trim().toUpperCase();
+  // Everything below is scoped to this one assembly line. ASL1 and ASL4 are
+  // separate production lines with separate box ranges, and a box ID from
+  // one is never a valid boundary for a run on the other — hence the hard
+  // errors rather than any silent widening of the range.
   const lineRows = state.bartenderByLine.get(lineKey) || [];
   if(!lineRows.length){ incident.warnings.push(`No Bartender rows found for line "${incident.line}".`); incident.status='error'; return; }
 
   const firstNorm = normalizeBoxId(incident.firstBox);
   const firstIdxAll = lineRows.findIndex(r=>r.boxIdNorm===firstNorm);
-  if(firstIdxAll===-1){ incident.warnings.push(`First box ${incident.firstBox} not found on line ${incident.line}.`); incident.status='error'; return; }
+  if(firstIdxAll===-1){
+    const otherLines = linesForBox(incident.firstBox).filter(l=>l!==lineKey);
+    incident.warnings.push(otherLines.length
+      ? `First box ${incident.firstBox} ran on ${otherLines.join(' / ')}, not ${incident.line}. Lines are searched separately — re-add this incident against ${otherLines.join(' or ')}.`
+      : `First box ${incident.firstBox} not found on line ${incident.line}.`);
+    incident.status='error'; return;
+  }
 
   const day = lineRows[firstIdxAll].productionDay;
   const dayRows = lineRows.filter(r=>r.productionDay===day);
@@ -890,12 +989,26 @@ function findMatches(incident){
   if(incident.lastBox){
     const lastNorm = normalizeBoxId(incident.lastBox);
     const lastIdx = dayRows.findIndex((r,i)=> i>=firstIdx && r.boxIdNorm===lastNorm);
-    if(lastIdx===-1){ incident.warnings.push('Last box not found after the first box — using the rest of the run instead.'); }
-    else { endIdx = lastIdx; }
+    if(lastIdx===-1){
+      // Previously this fell back to "rest of the run", which silently turned
+      // a bounded range into everything left on the line — including when the
+      // last box belonged to the other line entirely. Stop instead.
+      const otherLines = linesForBox(incident.lastBox).filter(l=>l!==lineKey);
+      const beforeFirst = dayRows.some((r,i)=> i<firstIdx && r.boxIdNorm===lastNorm);
+      if(otherLines.length){
+        incident.warnings.push(`Last box ${incident.lastBox} ran on ${otherLines.join(' / ')}, not ${incident.line}. ${incident.line} and ${otherLines.join('/')} are separate runs — the range must start and end on the same line.`);
+      } else if(beforeFirst){
+        incident.warnings.push(`Last box ${incident.lastBox} was produced before ${incident.firstBox} on ${incident.line}. Swap the two box IDs.`);
+      } else {
+        incident.warnings.push(`Last box ${incident.lastBox} not found on ${incident.line} for production day ${day}. Leave it blank to use the rest of the run, or enter a box from this run.`);
+      }
+      incident.status='error'; return;
+    }
+    endIdx = lastIdx;
   }
   const candidateBoxes = dayRows.slice(firstIdx, endIdx+1);
 
-  const matched = []; let notInOdl=0, notImpacted=0, notConvertible=0;
+  const matched = []; let notInOdl=0, notImpacted=0, notConvertible=0, usedRawSlot=0;
   candidateBoxes.forEach(box=>{
     const odlRow = state.odlByBoxNorm.get(box.boxIdNorm);
     if(!odlRow){ notInOdl++; return; }
@@ -904,7 +1017,15 @@ function findMatches(incident){
     // Convert before looking up, per-box, using that box's own week (a
     // line/day run could in theory span more than one market or week).
     const boxMarket = detectMarket(box.boxIdRaw);
-    const localSlot = localSlotForMarket(odlRow.week, incident.slot, boxMarket);
+    let localSlot = localSlotForMarket(odlRow.week, incident.slot, boxMarket);
+    if(localSlot === null && incident.slotUnknown){
+      // The meal has no Meal Database row for this week, so there is no Slot
+      // NOR to convert to. The operator flagged it UNKNOWN and typed the slot
+      // themselves — take it at face value instead of dropping every Nordic
+      // box, which is what made these incidents impossible to process.
+      localSlot = String(incident.slot);
+      usedRawSlot++;
+    }
     if(localSlot === null){ notConvertible++; return; }
     const qty = odlRow.mealSwapParsed.get(localSlot);
     if(!qty){ notImpacted++; return; }
@@ -917,7 +1038,9 @@ function findMatches(incident){
   incident.matched = matched;
   incident.checkedCount = candidateBoxes.length;
   incident.notInOdl = notInOdl; incident.notImpacted = notImpacted; incident.notConvertible = notConvertible;
+  incident.usedRawSlot = usedRawSlot;
   if(notConvertible>0) incident.warnings.push(`${notConvertible} box(es) skipped — couldn't find a Slot NOR entry for slot ${incident.slot} in that box's week on the Verden sheet.`);
+  if(usedRawSlot>0) incident.notes.push(`${usedRawSlot} box(es) matched on slot ${incident.slot} exactly as typed — the Meal Database has no row for this week, so no Slot GER → Slot NOR conversion was possible. Double-check the slot number is the one that market uses.`);
 
   const weekCounts = {}; matched.forEach(m=>{ weekCounts[m.week]=(weekCounts[m.week]||0)+1; });
   incident.week = Object.keys(weekCounts).sort((a,b)=>weekCounts[b]-weekCounts[a])[0] || null;
@@ -926,13 +1049,22 @@ function findMatches(incident){
 
   const cfg = MARKET_CONFIG[incident.market];
   const wk = weekKey(incident.week);
-  const entry = state.recipeByKey.get(wk+'|'+String(incident.slot));
-  if(entry && cfg){
-    incident.recipeCode = entry.code;
-    incident.recipeName = (entry[cfg.nameKey] && entry[cfg.nameKey]!=='#N/A') ? entry[cfg.nameKey] : null;
-    if(!incident.recipeName) incident.warnings.push(`No recipe name for slot ${incident.slot} / week ${incident.week||'?'}.`);
+  if(incident.slotUnknown){
+    // Deliberately not resolved: the operator has already told us the meal
+    // isn't in the database. Leaving the name blank is what routes these
+    // customers to the generic email in buildCrmRows().
+    incident.recipeName = null;
+    incident.recipeCode = '';
+    incident.notes.push(`Meal marked UNKNOWN — matched on slot ${incident.slot}; these customers get the generic email.`);
   } else {
-    incident.warnings.push(`Could not resolve recipe data for slot ${incident.slot} (week ${incident.week||'unknown'}).`);
+    const entry = state.recipeByKey.get(wk+'|'+String(incident.slot));
+    if(entry && cfg){
+      incident.recipeCode = entry.code;
+      incident.recipeName = (entry[cfg.nameKey] && entry[cfg.nameKey]!=='#N/A') ? entry[cfg.nameKey] : null;
+      if(!incident.recipeName) incident.warnings.push(`No recipe name for slot ${incident.slot} / week ${incident.week||'?'}.`);
+    } else {
+      incident.warnings.push(`Could not resolve recipe data for slot ${incident.slot} (week ${incident.week||'unknown'}). If this meal isn't in the Meal Database, re-add the incident with the UNKNOWN option.`);
+    }
   }
 
   if(!matched.length) incident.warnings.push(`No customers in this range actually had slot ${incident.slot} in their order.`);
@@ -980,19 +1112,30 @@ function renderIncidents(){
         const cfg = MARKET_CONFIG[inc.market];
         const comboInstance = createCombobox({
           container: mount,
-          getOptions: ()=> (state.weekSlotOptions.get(wk)||[])
-            .filter(o=> o.slot !== String(inc.slot) && cfg && o[cfg.nameKey] && o[cfg.nameKey] !== '#N/A')
-            .map(o=> ({ slot:o.slot, label: cfg ? o[cfg.nameKey] : o.german, code:o.code }))
-            .sort((a,b)=> a.slot.localeCompare(b.slot, undefined, {numeric:true})),
-          placeholder: 'Search substitute recipe…',
+          // Unnamed slots are listed rather than filtered out, and UNKNOWN is
+          // always available — a swap whose replacement isn't in the Meal
+          // Database could otherwise never be confirmed at all.
+          getOptions: ()=> [unknownOption()].concat(
+            (state.weekSlotOptions.get(wk)||[])
+              .filter(o=> o.slot !== String(inc.slot))
+              .map(o=>{
+                const hasName = cfg && o[cfg.nameKey] && o[cfg.nameKey] !== '#N/A';
+                return { slot:o.slot, label: hasName ? o[cfg.nameKey] : 'No name available', code:o.code, unnamed: !hasName };
+              })
+              .sort((a,b)=> a.slot.localeCompare(b.slot, undefined, {numeric:true}))),
+          placeholder: 'Search substitute recipe, or pick UNKNOWN…',
           onSelect: rec=>{
+            const isUnknown = !!(rec && rec.unknown);
+            inc.substituteUnknown = isUnknown;
             inc.substituteSlot = rec ? rec.slot : null;
-            inc.substituteRecipeCode = rec ? rec.code : null;
-            inc.substituteRecipeName = rec ? rec.label : null;
+            inc.substituteRecipeCode = (rec && !isUnknown) ? rec.code : null;
+            // An unnamed slot has no usable recipe name either, so it routes
+            // to the generic email exactly like UNKNOWN does.
+            inc.substituteRecipeName = (rec && !isUnknown && !rec.unnamed) ? rec.label : null;
             renderIncidents();
           }
         });
-        if(inc.substituteSlot) comboInstance.setValue(inc.substituteSlot, inc.substituteRecipeName, inc.substituteRecipeCode);
+        if(inc.substituteSlot) comboInstance.setValue(inc.substituteSlot, inc.substituteUnknown ? UNKNOWN_LABEL : (inc.substituteRecipeName || 'No name available'), inc.substituteRecipeCode);
       }
     }
   });
@@ -1002,10 +1145,13 @@ function renderIncidentCard(inc){
   const cfg = MARKET_CONFIG[inc.market];
   const typeTag = inc.type==='SWAP' ? '<span class="tag swap">Swap</span>' : '<span class="tag short">Shortage</span>';
   const totalUnits = (inc.matched||[]).reduce((s,m)=> s+(m.qty||0), 0);
+  const unknownTag = inc.slotUnknown ? ' <span class="tag short">Unknown meal</span>' : '';
+  const impactedLabel = inc.slotUnknown ? 'UNKNOWN (not in Meal Database)' : (inc.recipeName || 'Unknown');
+  const substituteLabel = inc.substituteUnknown ? 'UNKNOWN (not in Meal Database)' : (inc.substituteRecipeName || 'Unknown');
   let body = `
     <div class="incident-head">
       <div>
-        <div class="incident-title">#${inc.id} — Line ${escapeHtml(inc.line)} · Slot ${escapeHtml(inc.slot)} ${typeTag}</div>
+        <div class="incident-title">#${inc.id} — Line ${escapeHtml(inc.line)} · Slot ${escapeHtml(inc.slot)} ${typeTag}${unknownTag}</div>
         <div class="incident-meta">${escapeHtml(inc.firstBox)}${inc.lastBox ? ' → '+escapeHtml(inc.lastBox) : ' → rest of run'}</div>
       </div>
       ${inc.status!=='confirmed' ? `<button class="remove-x" id="remove-${inc.id}">✕</button>` : ''}
@@ -1023,14 +1169,16 @@ function renderIncidentCard(inc){
       ${inc.notInOdl ? ` &middot; ${inc.notInOdl} not found in ODL` : ''}
       ${inc.notImpacted ? ` &middot; ${inc.notImpacted} didn't order this slot` : ''}
       ${inc.notConvertible ? ` &middot; ${inc.notConvertible} couldn't be checked (no Slot NOR match)` : ''}
-      <br>Week <b>${escapeHtml(inc.week||'?')}</b> &middot; Market <b>${escapeHtml(inc.market||'?')}</b> &middot; Recipe: <b>${escapeHtml(inc.recipeName||'Unknown')}</b>
+      <br>Week <b>${escapeHtml(inc.week||'?')}</b> &middot; Market <b>${escapeHtml(inc.market||'?')}</b> &middot; Recipe: <b>${escapeHtml(impactedLabel)}</b>
     </div>`;
     inc.warnings.forEach(w=> body += `<div class="warn-line">${escapeHtml(w)}</div>`);
+    (inc.notes||[]).forEach(n=> body += `<div class="note-line">${escapeHtml(n)}</div>`);
 
     if(inc.type==='SWAP' && inc.status==='matched'){
       body += `<label class="field-label" style="margin-top:12px;">Substitute recipe (week ${escapeHtml(inc.week||'?')})</label>`;
       body += `<div id="combo-${inc.id}"></div>`;
-      if(inc.substituteRecipeName) body += `<div class="ok-line">Selected: ${escapeHtml(inc.substituteRecipeName)} (#${escapeHtml(inc.substituteSlot)})</div>`;
+      if(inc.substituteUnknown) body += `<div class="note-line">Selected: ${escapeHtml(UNKNOWN_LABEL)} — these customers get the generic email.</div>`;
+      else if(inc.substituteSlot) body += `<div class="ok-line">Selected: ${escapeHtml(inc.substituteRecipeName || 'No name available')} (#${escapeHtml(inc.substituteSlot)})</div>`;
     }
 
     const canConfirm = inc.status==='matched' && inc.matched.length>0 && (inc.type==='SHORTAGE' || inc.substituteSlot);
@@ -1040,8 +1188,8 @@ function renderIncidentCard(inc){
     </div>`;
   } else if(inc.status==='confirmed'){
     body += `<div class="match-summary">
-      Confirmed &middot; <b>${inc.matched.length}</b> customer(s) / <b>${totalUnits}</b> unit(s) added to session &middot; Week ${escapeHtml(inc.week||'?')} &middot; Recipe: <b>${escapeHtml(inc.recipeName||'Unknown')}</b>
-      ${inc.type==='SWAP' ? ` → <b>${escapeHtml(inc.substituteRecipeName||'Unknown')}</b>` : ''}
+      Confirmed &middot; <b>${inc.matched.length}</b> customer(s) / <b>${totalUnits}</b> unit(s) added to session &middot; Week ${escapeHtml(inc.week||'?')} &middot; Recipe: <b>${escapeHtml(impactedLabel)}</b>
+      ${inc.type==='SWAP' ? ` → <b>${escapeHtml(substituteLabel)}</b>` : ''}
     </div>`;
   }
 
@@ -1054,6 +1202,10 @@ function confirmIncident(inc){
       incidentId: inc.id, customerId: m.customerId, boxId: m.boxIdClean, market: m.market, week: m.week, qty: m.qty,
       type: inc.type, slot: inc.slot, recipeName: inc.recipeName, recipeCode: inc.recipeCode,
       substituteSlot: inc.substituteSlot, substituteRecipeName: inc.substituteRecipeName, substituteRecipeCode: inc.substituteRecipeCode,
+      // Either flag forces the generic CRM email — there is no recipe name
+      // to fill a templated one with. Compensation is unaffected.
+      recipeUnknown: !!inc.slotUnknown || !inc.recipeName,
+      substituteUnknown: !!inc.substituteUnknown || (inc.type==='SWAP' && !inc.substituteRecipeName),
       categoryIndex: inc.categoryIndex
     });
   });
@@ -1095,7 +1247,7 @@ function renderReview(){
       <td class="mono">${escapeHtml(r.customerId)}</td>
       <td>${escapeHtml(r.week||'?')}</td>
       <td class="mono">${escapeHtml(r.slot)}</td>
-      <td>${escapeHtml(r.recipeName||'Unknown')}${r.type==='SWAP' ? ' → '+escapeHtml(r.substituteRecipeName||'Unknown') : ''}</td>
+      <td>${escapeHtml(r.recipeName||'UNKNOWN')}${r.type==='SWAP' ? ' → '+escapeHtml(r.substituteRecipeName||'UNKNOWN') : ''}</td>
       <td>${r.qty}</td>
     </tr>`).join('');
   document.getElementById('tablewrap').style.display = 'block';
@@ -1146,12 +1298,16 @@ function buildBulkErrorRows(){
       'additional detail 1': cat.d1,
       'additional detail 2': cat.d2,
       'ingredient': '',
-      'recipe name': r.recipeName || 'Unknown',
+      'recipe name': r.recipeName || 'UNKNOWN',
       'compensation type': 'credit',
       'compensation amount': compAmount === null ? '' : fmt2(compAmount),
       'recipe index': r.slot,
       'culinary sku': r.recipeCode || '',
-      'comment': r.type==='SWAP' ? `Swap to ${r.substituteSlot}: ${r.substituteRecipeName||'Unknown'}` : 'Shortage'
+      'comment': r.type==='SWAP'
+        ? (r.substituteUnknown && r.substituteSlot===UNKNOWN_SLOT
+            ? 'Swap to UNKNOWN meal (not in Meal Database)'
+            : `Swap to ${r.substituteSlot}: ${r.substituteRecipeName||'UNKNOWN'}`)
+        : 'Shortage'
     };
     const market = r.market || 'UNKNOWN';
     (groups[market] = groups[market] || []).push(row);
@@ -1213,9 +1369,9 @@ function buildCrmRows(){
     if(!cfg) return;
     if(!byCustomer[r.customerId]) byCustomer[r.customerId] = { customerId:r.customerId, market:r.market, week:r.week, swaps:[], missing:[] };
     if(r.type==='SWAP'){
-      byCustomer[r.customerId].swaps.push({ a:r.slot, s:r.substituteSlot });
+      byCustomer[r.customerId].swaps.push({ a:r.slot, s:r.substituteSlot, aUnknown:!!r.recipeUnknown, sUnknown:!!r.substituteUnknown });
     } else {
-      byCustomer[r.customerId].missing.push(r.slot);
+      byCustomer[r.customerId].missing.push({ slot:r.slot, unknown:!!r.recipeUnknown });
     }
   });
 
@@ -1229,15 +1385,19 @@ function buildCrmRows(){
     const cfg = MARKET_CONFIG[cust.market];
     if(!cust.week){ manualReviewRows.push({business_unit:cust.market, customer_id:cust.customerId, flag_reason:'no week found'}); return; }
 
+    // A meal explicitly flagged UNKNOWN is never looked up — the whole point
+    // is that the Meal Database has nothing usable for it, so the customer
+    // gets the generic email instead of a template with a blank recipe.
+    const UNRESOLVED = { known:false, name:null };
     let allKnown = true;
     const swapNames = cust.swaps.map(pair=>{
-      const from = resolveRecipeForCrm(cust.week, pair.a, cfg.nameKey);
-      const to = resolveRecipeForCrm(cust.week, pair.s, cfg.nameKey);
+      const from = pair.aUnknown ? UNRESOLVED : resolveRecipeForCrm(cust.week, pair.a, cfg.nameKey);
+      const to = pair.sUnknown ? UNRESOLVED : resolveRecipeForCrm(cust.week, pair.s, cfg.nameKey);
       if(!from.known || !to.known) allKnown = false;
       return { from, to };
     });
-    const missingNames = cust.missing.map(slot=>{
-      const r = resolveRecipeForCrm(cust.week, slot, cfg.nameKey);
+    const missingNames = cust.missing.map(m=>{
+      const r = m.unknown ? UNRESOLVED : resolveRecipeForCrm(cust.week, m.slot, cfg.nameKey);
       if(!r.known) allKnown = false;
       return r;
     });
@@ -1429,7 +1589,7 @@ function renderSlack(){
   lines.push('');
   lines.push(`Total customers messaged: ${crm.resultRows.length}`);
   if(crm.mixedCount) lines.push(`↳ includes ${crm.mixedCount} customer(s) with both a swap and a shortage`);
-  if(crm.genericCount) lines.push(`⚠️ ${crm.genericCount} customer(s) got the generic fallback — check the Meal Database`);
+  if(crm.genericCount) lines.push(`⚠️ ${crm.genericCount} customer(s) got the generic email — a meal was marked UNKNOWN or has no Meal Database name`);
   if(crm.manualReviewRows.length) lines.push(`⚠️ ${crm.manualReviewRows.length} customer(s) excluded — see needs-review export`);
 
   Object.keys(bulkGroups).forEach(market=>{
