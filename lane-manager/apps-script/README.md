@@ -16,6 +16,48 @@ lane-manager reads and writes.
 5. Reload the spreadsheet — a **DACH sync** menu appears. Use *Sync now* for a
    first manual run, then check the hidden `_dach_sync_log` tab.
 
+## "I ran it and nothing happened"
+
+Run **DACH sync → Diagnose** (or the `diagnose` function). It is read-only and
+reports, in a modal: the script timezone and whether today is a run day, how
+many triggers are installed, every tab name in the spreadsheet, whether
+`Sheet1` has the expected headers, and per DACH tab — row count, whether the
+layout guard passes, how many rows carry a Load Reference, and how many of
+those are **not yet in Sheet1**.
+
+The usual causes, in order:
+
+1. **The wrong function was run.** The Apps Script editor's dropdown defaults to
+   the *first* function in the file, `onOpen`, which only builds the menu. Pick
+   `syncNow` explicitly, or reload the spreadsheet and use the menu.
+2. **`scheduledSync` was run on a Wednesday** — that's the one excluded day, so
+   it returns immediately. `syncNow` ignores the day gate.
+3. **A tab name doesn't match `SOURCE_TABS`** exactly (trailing space, different
+   spelling). `diagnose` lists the real names.
+4. **The layout guard skipped a tab** — see `_dach_sync_log` for which columns
+   disagreed.
+5. **Nothing to do.** If every Load Reference is already in `Sheet1` and no DACH
+   value has changed, zero writes is the correct outcome.
+
+## Recovering from the keyless-append bug
+
+An early version of `FIELD_MAP` had no entry for `Load Reference`, so appended
+rows got every mapped value *except* the one that identifies them. Those rows
+are invisible to the lane-manager (it filters on a non-empty `Load Reference`)
+but they sit in `Sheet1` and, because the next run can't find them by key, it
+would append duplicates rather than update them.
+
+To recover, after pasting the current script:
+
+1. **DACH sync → Delete orphan rows.** Finds rows with a blank `Load Reference`
+   but a populated `Updated at` — the exact signature of that bug — then lists
+   them and asks before deleting anything.
+2. **DACH sync → Sync now.** The rows get appended again, this time with the key.
+
+Resetting the sync state is *not* required here: appends don't consult the
+snapshot at all, and any row that was merged rather than appended went through
+rule 3, which only fills blanks.
+
 ## Schedule
 
 Four daily triggers (09:00, 12:00, 15:00, 17:00 Berlin), with Wednesday
@@ -62,10 +104,28 @@ in the wrong Sheet1 columns.
 ## Week number
 
 The DACH tabs carry no week number, so it's derived from the planned-arrival
-date. HelloFresh DE weeks start on the Thursday before the Sunday a week
-usually starts, i.e. HF week N is ISO week N shifted four days earlier — so
-`week = ISO week of (date + 4 days)`. Verified against Sheet1
-(13–19.08.2026 → 34, 20–26.08.2026 → 35).
+date.
+
+**The span is settled.** An HF week runs Thursday → Wednesday, starting on the
+Thursday *before* the Sunday the week would usually start on — so that Sunday
+is day 4 of the HF week. Verified against `Sheet1` (13–19.08.2026 → 34,
+20–26.08.2026 → 35) and the archive tab (04–10.06.2026 → 24).
+
+**The numbering base is not.** `WEEK_NUMBERING` picks it:
+
+| | rule | week of Thu 31.12.2026 |
+|---|---|---|
+| `'iso'` *(default)* | HF week N = ISO week N shifted 4 days earlier, i.e. `ISO week of (date + 4 days)` | **1** |
+| `'weeknum'` | Sunday-start `WEEKNUM(date, 1)` of the Sunday inside the HF week — week 1 is the week containing 1 January | **2** |
+
+The two agree on **every dated row currently in the spreadsheet**, so the data
+cannot pick between them — but they differ by one for the *whole* of 2027 and
+2028, and `'weeknum'` reaches week 54 in 2029. `'iso'` is the default because
+HelloFresh DE is a German operation and KW numbering is ISO there. If the DE
+team's tooling calls the week of Thu 31.12.2026 "week 2", flip the constant.
+
+The test suite passes under either setting; year-boundary assertions are
+scheme-aware.
 
 ## Tests
 

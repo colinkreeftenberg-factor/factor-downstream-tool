@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { SUMMARY_FIELDS, ALL_FIELDS_BY_HEADER, DETAIL_SECTIONS, brandLabel } from '../lib/columns';
+import { SUMMARY_FIELDS, ALL_FIELDS_BY_HEADER, DETAIL_SECTIONS, brandBadge, laneCourier } from '../lib/columns';
 import { toDateInputValue, toTimeInputValue } from '../lib/dateUtils';
 
 const LOAD_STATUS_HEADER = 'Load Status';
@@ -193,8 +193,8 @@ export default function LaneDetailModal({ lane, onClose, onSaved }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 6 }}>
           <h2 style={{ margin: 0 }}>
             {lane['Load Reference'] || 'Lane details'}{' '}
-            <span className={`badge ${lane.source === 'factor' ? 'badge-factor' : 'badge-german'}`}>
-              {brandLabel(lane.source)}
+            <span className={`badge ${brandBadge(laneCourier(lane)).className}`}>
+              {brandBadge(laneCourier(lane)).label}
             </span>
           </h2>
           <button

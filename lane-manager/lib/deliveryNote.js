@@ -5,7 +5,7 @@
 // or the paper form changes.
 
 import { parseFlexibleDate, toDateInputValue, toTimeInputValue } from './dateUtils';
-import { ALL_FIELDS_BY_HEADER } from './columns';
+import { ALL_FIELDS_BY_HEADER, isDachLane } from './columns';
 
 /** Fixed pick-up address — every note leaves from Verden. */
 export const PICKUP_ADDRESS = [
@@ -196,6 +196,33 @@ const str = (v) => String(v ?? '').trim();
  * prefilled; everything else starts blank for the pop-up to fill in. Nothing
  * here writes back to the sheet — the note is a print artefact only.
  */
+/**
+ * The rows for the Ladung & Yard Check Out table.
+ *
+ * Factor lanes get one row per planned lane from the Referenz tab. DE lanes
+ * never appear on that tab, so their freight table used to print completely
+ * blank — but their Destination *is* the DACH "Batch Wave" pushed across by the
+ * sync, which is exactly what the yard needs to read in the Ladung column. So
+ * seed a single row with it.
+ *
+ * A Referenz match always wins: it is the more specific, per-city breakdown.
+ */
+function freightRowsForLane(lane, referenzGroup) {
+  if (referenzGroup?.rows?.length) {
+    return referenzGroup.rows.map((r) => ({
+      order: r.order === null ? '' : String(r.order),
+      city: r.city,
+      load: r.load,
+      unitsTarget: r.unitsTarget,
+      palletsTarget: r.palletsTarget,
+    }));
+  }
+
+  const load = str(lane['Destination']);
+  if (load && isDachLane(lane)) return [{ load }];
+  return [];
+}
+
 export function buildNoteFromLane(lane, referenzGroup = null) {
   const load = str(lane['Destination']);
 
@@ -227,16 +254,9 @@ export function buildNoteFromLane(lane, referenzGroup = null) {
 
     // — freight & yard check out, one row per planned lane —
     // Prefilled from the Referenz tab when the load reference matches a block
-    // there; otherwise ten blank rows, so the paper looks the same either way.
-    freight: padFreightRows(
-      (referenzGroup?.rows || []).map((r) => ({
-        order: r.order === null ? '' : String(r.order),
-        city: r.city,
-        load: r.load,
-        unitsTarget: r.unitsTarget,
-        palletsTarget: r.palletsTarget,
-      }))
-    ),
+    // there, or from the Destination for a DE lane; padded to ten rows either
+    // way, so the paper is always the same shape.
+    freight: padFreightRows(freightRowsForLane(lane, referenzGroup)),
     freightMatched: Boolean(referenzGroup),
     freightMatchedKey: referenzGroup?.key || '',
     totalWeight: '',

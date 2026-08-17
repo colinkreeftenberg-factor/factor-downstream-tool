@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { KEY_HEADER, brandLabel } from '../lib/columns';
+import { KEY_HEADER, brandBadge, laneCourier } from '../lib/columns';
 
 export default function HistoryTab({ lanes }) {
   const [entries, setEntries] = useState([]);
@@ -28,7 +28,13 @@ export default function HistoryTab({ lanes }) {
   // Only changes for lanes still visible in the dashboard — older entries
   // for lanes that have aged out of the source sheet are hidden here too.
   const visibleRefs = new Set(lanes.map((l) => l[KEY_HEADER]));
-  const visibleEntries = entries.filter((e) => visibleRefs.has(e.loadReference));
+
+  // The brand badge is decided by courier, and a history entry carries only a
+  // load reference — so borrow the courier from the lane it belongs to.
+  const courierByRef = new Map(lanes.map((l) => [l[KEY_HEADER], laneCourier(l)]));
+  const visibleEntries = entries
+    .filter((e) => visibleRefs.has(e.loadReference))
+    .map((e) => ({ ...e, brand: brandBadge(courierByRef.get(e.loadReference)) }));
 
   return (
     <div>
@@ -64,9 +70,7 @@ export default function HistoryTab({ lanes }) {
                   <td>{new Date(e.timestamp).toLocaleString()}</td>
                   <td>{e.loadReference}</td>
                   <td>
-                    <span className={`badge ${e.source === 'factor' ? 'badge-factor' : 'badge-german'}`}>
-                      {brandLabel(e.source)}
-                    </span>
+                    <span className={`badge ${e.brand.className}`}>{e.brand.label}</span>
                   </td>
                   <td>{e.type}</td>
                   <td>{e.field}</td>

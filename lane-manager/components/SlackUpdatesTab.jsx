@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { KEY_HEADER, brandLabel } from '../lib/columns';
+import { KEY_HEADER, brandBadge, laneCourier } from '../lib/columns';
 
 const VISIBLE_COUNT = 3;
 
-function TicketCard({ ticket }) {
+function TicketCard({ ticket, courier }) {
   const [expanded, setExpanded] = useState(false);
   const shown = expanded ? ticket.messages : ticket.messages.slice(0, VISIBLE_COUNT);
   const remaining = ticket.messages.length - shown.length;
@@ -12,8 +12,8 @@ function TicketCard({ ticket }) {
     <div className="ticket-card">
       <div className="ticket-card-header">
         <span className="ticket-card-ref">{ticket.loadReference}</span>
-        <span className={`badge ${ticket.source === 'factor' ? 'badge-factor' : 'badge-german'}`}>
-          {brandLabel(ticket.source)}
+        <span className={`badge ${brandBadge(courier).className}`}>
+          {brandBadge(courier).label}
         </span>
       </div>
       <div className="ticket-messages">
@@ -68,6 +68,10 @@ export default function SlackUpdatesTab({ lanes }) {
   const visibleRefs = new Set(lanes.map((l) => l[KEY_HEADER]));
   const visibleTickets = tickets.filter((t) => visibleRefs.has(t.loadReference) && t.messages.length > 0);
 
+  // A ticket carries only a load reference, so the courier that decides its
+  // brand badge comes from the lane it belongs to.
+  const courierByRef = new Map(lanes.map((l) => [l[KEY_HEADER], laneCourier(l)]));
+
   return (
     <div>
       <div className="section-header-row">
@@ -86,7 +90,11 @@ export default function SlackUpdatesTab({ lanes }) {
       {!error && !loading && visibleTickets.length > 0 && (
         <div className="ticket-list">
           {visibleTickets.map((t) => (
-            <TicketCard key={`${t.source}-${t.loadReference}`} ticket={t} />
+            <TicketCard
+              key={`${t.source}-${t.loadReference}`}
+              ticket={t}
+              courier={courierByRef.get(t.loadReference)}
+            />
           ))}
         </div>
       )}

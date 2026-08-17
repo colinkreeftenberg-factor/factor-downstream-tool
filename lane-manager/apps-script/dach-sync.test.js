@@ -40,14 +40,52 @@ const weekCases = [
   ['2026-08-13', 34], ['2026-08-15', 34], ['2026-08-19', 34],   // Thu..Wed = wk34
   ['2026-08-20', 35], ['2026-08-21', 35], ['2026-08-22', 35], ['2026-08-26', 35],
   ['2026-08-27', 36], ['2026-08-07', 33], ['2026-08-16', 34], ['2026-08-17', 34], ['2026-08-18', 34],
-  // Year boundary. Equivalent framing: HF week N == ISO week N shifted 4 days
-  // earlier, so HF wk1/2026 = Thu 25 Dec 2025 .. Wed 31 Dec 2025 and
-  // HF wk2/2026 starts Thu 1 Jan 2026. No ground-truth rows to confirm against.
-  ['2025-12-25', 1], ['2025-12-31', 1], ['2026-01-01', 2], ['2026-12-30', 53],
+  ['2026-01-01', 2], ['2026-12-30', 53],
 ];
 for (const [iso, want] of weekCases) {
   const [y, m, d] = iso.split('-').map(Number);
   eq(sandbox.hfWeek_({ y, m, d }), want, `hfWeek_(${iso})`);
+}
+
+// The Thursday→Wednesday span is the part the rule pins down: the Sunday a week
+// would usually start on must be day 4 of the HF week, and every day of that
+// span must carry the same number. This holds under either numbering.
+console.log('HF week span (Thu start, Sunday = day 4, constant across the span):');
+for (const thuIso of ['2026-08-13', '2026-08-20', '2026-06-04', '2026-12-31', '2027-01-07']) {
+  const [y, m, d] = thuIso.split('-').map(Number);
+  const thu = new Date(Date.UTC(y, m - 1, d));
+  eq(thu.getUTCDay(), 4, `${thuIso} is a Thursday`);
+  const want = sandbox.hfWeek_({ y, m, d });
+  const seen = [];
+  for (let k = 0; k < 7; k++) {
+    const c = new Date(thu.getTime() + k * 86400000);
+    seen.push(sandbox.hfWeek_({ y: c.getUTCFullYear(), m: c.getUTCMonth() + 1, d: c.getUTCDate() }));
+  }
+  eq(seen, new Array(7).fill(want), `${thuIso}: all 7 days are week ${want}`);
+  const sunday = new Date(thu.getTime() + 3 * 86400000);
+  eq(sunday.getUTCDay(), 0, `${thuIso}: day 4 of the span is the Sunday`);
+}
+
+// Both numberings must agree on every dated row in the spreadsheet — that is
+// why the sheet data cannot pick between them, and why it is a config switch.
+console.log('Both numberings on known-good rows:');
+for (const [iso, want] of [['2026-08-15', 34], ['2026-08-20', 35], ['2026-08-21', 35],
+                           ['2026-08-22', 35], ['2026-06-06', 24]]) {
+  const [y, m, d] = iso.split('-').map(Number);
+  eq(sandbox.isoWeek_(y, m - 1, d + 4), want, `iso numbering ${iso}`);
+  eq(sandbox.hfWeekWeeknum_({ y, m, d }), want, `weeknum numbering ${iso}`);
+}
+// …and must diverge exactly where predicted, so a wrong default is detectable.
+eq(sandbox.isoWeek_(2026, 11, 31 + 4), 1, 'iso: week of Thu 31.12.2026 is 1');
+eq(sandbox.hfWeekWeeknum_({ y: 2026, m: 12, d: 31 }), 2, 'weeknum: week of Thu 31.12.2026 is 2');
+
+// Year-boundary answers are numbering-specific, so only assert the ones that
+// belong to the scheme actually configured.
+if (sandbox.WEEK_NUMBERING === 'iso') {
+  eq(sandbox.hfWeek_({ y: 2025, m: 12, d: 25 }), 1, 'iso: HF wk1/2026 starts Thu 25.12.2025');
+  eq(sandbox.hfWeek_({ y: 2025, m: 12, d: 31 }), 1, 'iso: 31.12.2025 still HF wk1/2026');
+} else {
+  eq(sandbox.hfWeek_({ y: 2025, m: 12, d: 25 }), 53, 'weeknum: 25.12.2025 is wk53');
 }
 
 // --- parsing / canonicalisation ---------------------------------------------
@@ -109,6 +147,35 @@ put('J', 'AVISE-1');
 eq(sandbox.buildIncoming_(src, TZ)['Trailer number'].canon, 'AVISE-1', 'Trailer number falls back to avise plate');
 put('P', 'IST-9');
 eq(sandbox.buildIncoming_(src, TZ)['Trailer number'].canon, 'IST-9', 'Trailer number prefers IST plate');
+
+// --- buildNewRow_ ------------------------------------------------------------
+// Regression: FIELD_MAP originally had no entry for the key column, so appended
+// rows carried every mapped value except the Load Reference that identifies
+// them — and the next run could not find them, appending duplicates instead.
+console.log('buildNewRow_ (appended rows):');
+eq(sandbox.FIELD_MAP.some((f) => f.to === sandbox.KEY_HEADER), true,
+   'FIELD_MAP maps the key column');
+eq(inc[sandbox.KEY_HEADER].canon, 'DPD_LEH_NAT_01_VE_WES_070826_L1', 'buildIncoming_ carries the key');
+
+const NEW_HEADERS = ['Week', 'Email Sent', 'Load Reference', 'Destination', 'Courier',
+                     'Haulier', 'Notes, Issues Detected:', 'Updated at', 'Source'];
+const newRow = sandbox.buildNewRow_(NEW_HEADERS, inc, TZ);
+const at = (h) => newRow[NEW_HEADERS.indexOf(h)];
+eq(at('Load Reference'), 'DPD_LEH_NAT_01_VE_WES_070826_L1', 'appended row has the key');
+eq(at('Destination'), 'DPD_LEH_NAT_01_VE', 'appended row has Destination');
+eq(at('Courier'), 'Wesemann', 'appended row has Courier');
+eq(at('Week'), 33, 'appended row has derived Week');
+eq(at('Haulier'), '', 'unmapped Haulier left blank');
+eq(at('Notes, Issues Detected:'), '', 'unmapped Notes left blank');
+eq(at('Email Sent'), '', 'unmapped Email Sent left blank');
+eq(at('Source'), 'DACH', 'Source column stamped when present');
+eq(at('Updated at') !== '', true, 'Updated at stamped on new rows');
+eq(newRow.length, NEW_HEADERS.length, 'row width matches header count');
+// every mapped, non-blank incoming value must land somewhere in the row
+Object.keys(inc).forEach((h) => {
+  if (inc[h].canon === '' || NEW_HEADERS.indexOf(h) === -1) return;
+  eq(String(at(h)) !== '', true, `mapped value present for "${h}"`);
+});
 
 // --- mergeRow_: the five rules ----------------------------------------------
 console.log('mergeRow_ rules:');

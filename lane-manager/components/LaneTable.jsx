@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { SUMMARY_FIELDS, SUMMARY_GROUPS, brandLabel } from '../lib/columns';
+import { SUMMARY_FIELDS, SUMMARY_GROUPS, brandBadge, laneCourier } from '../lib/columns';
 import {
   toDateInputValue,
   toTimeInputValue,
@@ -88,8 +88,8 @@ export default function LaneTable({ lanes, onQuickEdit, onOpenDetail, globalSear
             return (
               <tr key={`${lane.source}-${lane._rowNumber}`}>
                 <td>
-                  <span className={`badge ${lane.source === 'factor' ? 'badge-factor' : 'badge-german'}`}>
-                    {brandLabel(lane.source)}
+                  <span className={`badge ${brandBadge(laneCourier(lane)).className}`}>
+                    {brandBadge(laneCourier(lane)).label}
                   </span>
                   {shipped && (
                     <span className="badge badge-shipped" title="Actual dispatch time recorded">

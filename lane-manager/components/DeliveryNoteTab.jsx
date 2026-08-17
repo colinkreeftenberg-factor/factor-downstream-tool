@@ -19,7 +19,7 @@ import {
 } from '../lib/deliveryNote';
 import { matchGroup } from '../lib/loadingReference';
 import { isToday } from '../lib/dateUtils';
-import { KEY_HEADER } from '../lib/columns';
+import { KEY_HEADER, isDachLane } from '../lib/columns';
 
 // The two names are the same person for a whole shift, so remember whoever
 // was typed last instead of asking again for every single lane.
@@ -162,8 +162,14 @@ export default function DeliveryNoteTab({ lanes, onLaneUpdated }) {
                   <td>{lane['Destination'] || '—'}</td>
                   <td>{lane['Date'] || '—'}</td>
                   <td>{lane['Bay door allocation'] || '—'}</td>
-                  <td style={{ color: planned ? 'var(--text)' : 'var(--text-muted)' }}>
-                    {!referenz.loaded ? '…' : planned ? `${planned} from Referenz` : 'no match'}
+                  <td style={{ color: planned || isDachLane(lane) ? 'var(--text)' : 'var(--text-muted)' }}>
+                    {!referenz.loaded
+                      ? '…'
+                      : planned
+                        ? `${planned} from Referenz`
+                        : isDachLane(lane)
+                          ? 'Ladung from Destination'
+                          : 'no match'}
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     <button className="btn btn-primary" onClick={() => openNote(lane)}>
@@ -272,6 +278,8 @@ function DeliveryNoteEditor({ note, setNote, lane, onClose, onBeforePrint, onLan
                 <span className="dn-editor-sub">
                   freight prefilled from Referenz · {note.freightMatchedKey}
                 </span>
+              ) : isDachLane(lane) ? (
+                <span className="dn-editor-sub">DE lane · Ladung prefilled from Destination</span>
               ) : (
                 <span className="dn-editor-sub">no Referenz match · blank freight rows</span>
               )}

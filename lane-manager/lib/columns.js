@@ -28,11 +28,58 @@ export function applyHeaderAliases(values, realHeaders) {
   return out;
 }
 
-// Short brand badge text — kept to 2 letters each so FA and DE line up
-// evenly regardless of source, instead of 'FACTOR_' vs 'DACH' being
-// visibly different widths next to each other in a table.
-export function brandLabel(source) {
-  return source === 'factor' ? 'FA' : 'DE';
+// The couriers Factor contracts directly. Anything else — the DE team's own
+// hauliers (Wesemann, Wegner, …) — is a DACH lane.
+//
+// Matched ignoring case and all whitespace, because these are typed by hand
+// into a shared sheet — "Nordfrost" and "Blue Water" must not silently flip a
+// lane's brand to DE just because of a capital or a space.
+export const FACTOR_COURIERS = ['BlueWater', 'LIT', 'NordFrost', 'Girteka'];
+
+const normalizeCourier = (v) => String(v ?? '').replace(/\s+/g, '').toLowerCase();
+const FACTOR_COURIER_SET = new Set(FACTOR_COURIERS.map(normalizeCourier));
+
+/**
+ * The courier of a lane. The API sets `Carrier` from whichever header the
+ * sheet actually uses, but fall back to the literal `Courier` column for any
+ * lane-shaped object that didn't come through that path.
+ */
+export function laneCourier(lane) {
+  if (!lane) return '';
+  return String(lane.Carrier ?? lane.Courier ?? '').trim();
+}
+
+/**
+ * Brand of a lane, decided by its courier rather than which sheet it came from.
+ *
+ * The Apps Script sync merges the DACH tabs into Sheet1, so every lane now
+ * reaches the dashboard as source 'factor' — `source` can no longer tell the
+ * two apart, and the courier can.
+ *
+ * A blank courier counts as FA, not DE: a lane created in this tool has no
+ * courier until someone types one, whereas a DE lane always arrives from the
+ * DACH tabs with one already filled in.
+ */
+export function brandForCourier(courier) {
+  const c = normalizeCourier(courier);
+  if (!c) return 'FA';
+  return FACTOR_COURIER_SET.has(c) ? 'FA' : 'DE';
+}
+
+/**
+ * Badge text and CSS class together, so the label and the colour can't drift
+ * apart — they were previously decided at four separate call sites.
+ *
+ * Text is kept to 2 letters each so FA and DE line up evenly in a table.
+ */
+export function brandBadge(courier) {
+  const label = brandForCourier(courier);
+  return { label, className: label === 'FA' ? 'badge-factor' : 'badge-german' };
+}
+
+/** True for lanes coming from the DE team's tooling. */
+export function isDachLane(lane) {
+  return brandForCourier(laneCourier(lane)) === 'DE';
 }
 
 export const SUMMARY_FIELDS = [

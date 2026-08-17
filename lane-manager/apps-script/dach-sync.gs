@@ -78,6 +78,7 @@ var SOURCE_VALUE = 'DACH';
  * space in "Time  Loaded (Finish time) ".
  */
 var FIELD_MAP = [
+  { to: 'Load Reference',                 from: 'B',            type: 'text'   }, // the key — must be present
   { to: 'Destination',                    from: 'C',            type: 'text'   }, // Batch Wave
   { to: 'Courier',                        from: 'G',            type: 'text'   }, // Carrier
   { to: 'Collection Day',                 derive: 'weekday',    type: 'text'   }, // from Date
@@ -160,18 +161,86 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('DACH sync')
     .addItem('Sync now', 'syncNow')
+    .addItem('Diagnose (what does the script see?)', 'diagnose')
     .addItem('Install / refresh triggers', 'setupTriggers')
     .addSeparator()
     .addItem('Reset sync state (re-adopt current values)', 'resetSyncState')
+    .addItem('Delete orphan rows (blank Load Reference)', 'cleanupOrphanRows')
     .addToUi();
 }
 
 /** Manual run from the menu — ignores the day-of-week gate. */
 function syncNow() {
-  var summary = run_({ ignoreDayGate: true });
+  report_('DACH sync', run_({ ignoreDayGate: true }));
+}
+
+/**
+ * Read-only. Reports exactly what the script sees so a "nothing happened" run
+ * can be explained without guessing: which tabs it found, whether the layout
+ * guard passes, how many rows carry a Load Reference, and how many of those
+ * are already in Sheet1 (already-present keys produce updates, not new rows).
+ */
+function diagnose() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var tz = Session.getScriptTimeZone();
+  var now = new Date();
+  var out = [];
+
+  out.push('Timezone: ' + tz + '  |  now: ' + Utilities.formatDate(now, tz, 'EEEE') +
+           '  |  run day: ' + (RUN_DAYS.indexOf(now.getDay()) !== -1 ? 'yes' : 'NO (scheduled runs skip today)'));
+  out.push('Triggers installed: ' + ScriptApp.getProjectTriggers().filter(function (t) {
+    return t.getHandlerFunction() === 'scheduledSync';
+  }).length + ' (expected ' + RUN_HOURS.length + ')');
+  out.push('Tabs in this spreadsheet: ' + ss.getSheets().map(function (s) { return s.getName(); }).join(' | '));
+
+  var target = ss.getSheetByName(TARGET_TAB);
+  if (!target) {
+    out.push('!! Target tab "' + TARGET_TAB + '" NOT FOUND');
+    return report_('DACH sync — diagnose', out.join('\n'));
+  }
+  var targetHeaders = readTargetHeaders_(target);
+  var keyCol = targetHeaders.indexOf(KEY_HEADER);
+  out.push(TARGET_TAB + ': ' + target.getLastRow() + ' rows, "' + KEY_HEADER + '" ' +
+           (keyCol === -1 ? 'NOT FOUND in row ' + TARGET_HEADER_ROW : 'in column ' + (keyCol + 1)));
+
+  var missing = FIELD_MAP.filter(function (f) { return targetHeaders.indexOf(f.to) === -1; })
+                         .map(function (f) { return f.to; });
+  out.push('Mapped columns missing from ' + TARGET_TAB + ': ' + (missing.length ? missing.join(' | ') : 'none'));
+
+  var existing = {};
+  if (keyCol !== -1) {
+    var td = readTargetData_(target, targetHeaders.length);
+    td.display.forEach(function (r) {
+      var k = String(r[keyCol] || '').trim();
+      if (k) existing[k] = true;
+    });
+  }
+
+  SOURCE_TABS.forEach(function (tabName) {
+    var sh = ss.getSheetByName(tabName);
+    if (!sh) { out.push('"' + tabName + '": NOT FOUND — check the exact name'); return; }
+
+    var problem = verifyLayout_(sh, tabName);
+    var rows = problem ? [] : readSourceRows_(sh);
+    var keys = rows.map(function (r) { return String(r[colIdx_('B')] || '').trim(); }).filter(Boolean);
+    var fresh = keys.filter(function (k) { return !existing[k]; });
+
+    out.push('"' + tabName + '": ' + sh.getLastRow() + ' rows, ' + sh.getMaxColumns() + ' cols' +
+             '  |  layout: ' + (problem ? 'FAIL — ' + problem : 'ok') +
+             '  |  load refs: ' + keys.length + ' (' + fresh.length + ' not yet in ' + TARGET_TAB + ')');
+    if (keys.length) out.push('      e.g. ' + keys.slice(0, 3).join(', '));
+  });
+
+  return report_('DACH sync — diagnose', out.join('\n'));
+}
+
+/** Shows a result in a modal when there is a UI, and always writes it to the log. */
+function report_(title, message) {
+  log_(title + ': ' + message);
   try {
-    SpreadsheetApp.getActiveSpreadsheet().toast(summary, 'DACH sync', 8);
-  } catch (e) { /* no UI when run headless */ }
+    SpreadsheetApp.getUi().alert(title, message, SpreadsheetApp.getUi().ButtonSet.OK);
+  } catch (e) { /* headless (trigger) run — the log tab is the record */ }
+  return message;
 }
 
 /** Trigger target. Gated so the 4 daily triggers only act on RUN_DAYS. */
@@ -208,7 +277,53 @@ function resetSyncState() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = ss.getSheetByName(STATE_TAB);
   if (sh) ss.deleteSheet(sh);
-  log_('Sync state reset — next run re-adopts current Sheet1 values.');
+  report_('DACH sync', 'Sync state reset — next run re-adopts current Sheet1 values.');
+}
+
+/**
+ * Deletes rows this script appended before the key column was mapped: blank
+ * "Load Reference" but a populated "Updated at". A row can only look like that
+ * if something wrote data into it without an identity, which is exactly the
+ * signature of that bug — a genuinely empty trailing row has neither, and a
+ * real lane never has a blank Load Reference.
+ *
+ * Destructive, so it counts and lists the rows and waits for confirmation.
+ */
+function cleanupOrphanRows() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var target = ss.getSheetByName(TARGET_TAB);
+  if (!target) return report_('DACH sync — cleanup', 'Target tab "' + TARGET_TAB + '" not found.');
+
+  var headers = readTargetHeaders_(target);
+  var keyCol = headers.indexOf(KEY_HEADER);
+  var stampCol = headers.indexOf(UPDATED_AT_HEADER);
+  if (keyCol === -1 || stampCol === -1) {
+    return report_('DACH sync — cleanup',
+      'Need both "' + KEY_HEADER + '" and "' + UPDATED_AT_HEADER + '" columns to identify orphans safely.');
+  }
+
+  var td = readTargetData_(target, headers.length);
+  var victims = [];
+  td.display.forEach(function (r, i) {
+    var key = String(r[keyCol] || '').trim();
+    var stamp = String(r[stampCol] || '').trim();
+    if (!key && stamp) victims.push(i + TARGET_HEADER_ROW + 1);
+  });
+
+  if (!victims.length) return report_('DACH sync — cleanup', 'No orphan rows found. Nothing to do.');
+
+  var ui;
+  try { ui = SpreadsheetApp.getUi(); } catch (e) { /* headless */ }
+  var msg = 'Found ' + victims.length + ' row(s) in ' + TARGET_TAB + ' with a blank "' + KEY_HEADER +
+            '" but a populated "' + UPDATED_AT_HEADER + '" — rows ' + victims.join(', ') + '.\n\nDelete them?';
+  if (!ui) return report_('DACH sync — cleanup', 'DRY RUN (no UI): would delete rows ' + victims.join(', '));
+  if (ui.alert('DACH sync — cleanup', msg, ui.ButtonSet.YES_NO) !== ui.Button.YES) {
+    return report_('DACH sync — cleanup', 'Cancelled — nothing deleted.');
+  }
+
+  // Descending, so deleting one row never shifts the next one's number.
+  victims.slice().sort(function (a, b) { return b - a; }).forEach(function (r) { target.deleteRow(r); });
+  return report_('DACH sync — cleanup', 'Deleted ' + victims.length + ' orphan row(s): ' + victims.join(', '));
 }
 
 // ---------------------------------------------------------------------------
@@ -242,6 +357,13 @@ function run_(opts) {
     var targetHeaders = readTargetHeaders_(target);
     var keyCol = targetHeaders.indexOf(KEY_HEADER);
     if (keyCol === -1) throw new Error('"' + KEY_HEADER + '" not found in ' + TARGET_TAB + ' row ' + TARGET_HEADER_ROW);
+
+    // Without this, appended rows get every mapped column except the one that
+    // identifies them — and the next run cannot find them again, so it appends
+    // duplicates. Loud failure beats silently writing unidentifiable rows.
+    if (!FIELD_MAP.some(function (f) { return f.to === KEY_HEADER; })) {
+      throw new Error('FIELD_MAP has no entry for the key column "' + KEY_HEADER + '".');
+    }
 
     warnUnknownTargets_(targetHeaders);
 
@@ -570,18 +692,45 @@ function weekdayName_(p) {
 }
 
 /**
- * HelloFresh DE week number: weeks start on the Thursday before the Sunday a
- * week usually starts, so HF week N is simply ISO week N shifted four days
- * earlier (Thursday → Wednesday). Hence: ISO week of (date + 4 days).
+ * HelloFresh DE week number.
  *
- * Checked against Sheet1: 13–19.08.2026 → 34, 20–26.08.2026 → 35.
+ * The span is settled: a week runs Thursday → Wednesday, starting on the
+ * Thursday *before* the Sunday the week would usually start on — so that
+ * Sunday is day 4 of the HF week. Verified against Sheet1 (13–19.08.2026 → 34,
+ * 20–26.08.2026 → 35) and against the archive tab (04–10.06.2026 → 24).
  *
- * Consequence at the year boundary — HF wk 1 of 2026 is Thu 25 → Wed 31 Dec
- * 2025, and Thu 01 Jan 2026 already belongs to HF wk 2. That follows from the
- * rule but is not confirmed against real data; worth a spot-check in December.
+ * What the span does NOT settle is which numbering the count comes from, and
+ * the two candidates disagree by one for the whole of 2027 and 2028:
+ *
+ *   'iso'      HF week N = ISO week N shifted 4 days earlier. Equivalently the
+ *              ISO week of (date + 4 days). Matches German KW convention.
+ *              → the week of Thu 31.12.2026 is week 1.
+ *   'weeknum'  Sunday-start numbering where week 1 is the week containing
+ *              1 January (Excel/Sheets WEEKNUM(date, 1)), applied to the
+ *              Sunday inside the HF week.
+ *              → the week of Thu 31.12.2026 is week 2, and 2029 reaches wk 54.
+ *
+ * Both agree on every dated row currently in this spreadsheet, so the data
+ * cannot pick between them. 'iso' is the default because HelloFresh DE is a
+ * German operation and KW numbering is ISO there; flip this if the DE team's
+ * tooling says otherwise.
  */
+var WEEK_NUMBERING = 'iso'; // 'iso' | 'weeknum'
+
 function hfWeek_(p) {
-  return isoWeek_(p.y, p.m - 1, p.d + 4);
+  return WEEK_NUMBERING === 'weeknum' ? hfWeekWeeknum_(p) : isoWeek_(p.y, p.m - 1, p.d + 4);
+}
+
+/** Sunday-start WEEKNUM of the Sunday inside the HF week containing `p`. */
+function hfWeekWeeknum_(p) {
+  var DAY = 86400000;
+  var d = Date.UTC(p.y, p.m - 1, p.d);
+  var daysSinceThursday = (new Date(d).getUTCDay() - 4 + 7) % 7;
+  var sunday = new Date(d - daysSinceThursday * DAY + 3 * DAY);
+
+  var jan1 = new Date(Date.UTC(sunday.getUTCFullYear(), 0, 1));
+  var firstSunday = new Date(jan1.getTime() - jan1.getUTCDay() * DAY);
+  return Math.floor((sunday.getTime() - firstSunday.getTime()) / (7 * DAY)) + 1;
 }
 
 /** All-UTC so DST transitions cannot shift the day count. */
@@ -660,6 +809,29 @@ function sourceWidth_(sh) {
 }
 
 /**
+ * The header band with merged cells propagated across their span.
+ *
+ * getDisplayValues() returns a merged cell's text only in its top-left cell
+ * and blanks for the rest, and the DACH tabs are inconsistent about this —
+ * some days merge the KPI group bands, others repeat the text in every column.
+ * Propagating makes the row-2 checks behave identically either way.
+ */
+function effectiveHeaderBand_(sh, maxRow, width) {
+  var range = sh.getRange(1, 1, maxRow, width);
+  var band = range.getDisplayValues();
+  range.getMergedRanges().forEach(function (mr) {
+    var r0 = mr.getRow(), c0 = mr.getColumn();
+    var v = sh.getRange(r0, c0).getDisplayValue();
+    for (var r = r0; r < r0 + mr.getNumRows(); r++) {
+      for (var c = c0; c < c0 + mr.getNumColumns(); c++) {
+        if (r >= 1 && r <= maxRow && c >= 1 && c <= width) band[r - 1][c - 1] = v;
+      }
+    }
+  });
+  return band;
+}
+
+/**
  * Returns null when the layout is as expected, otherwise a short reason.
  * Column letters are only trustworthy while the DE tooling keeps its column
  * order, so a mismatch skips the tab rather than writing data into the wrong
@@ -670,7 +842,7 @@ function verifyLayout_(sh, tabName) {
   if (sh.getLastRow() < maxRow) return 'fewer than ' + maxRow + ' rows';
 
   var width = sourceWidth_(sh);
-  var band = sh.getRange(1, 1, maxRow, width).getDisplayValues();
+  var band = effectiveHeaderBand_(sh, maxRow, width);
   var bad = [];
 
   Object.keys(LAYOUT_SIGNATURE).forEach(function (rowStr) {
