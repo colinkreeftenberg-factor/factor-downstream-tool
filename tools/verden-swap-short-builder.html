@@ -179,8 +179,8 @@
     <div id="sessionOverview"></div>
 
     <div class="btn-row" style="margin:2px 0 16px; align-items:center;">
-      <label class="toggle-switch"><input type="checkbox" id="toggle-flat-credit" checked><span class="toggle-slider"></span></label>
-      <span style="font-size:12.5px; color:var(--ink-dim);">Compensate swaps €5/meal — turn off for a like-for-like swap you don't want to compensate (shortages are always price-per-meal, unaffected by this)</span>
+      <label class="toggle-switch"><input type="checkbox" id="toggle-flat-credit"><span class="toggle-slider"></span></label>
+      <span style="font-size:12.5px; color:var(--ink-dim);">Compensate swaps at each market's flat rate per meal — <b>Germany 5 €</b> · <b>Sweden 50 kr</b> · <b>Denmark 50 kr</b>. <b>Off by default</b>: swaps are exported with no credit and the emails don't mention one. Turn it on for a swap you do want to compensate (shortages are always price-per-meal, unaffected by this)</span>
     </div>
 
     <div class="form-grid">
@@ -303,12 +303,27 @@ const QA_SENTINEL_CUSTOMERS = { TV: '100009895', TK: '100014115', TZ: '100012919
 
 // Relative complexity of each CRM template variant, used only to pick which
 // one the QA sentinel customers receive (higher = more complex).
-const REASON_COMPLEXITY = { generic: 0, swap: 1, short: 1, swap_multiple: 2, short_multiple: 2, mixed: 3, mixed_multiple: 4 };
+const REASON_COMPLEXITY = { generic: 0, generic_short: 0, generic_mixed: 1, swap: 1, short: 1, swap_multiple: 2, short_multiple: 2, mixed: 3, mixed_multiple: 4 };
 
-// Flat per-meal goodwill credit, toggleable in Step 2. When on, it's added
-// on top of the calculated per-meal box price for the bulk error export.
-const FLAT_CREDIT_EUR = 5;
-let includeFlatCredit = true;
+// Flat per-meal goodwill credit for swaps, toggleable in Step 2. Each market
+// is credited in its OWN currency — the bulk error import takes the number at
+// face value for the market's currency, so a single figure across all three
+// markets credited Swedish and Danish customers 5 SEK/DKK instead of 50.
+// Keep these in step with the amounts the CRM templates promise below.
+const FLAT_CREDIT_PER_MARKET = { TZ: 5, TV: 50, TK: 50 };
+function flatCreditFor(market){
+  const v = FLAT_CREDIT_PER_MARKET[market];
+  return (v===undefined || v===null) ? null : v;
+}
+// "5 €" / "50 kr", for labels and the review summary.
+function creditLabelFor(market){
+  const v = flatCreditFor(market);
+  if(v===null) return '—';
+  return market==='TZ' ? `${v} €` : `${v} kr`;
+}
+// Off by default: a swap is only compensated when someone deliberately turns
+// the toggle on. Must match the checkbox's unchecked initial state in Step 2.
+let includeFlatCredit = false;
 
 // Shortage fallback, used only when a box has no price data at all (rare —
 // the price sheet covers all markets, but a box can still be missing from
@@ -391,18 +406,30 @@ const TEMPLATES = {
       "content": "Aufgrund unvorhergesehener Umstände können unsere Köche diese Woche eine oder mehrere Mahlzeiten nicht nach unserem gewohnt hohen Standard zubereiten. Wir verstehen, dass das ärgerlich sein kann, und entschuldigen uns aufrichtig für die Unannehmlichkeiten. Damit du trotzdem eine leckere Mahlzeit genießen kannst, haben unsere Köche bereits eine passende Ersatzmahlzeit für diese Woche vorbereitet. <br><br> Bitte überprüfe die Allergene in der/den neuen Mahlzeit(en). Als Entschädigung erhältst du außerdem 5 € Gutschrift pro betroffener Mahlzeit, die automatisch mit deiner nächsten Box verrechnet wird. <br><br> Hast du Fragen oder bist du nicht zufrieden? Wende dich gerne an unseren Kundenservice, wir helfen dir gerne weiter!",
       "subjectline": "Wir haben eine Ersatzmahlzeit für dich",
       "preheader": "Wichtige Information zu deiner Factor Box"
+    },
+    "generic_short": {
+      "business_unit": "TZ",
+      "content": "Leider fehlen diese Woche eine oder mehrere Mahlzeiten in deiner Box. Es ist uns nicht rechtzeitig gelungen, sie durch passende Alternativen zu ersetzen, die unseren hohen Qualitätsstandards entsprechen. Entschuldige bitte die Unannehmlichkeiten.<br><br>Selbstverständlich schreiben wir dir den Betrag als Guthaben auf deinem Konto gut, das du bei deiner nächsten Box als Rabatt einlösen kannst. Und nicht zu vergessen: Genieße die Mahlzeiten, die wir dir liefern konnten.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam.",
+      "subjectline": "Entschuldigung... wir können nicht alles liefern",
+      "preheader": "Es fehlt eine Mahlzeit in deiner Factor Box"
+    },
+    "generic_mixed": {
+      "business_unit": "TZ",
+      "content": "Diese Woche läuft nicht alles nach Plan mit deiner Factor Box.<br><br>Eine oder mehrere Mahlzeiten fehlen in deiner Lieferung, weil wir keine passende Alternative finden konnten, die unseren hohen Qualitätsstandards entspricht. Andere Mahlzeiten mussten wir ersetzen — dafür haben unsere Köche eine passende Alternative für dich zubereitet.<br><br>Bitte überprüfe die Allergene der neuen Mahlzeit(en).<br><br>Entschuldige bitte die Unannehmlichkeiten. Selbstverständlich verrechnen wir alles ordentlich als Guthaben auf deinem Konto.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam.",
+      "subjectline": "Ein paar Anpassungen in deiner Factor Box",
+      "preheader": "Wichtige Information zu deiner Factor Box"
     }
   },
   "sv-SE": {
     "swap": {
       "business_unit": "TV",
-      "content": "Tyvärr har våra kockar på grund av oförutsedda omständigheter inte kunnat tillaga <b>[Recipe_Swapped]</b>. Vi ber om ursäkt för besväret.<br><br>Som tur är har vi ett alternativ till dig: den här veckan får du <b>[Recipe_Swapped_to]</b> istället.<br><br>Kontrollera gärna allergenerna för den här måltiden.<br><br>Som en liten gest lägger vi till <b>5 € tillgodo per måltid</b> på ditt konto. Det kan du använda till din nästa box.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam.",
+      "content": "Tyvärr har våra kockar på grund av oförutsedda omständigheter inte kunnat tillaga <b>[Recipe_Swapped]</b>. Vi ber om ursäkt för besväret.<br><br>Som tur är har vi ett alternativ till dig: den här veckan får du <b>[Recipe_Swapped_to]</b> istället.<br><br>Kontrollera gärna allergenerna för den här måltiden.<br><br>Som en liten gest lägger vi till <b>50 kr tillgodo per måltid</b> på ditt konto. Det kan du använda till din nästa box.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam.",
       "subjectline": "Vi har en ersättningsmåltid till dig",
       "preheader": "Viktig information om din Factor Box"
     },
     "swap_multiple": {
       "business_unit": "TV",
-      "content": "Tyvärr har våra kockar på grund av oförutsedda omständigheter inte kunnat tillaga följande måltider:[Recipe_Swapped]Vi ber om ursäkt för besväret.<br><br>Som tur är har vi ett alternativ till dig: den här veckan får du följande måltider istället:[Recipe_Swapped_to]<br><br>Kontrollera gärna allergenerna för dessa måltider.<br><br>Som en liten gest lägger vi till <b>5 € tillgodo per måltid</b> på ditt konto. Det kan du använda till din nästa box.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam.",
+      "content": "Tyvärr har våra kockar på grund av oförutsedda omständigheter inte kunnat tillaga följande måltider:[Recipe_Swapped]Vi ber om ursäkt för besväret.<br><br>Som tur är har vi ett alternativ till dig: den här veckan får du följande måltider istället:[Recipe_Swapped_to]<br><br>Kontrollera gärna allergenerna för dessa måltider.<br><br>Som en liten gest lägger vi till <b>50 kr tillgodo per måltid</b> på ditt konto. Det kan du använda till din nästa box.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam.",
       "subjectline": "Vi har en ersättningsmåltid till dig",
       "preheader": "Viktig information om din Factor Box"
     },
@@ -432,21 +459,33 @@ const TEMPLATES = {
     },
     "generic": {
       "business_unit": "TV",
-      "content": "På grund av oförutsedda omständigheter kan våra kockar den här veckan inte tillaga en eller flera måltider enligt vår vanliga höga standard. Vi förstår att det kan vara tråkigt och ber uppriktigt om ursäkt för besväret. För att du ändå ska kunna njuta av en god måltid har våra kockar redan förberett ett lämpligt alternativ till den här veckan. <br><br> Kontrollera gärna allergenerna i den/de nya måltiden/måltiderna. Som kompensation får du också 5 € tillgodo per berörd måltid, vilket automatiskt dras av på din nästa box. <br><br> Har du frågor eller är du inte nöjd? Hör gärna av dig till vår kundtjänst, vi hjälper dig gärna vidare!",
+      "content": "På grund av oförutsedda omständigheter kan våra kockar den här veckan inte tillaga en eller flera måltider enligt vår vanliga höga standard. Vi förstår att det kan vara tråkigt och ber uppriktigt om ursäkt för besväret. För att du ändå ska kunna njuta av en god måltid har våra kockar redan förberett ett lämpligt alternativ till den här veckan. <br><br> Kontrollera gärna allergenerna i den/de nya måltiden/måltiderna. Som kompensation får du också 50 kr tillgodo per berörd måltid, vilket automatiskt dras av på din nästa box. <br><br> Har du frågor eller är du inte nöjd? Hör gärna av dig till vår kundtjänst, vi hjälper dig gärna vidare!",
       "subjectline": "Vi har en ersättningsmåltid till dig",
+      "preheader": "Viktig information om din Factor Box"
+    },
+    "generic_short": {
+      "business_unit": "TV",
+      "content": "Den här veckan saknas det en eller flera måltider i din box. Tyvärr lyckades vi inte i tid hitta lämpliga alternativ som uppfyller våra höga kvalitetsstandarder. Vi ber om ursäkt för besväret.<br><br>Vi lägger så klart till beloppet som tillgodo på ditt konto, så att du kan använda det som rabatt på din nästa box. Och glöm inte att njuta av de måltider som faktiskt levererades.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam.",
+      "subjectline": "Vi är ledsna... vi kan inte leverera allt",
+      "preheader": "Det saknas en måltid i din Factor Box"
+    },
+    "generic_mixed": {
+      "business_unit": "TV",
+      "content": "Den här veckan går inte allt enligt plan med din Factor Box.<br><br>En eller flera måltider saknas i din leverans, eftersom vi inte kunde hitta ett lämpligt alternativ som uppfyller våra höga kvalitetsstandarder. Andra måltider har vi behövt byta ut — för dem har våra kockar tillagat ett lämpligt alternativ till dig.<br><br>Kontrollera gärna allergenerna i den/de nya måltiden/måltiderna.<br><br>Vi ber om ursäkt för besväret. Vi ser givetvis till att allt kompenseras korrekt som tillgodo på ditt konto.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam.",
+      "subjectline": "Några ändringar i din Factor Box",
       "preheader": "Viktig information om din Factor Box"
     }
   },
   "da-DK": {
     "swap": {
       "business_unit": "TK",
-      "content": "Desværre har vores kokke på grund af uforudsete omstændigheder ikke kunnet tilberede <b>[Recipe_Swapped]</b>. Undskyld ulejligheden.<br><br>Heldigvis har vi et alternativ til dig: denne uge modtager du <b>[Recipe_Swapped_to]</b> i stedet.<br><br>Husk at tjekke allergenerne for denne ret.<br><br>Som en lille kompensation tilføjer vi <b>5 € til gode pr. ret</b> på din konto. Det kan du bruge på din næste box.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam.",
+      "content": "Desværre har vores kokke på grund af uforudsete omstændigheder ikke kunnet tilberede <b>[Recipe_Swapped]</b>. Undskyld ulejligheden.<br><br>Heldigvis har vi et alternativ til dig: denne uge modtager du <b>[Recipe_Swapped_to]</b> i stedet.<br><br>Husk at tjekke allergenerne for denne ret.<br><br>Som en lille kompensation tilføjer vi <b>50 kr til gode pr. ret</b> på din konto. Det kan du bruge på din næste box.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam.",
       "subjectline": "Vi har fundet en erstatningsret til dig",
       "preheader": "Vigtig information om din Factor Box"
     },
     "swap_multiple": {
       "business_unit": "TK",
-      "content": "Desværre har vores kokke på grund af uforudsete omstændigheder ikke kunnet tilberede følgende retter:[Recipe_Swapped]Undskyld ulejligheden.<br><br>Heldigvis har vi et alternativ til dig: denne uge modtager du følgende retter i stedet:[Recipe_Swapped_to]<br><br>Husk at tjekke allergenerne for disse retter.<br><br>Som en lille kompensation tilføjer vi <b>5 € til gode pr. ret</b> på din konto. Det kan du bruge på din næste box.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam.",
+      "content": "Desværre har vores kokke på grund af uforudsete omstændigheder ikke kunnet tilberede følgende retter:[Recipe_Swapped]Undskyld ulejligheden.<br><br>Heldigvis har vi et alternativ til dig: denne uge modtager du følgende retter i stedet:[Recipe_Swapped_to]<br><br>Husk at tjekke allergenerne for disse retter.<br><br>Som en lille kompensation tilføjer vi <b>50 kr til gode pr. ret</b> på din konto. Det kan du bruge på din næste box.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam.",
       "subjectline": "Vi har fundet en erstatningsret til dig",
       "preheader": "Vigtig information om din Factor Box"
     },
@@ -476,7 +515,96 @@ const TEMPLATES = {
     },
     "generic": {
       "business_unit": "TK",
-      "content": "På grund af uforudsete omstændigheder kan vores kokke denne uge ikke tilberede en eller flere retter efter vores sædvanlige høje standard. Vi forstår, at det kan være ærgerligt, og vi undskylder oprigtigt for ulejligheden. For at du alligevel kan nyde en lækker ret, har vores kokke allerede tilberedt et passende alternativ til denne uge. <br><br> Husk at tjekke allergenerne i den/de nye ret(ter). Som kompensation modtager du også 5 € til gode pr. berørt ret, som automatisk bliver modregnet i din næste box. <br><br> Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores kundeservice - vi hjælper dig gerne videre!",
+      "content": "På grund af uforudsete omstændigheder kan vores kokke denne uge ikke tilberede en eller flere retter efter vores sædvanlige høje standard. Vi forstår, at det kan være ærgerligt, og vi undskylder oprigtigt for ulejligheden. For at du alligevel kan nyde en lækker ret, har vores kokke allerede tilberedt et passende alternativ til denne uge. <br><br> Husk at tjekke allergenerne i den/de nye ret(ter). Som kompensation modtager du også 50 kr til gode pr. berørt ret, som automatisk bliver modregnet i din næste box. <br><br> Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores kundeservice - vi hjælper dig gerne videre!",
+      "subjectline": "Vi har fundet en erstatningsret til dig",
+      "preheader": "Vigtig information om din Factor Box"
+    },
+    "generic_short": {
+      "business_unit": "TK",
+      "content": "Der mangler en eller flere retter i din box denne uge. Desværre lykkedes det os ikke i tide at finde passende alternativer, der lever op til vores høje kvalitetsstandarder. Undskyld ulejligheden.<br><br>Selvfølgelig tilføjer vi beløbet som tilgodehavende på din konto, så du kan bruge det som rabat på din næste box. Og glem ikke at nyde de retter, der rent faktisk blev leveret.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam.",
+      "subjectline": "Beklager... vi kan ikke levere det hele",
+      "preheader": "Der mangler en ret i din Factor Box"
+    },
+    "generic_mixed": {
+      "business_unit": "TK",
+      "content": "Denne uge går ikke alt efter planen med din Factor Box.<br><br>En eller flere retter mangler i din levering, fordi vi ikke kunne finde et passende alternativ, der lever op til vores høje kvalitetsstandarder. Andre retter har vi været nødt til at erstatte — til dem har vores kokke tilberedt et passende alternativ til dig.<br><br>Husk at tjekke allergenerne i den/de nye ret(ter).<br><br>Undskyld ulejligheden. Vi sørger selvfølgelig for, at alt bliver godtgjort som tilgodehavende på din konto.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam.",
+      "subjectline": "Et par ændringer i din Factor Box",
+      "preheader": "Vigtig information om din Factor Box"
+    }
+  }
+};
+
+/* =================================================================
+   NO-COMPENSATION SWAP TEMPLATES
+
+   Used when the "compensate swaps" toggle in Step 2 is OFF. Identical to
+   the variants above with the credit promise removed — a like-for-like
+   swap we deliberately don't compensate must not tell the customer money
+   is coming, because none is exported for them.
+
+   Only the swap-driven variants exist here. short/short_multiple are
+   always compensated (per-meal price, unaffected by the toggle), and
+   mixed/mixed_multiple never quote a swap credit — they only say the
+   total will be settled as account credit, which stays true because the
+   shortage half is still paid. Both therefore fall through to TEMPLATES.
+================================================================= */
+const TEMPLATES_NOCOMP = {
+  "de-DE": {
+    "swap": {
+      "business_unit": "TZ",
+      "content": "Leider können unsere Köche aufgrund unvorhergesehener Umstände <b>[Recipe_Swapped]</b> nicht zubereiten. Entschuldige bitte die Unannehmlichkeiten.<br><br>Zum Glück haben wir eine Alternative für dich: Diese Woche erhältst du <b>[Recipe_Swapped_to]</b>.<br><br>Bitte überprüfe die Allergene dieser Mahlzeit.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam.",
+      "subjectline": "Wir haben eine Ersatzmahlzeit für dich",
+      "preheader": "Wichtige Information zu deiner Factor Box"
+    },
+    "swap_multiple": {
+      "business_unit": "TZ",
+      "content": "Leider können unsere Köche aufgrund unvorhergesehener Umstände die folgenden Mahlzeiten nicht zubereiten:[Recipe_Swapped]Entschuldige bitte die Unannehmlichkeiten.<br><br>Zum Glück haben wir eine Alternative für dich: Diese Woche erhältst du die folgenden Mahlzeiten:[Recipe_Swapped_to]<br><br>Bitte überprüfe die Allergene dieser Mahlzeiten.<br><br>Hast du noch Fragen oder bist du nicht zufrieden? Dann wende dich gerne an unser Serviceteam.",
+      "subjectline": "Wir haben eine Ersatzmahlzeit für dich",
+      "preheader": "Wichtige Information zu deiner Factor Box"
+    },
+    "generic": {
+      "business_unit": "TZ",
+      "content": "Aufgrund unvorhergesehener Umstände können unsere Köche diese Woche eine oder mehrere Mahlzeiten nicht nach unserem gewohnt hohen Standard zubereiten. Wir verstehen, dass das ärgerlich sein kann, und entschuldigen uns aufrichtig für die Unannehmlichkeiten. Damit du trotzdem eine leckere Mahlzeit genießen kannst, haben unsere Köche bereits eine passende Ersatzmahlzeit für diese Woche vorbereitet. <br><br> Bitte überprüfe die Allergene in der/den neuen Mahlzeit(en). <br><br> Hast du Fragen oder bist du nicht zufrieden? Wende dich gerne an unseren Kundenservice, wir helfen dir gerne weiter!",
+      "subjectline": "Wir haben eine Ersatzmahlzeit für dich",
+      "preheader": "Wichtige Information zu deiner Factor Box"
+    }
+  },
+  "sv-SE": {
+    "swap": {
+      "business_unit": "TV",
+      "content": "Tyvärr har våra kockar på grund av oförutsedda omständigheter inte kunnat tillaga <b>[Recipe_Swapped]</b>. Vi ber om ursäkt för besväret.<br><br>Som tur är har vi ett alternativ till dig: den här veckan får du <b>[Recipe_Swapped_to]</b> istället.<br><br>Kontrollera gärna allergenerna för den här måltiden.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam.",
+      "subjectline": "Vi har en ersättningsmåltid till dig",
+      "preheader": "Viktig information om din Factor Box"
+    },
+    "swap_multiple": {
+      "business_unit": "TV",
+      "content": "Tyvärr har våra kockar på grund av oförutsedda omständigheter inte kunnat tillaga följande måltider:[Recipe_Swapped]Vi ber om ursäkt för besväret.<br><br>Som tur är har vi ett alternativ till dig: den här veckan får du följande måltider istället:[Recipe_Swapped_to]<br><br>Kontrollera gärna allergenerna för dessa måltider.<br><br>Har du fler frågor eller är du inte nöjd? Hör gärna av dig till vårt serviceteam.",
+      "subjectline": "Vi har en ersättningsmåltid till dig",
+      "preheader": "Viktig information om din Factor Box"
+    },
+    "generic": {
+      "business_unit": "TV",
+      "content": "På grund av oförutsedda omständigheter kan våra kockar den här veckan inte tillaga en eller flera måltider enligt vår vanliga höga standard. Vi förstår att det kan vara tråkigt och ber uppriktigt om ursäkt för besväret. För att du ändå ska kunna njuta av en god måltid har våra kockar redan förberett ett lämpligt alternativ till den här veckan. <br><br> Kontrollera gärna allergenerna i den/de nya måltiden/måltiderna. <br><br> Har du frågor eller är du inte nöjd? Hör gärna av dig till vår kundtjänst, vi hjälper dig gärna vidare!",
+      "subjectline": "Vi har en ersättningsmåltid till dig",
+      "preheader": "Viktig information om din Factor Box"
+    }
+  },
+  "da-DK": {
+    "swap": {
+      "business_unit": "TK",
+      "content": "Desværre har vores kokke på grund af uforudsete omstændigheder ikke kunnet tilberede <b>[Recipe_Swapped]</b>. Undskyld ulejligheden.<br><br>Heldigvis har vi et alternativ til dig: denne uge modtager du <b>[Recipe_Swapped_to]</b> i stedet.<br><br>Husk at tjekke allergenerne for denne ret.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam.",
+      "subjectline": "Vi har fundet en erstatningsret til dig",
+      "preheader": "Vigtig information om din Factor Box"
+    },
+    "swap_multiple": {
+      "business_unit": "TK",
+      "content": "Desværre har vores kokke på grund af uforudsete omstændigheder ikke kunnet tilberede følgende retter:[Recipe_Swapped]Undskyld ulejligheden.<br><br>Heldigvis har vi et alternativ til dig: denne uge modtager du følgende retter i stedet:[Recipe_Swapped_to]<br><br>Husk at tjekke allergenerne for disse retter.<br><br>Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores serviceteam.",
+      "subjectline": "Vi har fundet en erstatningsret til dig",
+      "preheader": "Vigtig information om din Factor Box"
+    },
+    "generic": {
+      "business_unit": "TK",
+      "content": "På grund af uforudsete omstændigheder kan vores kokke denne uge ikke tilberede en eller flere retter efter vores sædvanlige høje standard. Vi forstår, at det kan være ærgerligt, og vi undskylder oprigtigt for ulejligheden. For at du alligevel kan nyde en lækker ret, har vores kokke allerede tilberedt et passende alternativ til denne uge. <br><br> Husk at tjekke allergenerne i den/de nye ret(ter). <br><br> Har du spørgsmål, eller er du ikke tilfreds? Så er du velkommen til at kontakte vores kundeservice - vi hjælper dig gerne videre!",
       "subjectline": "Vi har fundet en erstatningsret til dig",
       "preheader": "Vigtig information om din Factor Box"
     }
@@ -1232,6 +1360,15 @@ function renderIncidentCard(inc){
     inc.warnings.forEach(w=> body += `<div class="warn-line">${escapeHtml(w)}</div>`);
     (inc.notes||[]).forEach(n=> body += `<div class="note-line">${escapeHtml(n)}</div>`);
 
+    // Spell out the credit for THIS incident's market — the rate differs per
+    // market, so a single global label can't tell you what will be exported.
+    if(inc.type==='SWAP' && inc.market){
+      const rate = flatCreditFor(inc.market);
+      body += includeFlatCredit
+        ? `<div class="note-line">Swap credit: <b>${escapeHtml(creditLabelFor(inc.market))}</b> per meal${rate===null?'':` · ${escapeHtml(String(round2(rate*totalUnits)))} ${escapeHtml(MARKET_CONFIG[inc.market].currency)} over ${totalUnits} unit(s)`}</div>`
+        : `<div class="note-line">Swap credit: <b>0</b> — compensation toggle is off.</div>`;
+    }
+
     if(inc.type==='SWAP' && inc.status==='matched'){
       body += `<label class="field-label" style="margin-top:12px;">Substitute recipe (week ${escapeHtml(inc.week||'?')})</label>`;
       body += `<div id="combo-${inc.id}"></div>`;
@@ -1319,7 +1456,15 @@ document.getElementById('btn-reset').addEventListener('click', ()=>{
 
 document.getElementById('toggle-flat-credit').addEventListener('change', e=>{
   includeFlatCredit = e.target.checked;
-  if(!document.getElementById('step4').hasAttribute('data-disabled')) renderBulkDownloads();
+  // The toggle now changes the email wording as well as the exported amount,
+  // so every downstream step has to be rebuilt — re-rendering only the bulk
+  // export would leave stale CRM files promising a credit that isn't paid.
+  if(!document.getElementById('step4').hasAttribute('data-disabled')){
+    renderBulkDownloads();
+    renderCrmDownloads();
+    renderSlack();
+  }
+  renderIncidents();
 });
 
 /* =================================================================
@@ -1333,10 +1478,18 @@ function buildBulkErrorRows(){
     const qty = r.qty || 1;
     let compAmount = null;
     if(r.type === 'SWAP'){
-      // The toggle is only for swaps: €5/meal by default, or €0 when it's
-      // switched off (e.g. a like-for-like swap we don't want to
-      // compensate at all). Never price-based, regardless of box price data.
-      compAmount = round2(includeFlatCredit ? FLAT_CREDIT_EUR * qty : 0);
+      // The toggle is only for swaps: the market's own flat rate per meal
+      // (5 € for TZ, 50 kr for TV/TK) by default, or 0 when it's switched off
+      // (e.g. a like-for-like swap we don't want to compensate at all).
+      // Never price-based, regardless of box price data.
+      if(!includeFlatCredit){
+        compAmount = 0;
+      } else {
+        const rate = flatCreditFor(r.market);
+        // No rate for an unrecognised market: leave the cell blank rather
+        // than guess a currency and credit the wrong amount.
+        compAmount = rate === null ? null : round2(rate * qty);
+      }
     } else {
       // Shortage is always price-per-meal — the toggle above has no effect here.
       const perMeal = pricePerMealForBox(r.boxId);
@@ -1394,10 +1547,17 @@ function renderBulkDownloads(){
   row.innerHTML = markets.map((market,i)=>{
     const rows = groups[market];
     const marketName = MARKET_CONFIG[market]?.name || market;
+    const currency = MARKET_CONFIG[market]?.currency || '';
     const filename = `f_bulk_error_${todayDDMM()}_${market}.csv`;
+    // Show the money that's actually in the file, in the market's own
+    // currency, so a wrong rate is obvious before the file is imported.
+    const total = rows.reduce((s,r)=> s + (parseFloat(r['compensation amount'])||0), 0);
+    const blanks = rows.filter(r=> r['compensation amount']==='').length;
+    const swapRows = rows.filter(r=> r.comment !== 'Shortage').length;
     return `<div class="dl-card">
       <div class="dl-locale">${escapeHtml(marketName)} (${escapeHtml(market)})</div>
-      <div class="dl-meta">${rows.length} row${rows.length===1?'':'s'}</div>
+      <div class="dl-meta">${rows.length} row${rows.length===1?'':'s'} · <b>${escapeHtml(fmt2(round2(total)))} ${escapeHtml(currency)}</b> total</div>
+      <div class="dl-meta">${swapRows ? `Swap rate ${escapeHtml(creditLabelFor(market))}/meal${includeFlatCredit?'':' (toggle off → 0)'}` : 'Shortages only — price per meal'}${blanks ? ` · ⚠️ ${blanks} row(s) with no amount` : ''}</div>
       <button class="btn btn-dark" data-market-idx="${i}">Download<br><span class="mono" style="font-weight:500;">${filename}</span></button>
     </div>`;
   }).join('');
@@ -1464,16 +1624,36 @@ function buildCrmRows(){
     if(swapCount===0 && missingCount===0) return;
 
     let reason;
-    if(!allKnown){ reason = 'generic'; genericCount++; }
+    if(!allKnown){
+      // The fallback still has to describe what actually happened. A single
+      // swap-worded generic told customers who were only ever MISSING a meal
+      // that the chefs had prepared a replacement for them.
+      if(swapCount>0 && missingCount>0) reason = 'generic_mixed';
+      else if(missingCount>0) reason = 'generic_short';
+      else reason = 'generic';
+      genericCount++;
+    }
     else if(swapCount>0 && missingCount>0){ reason = (swapCount+missingCount>2) ? 'mixed_multiple' : 'mixed'; mixedCount++; }
     else if(swapCount>0){ reason = swapCount>1 ? 'swap_multiple' : 'swap'; }
     else { reason = missingCount>1 ? 'short_multiple' : 'short'; }
 
-    const tpl = (TEMPLATES[cfg.locale]||{})[reason];
-    if(!tpl){ manualReviewRows.push({business_unit:cust.market, customer_id:cust.customerId, flag_reason:`no template for ${reason}`}); return; }
+    // With the swap-compensation toggle off, a customer whose email is driven
+    // by a swap must not be promised a credit that never gets exported. Only
+    // swap-driven variants have a no-comp version; anything else (shortages,
+    // mixed) falls through to the normal template on purpose — see the
+    // TEMPLATES_NOCOMP header for why.
+    const noCompWanted = !includeFlatCredit && swapCount > 0;
+    const noCompTpl = noCompWanted ? (TEMPLATES_NOCOMP[cfg.locale]||{})[reason] : null;
+    const tpl = noCompTpl || (TEMPLATES[cfg.locale]||{})[reason];
+    // Reported separately so the Slack summary and needs-review export say
+    // which wording actually went out.
+    const reasonLabel = noCompTpl ? reason + '_nocomp' : reason;
+    if(!tpl){ manualReviewRows.push({business_unit:cust.market, customer_id:cust.customerId, flag_reason:`no template for ${reasonLabel}`}); return; }
 
     let content = tpl.content;
-    if(reason!=='generic'){
+    // No generic flavour carries recipe placeholders — it is used precisely
+    // because at least one name couldn't be resolved.
+    if(!reason.startsWith('generic')){
       if(swapCount===1) content = content.replace('[Recipe_Swapped]', swapNames[0].from.name).replace('[Recipe_Swapped_to]', swapNames[0].to.name);
       else if(swapCount>1) content = content.replace('[Recipe_Swapped]', htmlList(swapNames.map(s=>s.from.name))).replace('[Recipe_Swapped_to]', htmlList(swapNames.map(s=>s.to.name)));
       if(missingCount===1) content = content.replace('[Recipe_Missing]', missingNames[0].name);
@@ -1482,7 +1662,7 @@ function buildCrmRows(){
 
     const outRow = { business_unit: tpl.business_unit, customer_id: cust.customerId, locale: cfg.locale, content, subjectline: tpl.subjectline, preheader: tpl.preheader, voucher:'' };
     resultByLocale[cfg.locale].push(outRow);
-    resultRows.push({ market:cust.market, customerId:cust.customerId, week:cust.week, locale:cfg.locale, reason });
+    resultRows.push({ market:cust.market, customerId:cust.customerId, week:cust.week, locale:cfg.locale, reason: reasonLabel });
     generatedRowsByMarket[cust.market] = generatedRowsByMarket[cust.market] || [];
     generatedRowsByMarket[cust.market].push({ outRow, reason });
   });
@@ -1652,7 +1832,9 @@ function renderSlack(){
 
   Object.keys(bulkGroups).forEach(market=>{
     const rows = bulkGroups[market];
-    lines.push(`Bulk error (${market}): ${rows.length} row(s)`);
+    const currency = MARKET_CONFIG[market] ? MARKET_CONFIG[market].currency : '';
+    const total = round2(rows.reduce((s,r)=> s + (parseFloat(r['compensation amount'])||0), 0));
+    lines.push(`Bulk error (${market}): ${rows.length} row(s) · ${fmt2(total)} ${currency}`);
   });
 
   const msg = lines.join('\n').trim();
