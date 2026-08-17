@@ -72,6 +72,8 @@
   .match-summary b{font-weight:700;}
   .warn-line{color:var(--err);font-size:12px;margin-top:6px;}
   .ok-line{color:var(--ok);font-size:12px;margin-top:6px;}
+  .note-line{color:var(--ink-dim);font-size:12px;margin-top:6px;}
+  .field-help{font-size:11.5px;color:var(--ink-dim);margin-top:6px;line-height:1.5;}
 
   .combo{position:relative;max-width:360px;margin-top:10px;}
   .combo-input{cursor:text;}
@@ -171,6 +173,14 @@
       </div>
     </div>
 
+    <div class="form-grid" id="unknown-slot-row" style="margin-top:12px;display:none;">
+      <div style="grid-column:span 4;">
+        <label class="field-label">Slot number of the UNKNOWN meal (required)</label>
+        <input type="text" id="in-unknown-slot" placeholder="e.g. 408">
+        <div class="field-help">The meal has no Kitcontent entry, so its name can't be resolved — customers will get the generic email. The slot number is still needed to work out which customers actually had it.</div>
+      </div>
+    </div>
+
     <div class="form-grid" style="margin-top:12px;">
       <div style="grid-column:span 4;">
         <label class="field-label">Root Cause (what happened)</label>
@@ -209,7 +219,7 @@
   <!-- STEP 4 -->
   <div class="step" id="step4" data-disabled="true">
     <div class="step-head"><span class="step-num">04</span><span class="step-title">Bulk Error Report</span></div>
-    <div class="step-desc">One CSV for the De Kas bulk-error import. Swaps are €5 by default, unless overwritten. Shorts are calculated by the exact amount per meal per customer.</div>
+    <div class="step-desc">One CSV for the De Kas bulk-error import. Swaps are €5 by default, unless overwritten — set it to <b>0</b> for a swap you don't want to compensate, and the emails will leave out the compensation entirely. Shorts are calculated by the exact amount per meal per customer.</div>
     <div style="max-width:220px;margin-bottom:16px;">
       <label class="field-label">Credit amount — swap (€)</label>
       <input type="number" min="0" step="0.01" id="comp-swap" value="5">
@@ -309,6 +319,18 @@ const TEMPLATES = {
       subjectline: `We hebben een vervangende maaltijd voor je`,
       preheader: `Belangrijke informatie over jouw Factor Box`,
       content: `Door onvoorziene omstandigheden kunnen onze chefs deze week één of meerdere maaltijden niet bereiden volgens onze gebruikelijke hoge standaard. We begrijpen dat dit vervelend kan zijn en bieden onze oprechte excuses aan voor het ongemak. Om ervoor te zorgen dat je alsnog kunt genieten van een heerlijke maaltijd, hebben onze chefs al een passende vervangende maaltijd klaargemaakt voor deze week. <br><br> Controleer wel even de allergenen in de nieuwe maaltijd(en). Als tegemoetkoming ontvang je ook €5 tegoed per getroffen maaltijd, dat automatisch wordt verrekend met je volgende box. <br><br> Heb je vragen of ben je niet tevreden? Neem gerust contact op met onze klantenservice, we helpen je graag verder!`
+    },
+    "generic_short": {
+      business_unit: "TT",
+      subjectline: `Sorry... we kunnen niet alles leveren`,
+      preheader: `Er mist een maaltijd in jouw Factor Box`,
+      content: `Er missen deze week één of meerdere maaltijden in jouw box. Helaas is het ons niet op tijd gelukt om ze te vervangen door passende alternatieven die aan onze hoge kwaliteitsstandaarden voldoen. Sorry voor het ongemak.<br><br>Natuurlijk voegen we het bedrag als tegoed aan je account toe, zodat je het op je volgende box als korting kunt inzetten. En niet te vergeten: geniet van de maaltijden die wél zijn thuisbezorgd.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "generic_mixed": {
+      business_unit: "TT",
+      subjectline: `Een paar aanpassingen in je Factor Box`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Deze week gaat niet alles volgens plan met je Factor Box.<br><br>Eén of meerdere maaltijden ontbreken in je levering, omdat we geen passend alternatief konden vinden dat aan onze hoge kwaliteitsstandaarden voldoet. Andere maaltijden hebben we moeten vervangen — daarvoor hebben onze chefs een passend alternatief voor je klaargemaakt.<br><br>Controleer wel even de allergenen van de nieuwe maaltijd(en).<br><br>Sorry voor het ongemak. Uiteraard verrekenen we alles netjes als tegoed in je account.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
     }
   },
   "be-NL": {
@@ -353,6 +375,18 @@ const TEMPLATES = {
       subjectline: `We hebben een vervangende maaltijd voor je`,
       preheader: `Belangrijke informatie over jouw Factor Box`,
       content: `Door onvoorziene omstandigheden kunnen onze chefs deze week één of meerdere maaltijden niet bereiden volgens onze gebruikelijke hoge standaard. We begrijpen dat dit vervelend kan zijn en bieden onze oprechte excuses aan voor het ongemak. Om ervoor te zorgen dat je alsnog kunt genieten van een heerlijke maaltijd, hebben onze chefs al een passende vervangende maaltijd klaargemaakt voor deze week. <br><br> Controleer wel even de allergenen in de nieuwe maaltijd(en). Als tegemoetkoming ontvang je ook €5 tegoed per getroffen maaltijd, dat automatisch wordt verrekend met je volgende box. <br><br> Heb je vragen of ben je niet tevreden? Neem gerust contact op met onze klantenservice, we helpen je graag verder!`
+    },
+    "generic_short": {
+      business_unit: "TO",
+      subjectline: `Sorry... we kunnen niet alles leveren`,
+      preheader: `Er mist een maaltijd in jouw Factor Box`,
+      content: `Er missen deze week één of meerdere maaltijden in jouw box. Helaas is het ons niet op tijd gelukt om ze te vervangen door passende alternatieven die aan onze hoge kwaliteitsstandaarden voldoen. Sorry voor het ongemak.<br><br>Natuurlijk voegen we het bedrag als tegoed aan je account toe, zodat je het op je volgende box als korting kunt inzetten. En niet te vergeten: geniet van de maaltijden die wél zijn thuisbezorgd.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "generic_mixed": {
+      business_unit: "TO",
+      subjectline: `Een paar aanpassingen in je Factor Box`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Deze week gaat niet alles volgens plan met je Factor Box.<br><br>Eén of meerdere maaltijden ontbreken in je levering, omdat we geen passend alternatief konden vinden dat aan onze hoge kwaliteitsstandaarden voldoet. Andere maaltijden hebben we moeten vervangen — daarvoor hebben onze chefs een passend alternatief voor je klaargemaakt.<br><br>Controleer wel even de allergenen van de nieuwe maaltijd(en).<br><br>Sorry voor het ongemak. Uiteraard verrekenen we alles netjes als tegoed in je account.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
     }
   },
   "be-FR": {
@@ -397,6 +431,96 @@ const TEMPLATES = {
       subjectline: `Nous avons remplacé un plat`,
       preheader: `Information importante concernant votre box`,
       content: `En raison de circonstances imprévues, nos chefs n’ont pas pu préparer un ou plusieurs des repas que vous aviez sélectionné cette semaine. Nous sommes désolés pour ce désagrément. <br><br> Rassurez-vous : nos chefs ont soigneusement sélectionné un ou plusieurs plats de remplacement, préparés avec la même exigence et la même qualité que d’habitude.<br><br> Nous vous invitons à vérifier les allergènes présents dans ces nouveaux plats. En compensation, un crédit de 5 € par repas concerné sera automatiquement appliqué à votre prochaine box. <br><br> Si vous avez la moindre question, notre service client se fera un plaisir de vous aider.`
+    },
+    "generic_short": {
+      business_unit: "TO",
+      subjectline: `Petit imprévu dans la livraison`,
+      preheader: `Votre box est arrivée… avec un petit changement.`,
+      content: `Malheureusement, un ou plusieurs plats de votre box de cette semaine n’ont pas pu être préparés, et nous n’avons pas trouvé d’alternative à la hauteur de nos standards à temps.<br><br>Veuillez nous excuser pour ce contretemps. Nous avons crédité votre compte. Vous pourrez utiliser ce montant comme réduction lors de votre prochaine commande.<br><br>Bon appétit !`
+    },
+    "generic_mixed": {
+      business_unit: "TO",
+      subjectline: `Quelques ajustements dans votre Factor Box`,
+      preheader: `Information importante concernant votre box`,
+      content: `Cette semaine, tout ne s’est pas déroulé comme prévu avec votre Factor Box.<br><br>Un ou plusieurs plats sont absents de votre livraison, car nous n’avons pas pu trouver d’alternative répondant à nos standards de qualité élevés. D’autres plats ont dû être remplacés — nos chefs ont préparé une alternative appropriée pour vous.<br><br>Pensez à vérifier les allergènes des nouveaux plats.<br><br>Désolé pour ce désagrément. Bien entendu, nous créditerons tout cela correctement sur votre compte.<br><br>Si vous avez des questions ou n’êtes pas satisfait, n’hésitez pas à contacter notre service client.`
+    }
+  }
+};
+
+/* =================================================================
+   NO-COMPENSATION SWAP TEMPLATES
+
+   Used when the swap credit in Step 4 is 0. Identical to the variants
+   above with the credit promise removed — a swap we deliberately don't
+   compensate must not tell the customer money is coming, because none
+   is exported for them.
+
+   Only swap-driven variants exist here. short/short_multiple are
+   always compensated (per-meal price from the price feed, or the
+   fallback), and mixed/mixed_multiple + generic_short/generic_mixed
+   never quote a per-meal swap credit — they only say the amount will
+   be settled as account credit, which stays true because the shortage
+   half is still paid. All of those fall through to TEMPLATES.
+================================================================= */
+const TEMPLATES_NOCOMP = {
+  "nl-NL": {
+    "swap": {
+      business_unit: "TT",
+      subjectline: `We hebben een vervangende maaltijd voor je`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Helaas lukt het onze chefs door onvoorziene omstandigheden niet om {{ORIGIN}} te bereiden. Sorry voor het ongemak.<br><br>Gelukkig hebben we een alternatief voor je: deze week ontvang je {{DEST}}.<br><br>Controleer wel even de allergenen van deze maaltijd.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "swap_multiple": {
+      business_unit: "TT",
+      subjectline: `We hebben een vervangende maaltijd voor je`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Helaas lukt het onze chefs door onvoorziene omstandigheden niet om de volgende maaltijden te bereiden:{{ORIGIN}}<br>Sorry voor het ongemak.<br><br>Gelukkig hebben we een alternatief voor je: deze week ontvang je de volgende maaltijden:{{DEST}}<br><br>Controleer wel even de allergenen van deze maaltijd.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "generic": {
+      business_unit: "TT",
+      subjectline: `We hebben een vervangende maaltijd voor je`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Door onvoorziene omstandigheden kunnen onze chefs deze week één of meerdere maaltijden niet bereiden volgens onze gebruikelijke hoge standaard. We begrijpen dat dit vervelend kan zijn en bieden onze oprechte excuses aan voor het ongemak. Om ervoor te zorgen dat je alsnog kunt genieten van een heerlijke maaltijd, hebben onze chefs al een passende vervangende maaltijd klaargemaakt voor deze week. <br><br> Controleer wel even de allergenen in de nieuwe maaltijd(en). <br><br> Heb je vragen of ben je niet tevreden? Neem gerust contact op met onze klantenservice, we helpen je graag verder!`
+    }
+  },
+  "be-NL": {
+    "swap": {
+      business_unit: "TO",
+      subjectline: `We hebben een vervangende maaltijd voor je`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Helaas lukt het onze chefs door onvoorziene omstandigheden niet om {{ORIGIN}} te bereiden. Sorry voor het ongemak.<br><br>Gelukkig hebben we een alternatief voor je: deze week ontvang je {{DEST}}.<br><br>Controleer wel even de allergenen van deze maaltijd.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "swap_multiple": {
+      business_unit: "TO",
+      subjectline: `We hebben een vervangende maaltijd voor je`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Helaas lukt het onze chefs door onvoorziene omstandigheden niet om de volgende maaltijden te bereiden:{{ORIGIN}}<br>Sorry voor het ongemak.<br><br>Gelukkig hebben we een alternatief voor je: deze week ontvang je de volgende maaltijden:{{DEST}}<br><br>Controleer wel even de allergenen van deze maaltijd.<br><br>Heb je nog vragen of ben je niet tevreden? Neem dan gerust contact op met ons serviceteam.`
+    },
+    "generic": {
+      business_unit: "TO",
+      subjectline: `We hebben een vervangende maaltijd voor je`,
+      preheader: `Belangrijke informatie over jouw Factor Box`,
+      content: `Door onvoorziene omstandigheden kunnen onze chefs deze week één of meerdere maaltijden niet bereiden volgens onze gebruikelijke hoge standaard. We begrijpen dat dit vervelend kan zijn en bieden onze oprechte excuses aan voor het ongemak. Om ervoor te zorgen dat je alsnog kunt genieten van een heerlijke maaltijd, hebben onze chefs al een passende vervangende maaltijd klaargemaakt voor deze week. <br><br> Controleer wel even de allergenen in de nieuwe maaltijd(en). <br><br> Heb je vragen of ben je niet tevreden? Neem gerust contact op met onze klantenservice, we helpen je graag verder!`
+    }
+  },
+  "be-FR": {
+    "swap": {
+      business_unit: "TO",
+      subjectline: `Nous avons remplacé un plat`,
+      preheader: `Information importante concernant votre box`,
+      content: `Malheureusement, en raison de circonstances imprévues, nos chefs ne parviennent pas à préparer {{ORIGIN}}. Désolé pour ce désagrément.<br><br>Heureusement, nous avons une alternative pour vous : cette semaine, vous recevrez {{DEST}}.<br><br>Veuillez tout de même vérifier les allergènes de ce repas.<br><br>Si vous avez des questions ou si vous n’êtes pas satisfait, n’hésitez pas à contacter notre équipe du service client.`
+    },
+    "swap_multiple": {
+      business_unit: "TO",
+      subjectline: `Nous avons remplacé un plat`,
+      preheader: `Information importante concernant votre box`,
+      content: `Malheureusement, en raison de circonstances imprévues, nos chefs ne parviennent pas à préparer les plats suivants :{{ORIGIN}}<br>Désolé pour ce désagrément.<br><br>Heureusement, nous avons une alternative pour vous : cette semaine, vous recevrez les plats suivants :{{DEST}}<br><br>Veuillez tout de même vérifier les allergènes de ces repas.<br><br>Si vous avez des questions ou si vous n’êtes pas satisfait, n’hésitez pas à contacter notre équipe du service client.`
+    },
+    "generic": {
+      business_unit: "TO",
+      subjectline: `Nous avons remplacé un plat`,
+      preheader: `Information importante concernant votre box`,
+      content: `En raison de circonstances imprévues, nos chefs n’ont pas pu préparer un ou plusieurs des repas que vous aviez sélectionné cette semaine. Nous sommes désolés pour ce désagrément. <br><br> Rassurez-vous : nos chefs ont soigneusement sélectionné un ou plusieurs plats de remplacement, préparés avec la même exigence et la même qualité que d’habitude.<br><br> Nous vous invitons à vérifier les allergènes présents dans ces nouveaux plats. <br><br> Si vous avez la moindre question, notre service client se fera un plaisir de vous aider.`
     }
   }
 };
@@ -446,6 +570,38 @@ function parseTs(s){
   const hh = m[2].padStart(2,'0');
   return new Date(`${m[1]}T${hh}:${m[3]}:${m[4]}`);
 }
+// Epoch ms, or null when the timestamp can't be read at all. A box with no
+// usable time can't be placed in a production window, so it must be reported
+// rather than silently sorted to 1970 or dropped.
+function pickTsMs(s){
+  const t = parseTs(s).getTime();
+  return isNaN(t) ? null : t;
+}
+function byPickTs(a,b){
+  if(a.tsMs===null && b.tsMs===null) return 0;
+  if(a.tsMs===null) return 1;
+  if(b.tsMs===null) return -1;
+  return a.tsMs - b.tsMs;
+}
+// Which production date(s) a box actually ran on, so a box entered against the
+// wrong date is reported as "that box ran on 2026-08-15" instead of "not found".
+function datesForBox(boxIdRaw){
+  const n = normalizeBoxId(boxIdRaw);
+  return Array.from(new Set(state.productionRows.filter(r=>r.boxIdNorm===n).map(r=>r.productionDate))).sort();
+}
+
+/* =================================================================
+   UNKNOWN MEAL — escape hatch for meals that aren't in Kitcontent /
+   the Meal Database for this week. Without it the incident couldn't
+   be processed at all: the impacted meal couldn't be picked, and a
+   substitute with no Kitcontent entry wasn't in the picker. Choosing
+   UNKNOWN keeps matching and compensation exactly as they are and
+   only forces the generic CRM email, since there is no recipe name
+   to put in a templated one.
+================================================================= */
+const UNKNOWN_SLOT = '__UNKNOWN__';
+const UNKNOWN_LABEL = 'UNKNOWN — meal not in Kitcontent';
+function unknownOption(){ return { slot: UNKNOWN_SLOT, label: UNKNOWN_LABEL, code:'', unknown:true }; }
 function parseSlots(desc){
   return (desc||'').split('|').map(s=>s.trim()).filter(s=>/^\d+$/.test(s));
 }
@@ -665,6 +821,7 @@ function buildProductionIndex(rows, odlIndex){
       productionDate: (r[idx.prodDate]||'').toString().trim(),
       productionDay: (r[idx.prodDay]||'').toString().trim(),
       ts: (r[idx.ts]||'').toString().trim(),
+      tsMs: pickTsMs(r[idx.ts]),
       customerId: customerId,
       locale: normalizedLocale,
       rawLocale: rawLanguage,
@@ -818,7 +975,8 @@ function createCombobox({container, getOptions, placeholder, onSelect, allowFree
     currentList = filtered;
     if(!opts.length){ panel.innerHTML = `<div class="combo-empty">${allowFreeText ? 'No slot list yet — you can still type a slot number' : 'No recipes loaded yet'}</div>`; return; }
     if(!filtered.length){ panel.innerHTML = `<div class="combo-empty">No matching recipes${allowFreeText ? ' — typed value will be used as-is' : ''}</div>`; return; }
-    panel.innerHTML = filtered.map((o,i)=>`<div class="combo-option" data-idx="${i}"><span>${escapeHtml(o.label)}</span><span class="co-meta"><span class="co-idx">#${escapeHtml(o.slot)}</span>${o.code?`<span class="co-idx">${escapeHtml(o.code)}</span>`:''}</span></div>`).join('');
+    // The UNKNOWN entry has no real slot number, so don't render a "#__UNKNOWN__" chip for it.
+    panel.innerHTML = filtered.map((o,i)=>`<div class="combo-option" data-idx="${i}"><span>${escapeHtml(o.label)}</span><span class="co-meta">${o.unknown?'':`<span class="co-idx">#${escapeHtml(o.slot)}</span>`}${o.code?`<span class="co-idx">${escapeHtml(o.code)}</span>`:''}</span></div>`).join('');
   }
   function openPanel(){ renderOptions(''); panel.style.display='block'; activeIndex=-1; }
   function closePanel(){ panel.style.display='none'; activeIndex=-1; }
@@ -882,14 +1040,22 @@ function getKitcontentOptions(){
     .map(([slot, kit]) => ({ slot, label: kit.etiketnaam || kit.ingredientnaam || `Slot ${slot}`, code: kit.sku }))
     .sort((a,b)=> a.slot.localeCompare(b.slot, undefined, {numeric:true}));
 }
+function setUnknownSlotRowVisible(visible){
+  const row = document.getElementById('unknown-slot-row');
+  row.style.display = visible ? '' : 'none';
+  if(!visible) document.getElementById('in-unknown-slot').value = '';
+}
 function mountSlotCombo(){
   const mount = document.getElementById('slot-combo-mount');
+  setUnknownSlotRowVisible(false);
   slotComboRef = createCombobox({
     container: mount,
-    getOptions: getKitcontentOptions,
-    placeholder: 'Search meal or type slot #…',
+    // UNKNOWN is always offered, including when Kitcontent hasn't loaded —
+    // that's precisely when the operator needs it.
+    getOptions: ()=> [unknownOption()].concat(getKitcontentOptions()),
+    placeholder: 'Search meal, type slot # or pick UNKNOWN…',
     allowFreeText: true,
-    onSelect: ()=>{}
+    onSelect: rec=> setUnknownSlotRowVisible(!!(rec && rec.unknown))
   });
 }
 mountSlotCombo();
@@ -901,15 +1067,23 @@ document.getElementById('btn-add-incident').addEventListener('click', ()=>{
   const date = document.getElementById('in-date').value;
   const firstBox = document.getElementById('in-firstbox').value.trim();
   const lastBox = document.getElementById('in-lastbox').value.trim();
-  const slot = slotComboRef ? slotComboRef.getSlot() : '';
+  const pickedSlot = slotComboRef ? slotComboRef.getSlot() : '';
   const categoryIndex = parseInt(categorySelect.value, 10);
-  if(!date || !firstBox || !slot){ alert('Production date, first box ID and affected meal are required.'); return; }
+  if(!date || !firstBox || !pickedSlot){ alert('Production date, first box ID and affected meal are required.'); return; }
+
+  // UNKNOWN only removes the recipe *name*; the slot number is still what
+  // decides which customers actually had the meal, so it stays required.
+  const slotUnknown = pickedSlot === UNKNOWN_SLOT;
+  const slot = slotUnknown ? document.getElementById('in-unknown-slot').value.trim() : pickedSlot;
+  if(slotUnknown && !slot){ alert('Enter the slot number of the UNKNOWN meal — it is needed to find the impacted customers.'); return; }
+
   const type = getCurrentType();
   state.incidentSeq++;
   state.incidents.push({
-    id: state.incidentSeq, date, firstBox, lastBox: lastBox || null, slot, type, categoryIndex,
-    status: 'draft', matched: [], warnings: [],
+    id: state.incidentSeq, date, firstBox, lastBox: lastBox || null, slot, slotUnknown, type, categoryIndex,
+    status: 'draft', matched: [], warnings: [], notes: [], rangeFrom: null, rangeTo: null,
     recipeName: null, recipeCode: null, substituteSlot: null, substituteRecipeName: null, substituteRecipeCode: null,
+    substituteUnknown: false,
     checkedCount: 0, notImpacted: 0, localeBreakdown: {}
   });
   document.getElementById('in-firstbox').value = '';
@@ -923,22 +1097,60 @@ document.getElementById('btn-add-incident').addEventListener('click', ()=>{
 ================================================================= */
 function findMatches(incident){
   incident.warnings = [];
+  incident.notes = [];
   const dateRows = state.productionRows.filter(r=>r.productionDate===incident.date);
   if(!dateRows.length){ incident.warnings.push(`No production rows found for ${incident.date}.`); incident.status='error'; return; }
 
-  const sorted = dateRows.slice().sort((a,b)=> parseTs(a.ts) - parseTs(b.ts));
+  const sorted = dateRows.slice().sort(byPickTs);
   const firstNorm = normalizeBoxId(incident.firstBox);
-  const firstIdx = sorted.findIndex(r=>r.boxIdNorm===firstNorm);
-  if(firstIdx===-1){ incident.warnings.push(`First box ${incident.firstBox} not found on ${incident.date}.`); incident.status='error'; return; }
+  const firstRec = sorted.find(r=>r.boxIdNorm===firstNorm);
+  if(!firstRec){
+    const other = datesForBox(incident.firstBox).filter(d=>d!==incident.date);
+    incident.warnings.push(other.length
+      ? `First box ${incident.firstBox} was produced on ${other.join(' / ')}, not ${incident.date}. Select that production date instead.`
+      : `First box ${incident.firstBox} not found on ${incident.date}.`);
+    incident.status='error'; return;
+  }
 
-  let endIdx = sorted.length - 1;
+  let lastRec = null;
   if(incident.lastBox){
     const lastNorm = normalizeBoxId(incident.lastBox);
-    const lastIdx = sorted.findIndex((r,i)=> i>=firstIdx && r.boxIdNorm===lastNorm);
-    if(lastIdx===-1){ incident.warnings.push('Last box not found after the first box — using the rest of the run instead.'); }
-    else { endIdx = lastIdx; }
+    lastRec = sorted.find(r=>r.boxIdNorm===lastNorm) || null;
+    if(!lastRec){
+      // Previously this fell back to "the rest of the run", which silently
+      // turned a bounded range into everything left in the day — including
+      // when the box belonged to a different production date entirely.
+      const other = datesForBox(incident.lastBox).filter(d=>d!==incident.date);
+      incident.warnings.push(other.length
+        ? `Last box ${incident.lastBox} was produced on ${other.join(' / ')}, not ${incident.date}. A range can't span two production dates.`
+        : `Last box ${incident.lastBox} not found on ${incident.date}. Leave it blank to use the rest of the run, or enter a box from this date.`);
+      incident.status='error'; return;
+    }
+    if(firstRec.tsMs!==null && lastRec.tsMs!==null && lastRec.tsMs < firstRec.tsMs){
+      incident.warnings.push(`Last box ${incident.lastBox} was picked at ${lastRec.ts}, before ${incident.firstBox} at ${firstRec.ts}. Swap the two box IDs.`);
+      incident.status='error'; return;
+    }
   }
-  const candidates = sorted.slice(firstIdx, endIdx+1);
+
+  // The impacted run is the time window between the two boxes, not a slice of
+  // feed rows — row order is whatever the sheet happens to hand over, and
+  // taking positions on trust is how a small range silently becomes a big one.
+  let candidates;
+  if(firstRec.tsMs===null || (lastRec && lastRec.tsMs===null)){
+    const fi = sorted.indexOf(firstRec);
+    const li = lastRec ? sorted.indexOf(lastRec) : sorted.length - 1;
+    candidates = sorted.slice(fi, Math.max(fi, li) + 1);
+    incident.warnings.push(`event_timestamp_local could not be read for the range boundaries, so the range fell back to feed row order. Check the result against the production feed before confirming.`);
+  } else {
+    candidates = sorted.filter(r =>
+      r.tsMs !== null &&
+      r.tsMs >= firstRec.tsMs &&
+      (lastRec === null || r.tsMs <= lastRec.tsMs));
+    const noTs = sorted.filter(r=>r.tsMs===null).length;
+    if(noTs) incident.warnings.push(`${noTs} box(es) on ${incident.date} have an unreadable event_timestamp_local and could not be placed in the range.`);
+  }
+  incident.rangeFrom = firstRec.ts;
+  incident.rangeTo = lastRec ? lastRec.ts : (candidates.length ? candidates[candidates.length-1].ts : firstRec.ts);
 
   const matched = []; let notImpacted = 0;
   const localeBreakdown = {};
@@ -957,12 +1169,21 @@ function findMatches(incident){
   incident.notImpacted = notImpacted;
   incident.localeBreakdown = localeBreakdown;
 
-  const kit = state.kitcontentBySlot.get(String(incident.slot));
-  if(kit){
-    incident.recipeCode = kit.sku;
-    incident.recipeName = kit.etiketnaam || kit.ingredientnaam || null;
+  if(incident.slotUnknown){
+    // Deliberately not resolved: the operator has already said the meal isn't
+    // in Kitcontent. Leaving the name blank is what routes these customers to
+    // the generic email in buildCrmRows().
+    incident.recipeName = null;
+    incident.recipeCode = '';
+    incident.notes.push(`Meal marked UNKNOWN — matched on slot ${incident.slot}; these customers get the generic email.`);
   } else {
-    incident.warnings.push(`Slot ${incident.slot} not found in Kitcontent for this week.`);
+    const kit = state.kitcontentBySlot.get(String(incident.slot));
+    if(kit){
+      incident.recipeCode = kit.sku;
+      incident.recipeName = kit.etiketnaam || kit.ingredientnaam || null;
+    } else {
+      incident.warnings.push(`Slot ${incident.slot} not found in Kitcontent for this week. If this meal isn't in Kitcontent, re-add the incident with the UNKNOWN option.`);
+    }
   }
 
   if(!matched.length) incident.warnings.push(`No customers in this range actually had slot ${incident.slot} in their box.`);
@@ -989,16 +1210,20 @@ function renderIncidents(){
       if(mount){
         const comboInstance = createCombobox({
           container: mount,
-          getOptions: ()=> getKitcontentOptions().filter(o=> o.slot !== String(inc.slot)),
-          placeholder: 'Search substitute recipe…',
+          // UNKNOWN is always available — a swap whose replacement isn't in
+          // Kitcontent could otherwise never be confirmed at all.
+          getOptions: ()=> [unknownOption()].concat(getKitcontentOptions().filter(o=> o.slot !== String(inc.slot))),
+          placeholder: 'Search substitute recipe, or pick UNKNOWN…',
           onSelect: rec=>{
+            const isUnknown = !!(rec && rec.unknown);
+            inc.substituteUnknown = isUnknown;
             inc.substituteSlot = rec ? rec.slot : null;
-            inc.substituteRecipeCode = rec ? rec.code : null;
-            inc.substituteRecipeName = rec ? rec.label : null;
+            inc.substituteRecipeCode = (rec && !isUnknown) ? rec.code : null;
+            inc.substituteRecipeName = (rec && !isUnknown) ? rec.label : null;
             renderIncidents();
           }
         });
-        if(inc.substituteSlot) comboInstance.setValue(inc.substituteSlot, inc.substituteRecipeName, inc.substituteRecipeCode);
+        if(inc.substituteSlot) comboInstance.setValue(inc.substituteSlot, inc.substituteUnknown ? UNKNOWN_LABEL : inc.substituteRecipeName, inc.substituteRecipeCode);
       }
     }
   });
@@ -1011,10 +1236,13 @@ function localeBreakdownText(inc){
 
 function renderIncidentCard(inc){
   const typeTag = inc.type==='SWAP' ? '<span class="tag swap">Swap</span>' : '<span class="tag short">Shortage</span>';
+  const unknownTag = inc.slotUnknown ? ' <span class="tag short">Unknown meal</span>' : '';
+  const impactedLabel = inc.slotUnknown ? 'UNKNOWN (not in Kitcontent)' : (inc.recipeName || 'Unknown');
+  const substituteLabel = inc.substituteUnknown ? 'UNKNOWN (not in Kitcontent)' : (inc.substituteRecipeName || 'Unknown');
   let body = `
     <div class="incident-head">
       <div>
-        <div class="incident-title">#${inc.id} — ${escapeHtml(inc.date)} · Slot ${escapeHtml(inc.slot)} ${typeTag}</div>
+        <div class="incident-title">#${inc.id} — ${escapeHtml(inc.date)} · Slot ${escapeHtml(inc.slot)} ${typeTag}${unknownTag}</div>
         <div class="incident-meta">${escapeHtml(inc.firstBox)}${inc.lastBox ? ' → '+escapeHtml(inc.lastBox) : ' → rest of run'}</div>
       </div>
       ${inc.status!=='confirmed' ? `<button class="remove-x" id="remove-${inc.id}">✕</button>` : ''}
@@ -1032,17 +1260,30 @@ function renderIncidentCard(inc){
     const totalUnits = inc.matched.reduce((sum, m) => sum + (m.qty || 1), 0);
     
     body += `<div class="match-summary">
+      ${inc.rangeFrom ? `Range <b>${escapeHtml(inc.rangeFrom)}</b> → <b>${escapeHtml(inc.lastBox ? inc.rangeTo : inc.rangeTo + ' (end of run)')}</b><br>` : ''}
       <b>${escapeHtml(inc.date)}</b> &middot;
+      Checked <b>${inc.checkedCount}</b> box(es) &middot;
       <b>${uniqueCustomers}</b> customer(s) &middot;
       <b>${totalUnits}</b> unit(s)
-      <br>By locale: <b>${localeBreakdownText(inc)}</b> &middot; Recipe: <b>${escapeHtml(inc.recipeName||'Unknown')}</b>
+      <br>By locale: <b>${localeBreakdownText(inc)}</b> &middot; Recipe: <b>${escapeHtml(impactedLabel)}</b>
     </div>`;
     inc.warnings.forEach(w=> body += `<div class="warn-line">${escapeHtml(w)}</div>`);
+    (inc.notes||[]).forEach(n=> body += `<div class="note-line">${escapeHtml(n)}</div>`);
+
+    // Spell out the credit that will actually be exported for this incident —
+    // the amount lives in Step 4, so it isn't visible from here otherwise.
+    if(inc.type==='SWAP'){
+      const rate = swapCreditAmount();
+      body += rate > 0
+        ? `<div class="note-line">Swap credit: <b>€${rate.toFixed(2)}</b> per meal · €${round2(rate*totalUnits).toFixed(2)} over ${totalUnits} unit(s)</div>`
+        : `<div class="note-line">Swap credit: <b>€0</b> — the swap credit in Step 4 is 0, so the emails won't mention compensation.</div>`;
+    }
 
     if(inc.type==='SWAP' && inc.status==='matched'){
       body += `<label class="field-label" style="margin-top:12px;">Substitute recipe</label>`;
       body += `<div id="combo-${inc.id}"></div>`;
-      if(inc.substituteRecipeName) body += `<div class="ok-line">Selected: ${escapeHtml(inc.substituteRecipeName)} (#${escapeHtml(inc.substituteSlot)})</div>`;
+      if(inc.substituteUnknown) body += `<div class="note-line">Selected: ${escapeHtml(UNKNOWN_LABEL)} — these customers get the generic email.</div>`;
+      else if(inc.substituteSlot) body += `<div class="ok-line">Selected: ${escapeHtml(inc.substituteRecipeName || 'No name available')} (#${escapeHtml(inc.substituteSlot)})</div>`;
     }
 
     const canConfirm = inc.status==='matched' && inc.matched.length>0 && (inc.type==='SHORTAGE' || inc.substituteSlot);
@@ -1052,8 +1293,8 @@ function renderIncidentCard(inc){
     </div>`;
   } else if(inc.status==='confirmed'){
     body += `<div class="match-summary">
-      Confirmed &middot; <b>${inc.matched.length}</b> customer(s) added to session &middot; Recipe: <b>${escapeHtml(inc.recipeName||'Unknown')}</b>
-      ${inc.type==='SWAP' ? ` → <b>${escapeHtml(inc.substituteRecipeName||'Unknown')}</b>` : ''}
+      Confirmed &middot; <b>${inc.matched.length}</b> customer(s) added to session &middot; Recipe: <b>${escapeHtml(impactedLabel)}</b>
+      ${inc.type==='SWAP' ? ` → <b>${escapeHtml(substituteLabel)}</b>` : ''}
     </div>`;
   }
 
@@ -1066,6 +1307,10 @@ function confirmIncident(inc){
     state.auditLog.push({
       incidentId: inc.id, customerId: m.customerId, boxId: m.boxIdClean, locale: m.locale, qty: m.qty,
       type: inc.type, slot: inc.slot, substituteSlot: inc.substituteSlot,
+      // Either flag forces the generic CRM email — there is no recipe name to
+      // fill a templated one with. Compensation is unaffected.
+      recipeUnknown: !!inc.slotUnknown,
+      substituteUnknown: !!inc.substituteUnknown,
       categoryIndex: inc.categoryIndex, businessUnit: businessUnit
     });
   });
@@ -1084,6 +1329,18 @@ function unlockSession(){
   renderCrmDownloads();
   renderSlack();
 }
+
+// The swap credit now changes the email wording as well as the exported amount,
+// so every downstream step has to be rebuilt when it's edited — otherwise the
+// CRM files would keep promising a credit the CSV no longer pays.
+document.getElementById('comp-swap').addEventListener('input', ()=>{
+  if(!document.getElementById('step4').hasAttribute('data-disabled')){
+    renderBulkDownloads();
+    renderCrmDownloads();
+    renderSlack();
+  }
+  renderIncidents();
+});
 
 function renderReview(){
   const rows = state.auditLog;
@@ -1126,8 +1383,19 @@ document.getElementById('btn-reset').addEventListener('click', ()=>{
    BULK ERROR EXPORT — split by business unit (TT and TO separate).
    Merges split boxes (A/B suffixes) into single box ID.
 ================================================================= */
+/* The flat per-meal swap credit from Step 4. This tool has no on/off toggle —
+   the amount itself is the control, so 0 means "this swap is not compensated"
+   and the CRM email must not promise a credit. Single source of truth for both
+   the bulk export and the template choice, so the two can't disagree. */
+function swapCreditAmount(){
+  const el = document.getElementById('comp-swap');
+  if(!el) return 0;
+  const v = parseFloat(el.value||'0');
+  return isNaN(v) || v < 0 ? 0 : v;
+}
+
 function buildBulkErrorRows(){
-  const compSwap = parseFloat(document.getElementById('comp-swap').value||'0') || 0;
+  const compSwap = swapCreditAmount();
   const compShort = parseFloat(document.getElementById('comp-short').value||'0') || 0;
   const rows = [];
   let fallbackShortCount = 0;
@@ -1135,8 +1403,10 @@ function buildBulkErrorRows(){
     if(r.categoryIndex===null || r.categoryIndex===undefined || isNaN(r.categoryIndex)) return;
     const cat = RECIPE_CATEGORIES[r.categoryIndex];
     const kit = state.kitcontentBySlot.get(String(r.slot));
-    const recipeName = resolveRecipeName(r.slot, r.locale) || 'Unknown';
-    const subName = r.type==='SWAP' ? (resolveRecipeName(r.substituteSlot, r.locale) || 'Unknown') : null;
+    const recipeName = (r.recipeUnknown ? null : resolveRecipeName(r.slot, r.locale)) || 'UNKNOWN';
+    const subName = r.type==='SWAP'
+      ? ((r.substituteUnknown ? null : resolveRecipeName(r.substituteSlot, r.locale)) || 'UNKNOWN')
+      : null;
     const qty = r.qty || 1;
 
     let compAmount;
@@ -1165,8 +1435,12 @@ function buildBulkErrorRows(){
       'compensation type': 'credit',
       'compensation amount': compAmount.toFixed(2),
       'recipe index': r.slot,
-      'culinary sku': kit ? kit.sku : '',
-      'comment': r.type==='SWAP' ? `Swap to ${r.substituteSlot}: ${subName}` : 'Shortage',
+      'culinary sku': r.recipeUnknown ? '' : (kit ? kit.sku : ''),
+      'comment': r.type==='SWAP'
+        ? (r.substituteUnknown && r.substituteSlot===UNKNOWN_SLOT
+            ? 'Swap to UNKNOWN meal (not in Kitcontent)'
+            : `Swap to ${r.substituteSlot}: ${subName}`)
+        : 'Shortage',
       '_businessUnit': r.businessUnit || 'TT'
     });
   });
@@ -1208,16 +1482,22 @@ function renderBulkDownloads(){
     html += `<div class="warn-line" style="width:100%;margin-bottom:10px;">⚠ ${rows.fallbackShortCount} shortage unit(s) had no matching price - for example because the box was marked as unshipped. Escalate when you see a high number of failures.</div>`;
   }
   
+  const rate = swapCreditAmount();
   ['TT', 'TO'].forEach(bu=>{
     const buRows = byBu[bu];
     const filename = `f_bulk_error_${stamp}_${bu}.csv`;
+    // Show the money that's actually in the file so a wrong rate is obvious
+    // before the CSV is imported.
+    const total = round2(buRows.reduce((s,r)=> s + (parseFloat(r['compensation amount'])||0), 0));
+    const swapRows = buRows.filter(r=> r.comment !== 'Shortage').length;
     html += `<div class="dl-card">
       <div class="dl-locale">${bu}</div>
-      <div class="dl-meta">${buRows.length} row${buRows.length===1?'':'s'}</div>
+      <div class="dl-meta">${buRows.length} row${buRows.length===1?'':'s'} · <b>€${total.toFixed(2)}</b> total</div>
+      <div class="dl-meta">${swapRows ? `Swap rate €${rate.toFixed(2)}/meal${rate<=0?' → no compensation wording in emails':''}` : 'Shortages only — price per meal'}</div>
       <button class="btn btn-dark" data-bu="${bu}" ${buRows.length===0?'disabled':''}>Download<br><span class="mono" style="font-weight:500;">${filename}</span></button>
     </div>`;
   });
-  
+
   row.innerHTML = html;
   
   row.querySelectorAll('button[data-bu]').forEach(btn=>{
@@ -1236,10 +1516,11 @@ function renderBulkDownloads(){
    customer with both a swap and a shortage gets one combined email,
    and any row with unresolved recipe data falls back to generic.
 ================================================================= */
-function buildContent(locale, reasonKey, parts){
-  const tpl = TEMPLATES[locale] && TEMPLATES[locale][reasonKey];
-  if (!tpl) return "";
-  return tpl.content
+/* Takes the resolved template's content directly rather than looking it up
+   again by reasonKey — the caller may have selected a no-compensation variant,
+   and re-resolving here would silently put the credit promise back. */
+function fillContent(contentTpl, parts){
+  return (contentTpl || "")
     .replace(/{{ORIGIN}}/g, parts.origin || "")
     .replace(/{{DEST}}/g,   parts.dest   || "")
     .replace(/{{SHORT}}/g,  parts.short  || "");
@@ -1250,9 +1531,9 @@ function buildCrmRows(){
   state.auditLog.forEach(r=>{
     if(!byCustomer[r.customerId]) byCustomer[r.customerId] = { customerId:r.customerId, locale:r.locale, swaps:[], missing:[] };
     if(r.type==='SWAP'){
-      byCustomer[r.customerId].swaps.push({ origin:r.slot, dest:r.substituteSlot });
+      byCustomer[r.customerId].swaps.push({ origin:r.slot, dest:r.substituteSlot, originUnknown:!!r.recipeUnknown, destUnknown:!!r.substituteUnknown });
     } else {
-      byCustomer[r.customerId].missing.push(r.slot);
+      byCustomer[r.customerId].missing.push({ slot:r.slot, unknown:!!r.recipeUnknown });
     }
   });
 
@@ -1260,6 +1541,8 @@ function buildCrmRows(){
   const resultRows = [];
   const manualReviewRows = [];
   let genericCount = 0, mixedCount = 0;
+  // Read once per build so every customer in one export gets consistent wording.
+  const swapCredit = swapCreditAmount();
 
   Object.values(byCustomer).forEach(cust=>{
     const locale = cust.locale;
@@ -1268,15 +1551,18 @@ function buildCrmRows(){
       return;
     }
 
+    // A meal explicitly flagged UNKNOWN is never looked up — the whole point is
+    // that Kitcontent has nothing usable for it, so the customer gets the
+    // generic email instead of a template with a blank recipe.
     let allKnown = true;
     const swapNames = cust.swaps.map(pair=>{
-      const origin = resolveRecipeName(pair.origin, locale);
-      const dest = resolveRecipeName(pair.dest, locale);
+      const origin = pair.originUnknown ? null : resolveRecipeName(pair.origin, locale);
+      const dest = pair.destUnknown ? null : resolveRecipeName(pair.dest, locale);
       if(!origin || !dest) allKnown = false;
       return { origin, dest };
     });
-    const missingNames = cust.missing.map(slot=>{
-      const name = resolveRecipeName(slot, locale);
+    const missingNames = cust.missing.map(m=>{
+      const name = m.unknown ? null : resolveRecipeName(m.slot, locale);
       if(!name) allKnown = false;
       return name;
     });
@@ -1296,7 +1582,17 @@ function buildCrmRows(){
     let reasonKey, content;
 
     if(!allKnown){
-      reasonKey = 'generic';
+      // The fallback still has to describe what actually happened. A single
+      // swap-worded generic told customers who were only ever MISSING a meal
+      // that the chefs had prepared a replacement for them.
+      //
+      // Keyed off the RAW counts, not uniquePairs/uniqueShort: an unresolvable
+      // meal has a null name, and uniqueList() drops falsy entries, so an
+      // all-unknown shortage would otherwise look like "no shortages at all"
+      // and land straight back on the swap wording.
+      if(swapCount>0 && missingCount>0) reasonKey = 'generic_mixed';
+      else if(missingCount>0) reasonKey = 'generic_short';
+      else reasonKey = 'generic';
       genericCount++;
     } else {
       const hasSwap = uniquePairs.length>0, hasShort = uniqueShort.length>0;
@@ -1310,13 +1606,24 @@ function buildCrmRows(){
       }
     }
 
-    const tpl = TEMPLATES[locale][reasonKey];
-    if(!tpl){ manualReviewRows.push({ customer_id: stripLeadingLetters(cust.customerId), flag_reason: `no template for ${reasonKey}` }); return; }
+    // With the swap credit at 0, a customer whose email is driven by a swap
+    // must not be promised a credit that never gets exported. Only swap-driven
+    // variants have a no-comp version; anything else falls through to the
+    // normal template on purpose — see the TEMPLATES_NOCOMP header for why.
+    const noCompWanted = swapCredit <= 0 && swapCount > 0;
+    const noCompTpl = noCompWanted ? (TEMPLATES_NOCOMP[locale]||{})[reasonKey] : null;
+    const tpl = noCompTpl || TEMPLATES[locale][reasonKey];
+    // Reported separately so the Slack summary and needs-review export say
+    // which wording actually went out.
+    const reasonLabel = noCompTpl ? reasonKey + '_nocomp' : reasonKey;
+    if(!tpl){ manualReviewRows.push({ customer_id: stripLeadingLetters(cust.customerId), flag_reason: `no template for ${reasonLabel}` }); return; }
 
-    if(reasonKey==='generic'){
+    // No generic flavour carries recipe placeholders — it's used precisely
+    // because at least one name couldn't be resolved.
+    if(reasonKey.startsWith('generic')){
       content = tpl.content;
     } else {
-      content = buildContent(locale, reasonKey, {
+      content = fillContent(tpl.content, {
         origin: asListHtml(uniquePairs.map(p=>p.origin)),
         dest:   asListHtml(uniquePairs.map(p=>p.dest)),
         short:  asListHtml(uniqueShort)
@@ -1325,7 +1632,7 @@ function buildCrmRows(){
 
     const outRow = { business_unit: tpl.business_unit, customer_id: stripLeadingLetters(cust.customerId), locale, content, subjectline: tpl.subjectline, preheader: tpl.preheader, voucher:'' };
     resultByLocale[locale].push(outRow);
-    resultRows.push({ customerId: cust.customerId, locale, reason: reasonKey });
+    resultRows.push({ customerId: cust.customerId, locale, reason: reasonLabel });
   });
 
   // Add test users for verification
@@ -1336,7 +1643,10 @@ function buildCrmRows(){
   
   testUsers.forEach(testUser => {
     const locale = testUser.locale;
-    const tpl = TEMPLATES[locale] && TEMPLATES[locale]['generic'];
+    // The sample must show the wording real customers get, so it follows the
+    // same no-compensation choice rather than always using the paid variant.
+    const tpl = (swapCredit <= 0 ? (TEMPLATES_NOCOMP[locale]||{})['generic'] : null)
+             || (TEMPLATES[locale] && TEMPLATES[locale]['generic']);
     if(tpl){
       const outRow = { 
         business_unit: tpl.business_unit, 
@@ -1503,7 +1813,7 @@ function renderSlack(){
   lines.push('');
   lines.push(`Total customers messaged: ${crm.resultRows.length}`);
   if(crm.mixedCount) lines.push(`↳ includes ${crm.mixedCount} customer(s) with both a swap and a shortage`);
-  if(crm.genericCount) lines.push(`⚠️ ${crm.genericCount} customer(s) got the generic fallback — check Kitcontent/Meal Database`);
+  if(crm.genericCount) lines.push(`⚠️ ${crm.genericCount} customer(s) got the generic email — a meal was marked UNKNOWN or has no Kitcontent/Meal Database name`);
   if(crm.manualReviewRows.length) lines.push(`⚠️ ${crm.manualReviewRows.length} customer(s) excluded — see needs-review export`);
   lines.push(`Bulk error rows: ${bulkRows.length}`);
 
