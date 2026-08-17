@@ -9,7 +9,9 @@ function buildSubject(receivingName, week, loadRef) {
   return `${namePart}${weekPart}${refPart}`;
 }
 
-function buildBody({ receivingName, destination, collDay, collTime, numTrailers, loadRef }) {
+// Arrival before dispatch: that's the order the carrier's day happens in —
+// the trailer arrives at Verden, gets loaded, then leaves.
+function buildBody({ receivingName, destination, collDay, arrivalTime, dispatchTime, numTrailers, loadRef }) {
   const greetingName = receivingName ? `${receivingName} team` : 'team';
   return `Hi ${greetingName},
 
@@ -17,7 +19,8 @@ I would like to request a transport from Verden DC going to ${destination || '[d
 
 📍 Location:\tVerden DC
 📅 Collection day:\t${collDay || '[collection day]'}
-⏰ Collection time:\t${collTime || '[collection time]'}
+🕐 Planned arrival time:\t${arrivalTime || '[planned arrival time]'}
+⏰ Planned dispatch time:\t${dispatchTime || '[planned dispatch time]'}
 🚛 Number of trailers:\t${numTrailers || '[number of trailers]'}
 🔖 Loading Reference:\t${loadRef || '[load reference]'}
 
@@ -39,7 +42,10 @@ export default function EmailTab({ lanes }) {
   const [destination, setDestination] = useState('');
   const [loadRef, setLoadRef] = useState('');
   const [collDay, setCollDay] = useState('');
-  const [collTime, setCollTime] = useState('');
+  // "Planned dispatch time" is what the sheet and the carrier both call the
+  // collection time, so the field and the template line use that wording.
+  const [arrivalTime, setArrivalTime] = useState('');
+  const [dispatchTime, setDispatchTime] = useState('');
   const [numTrailers, setNumTrailers] = useState('');
 
   const [subject, setSubject] = useState('');
@@ -75,7 +81,8 @@ export default function EmailTab({ lanes }) {
     setDestination(lane['Destination'] || '');
     setLoadRef(lane['Load Reference'] || '');
     setCollDay(lane['Collection Day'] || '');
-    setCollTime(toTimeInputValue(lane['Planned Dispatch Time']) || '');
+    setArrivalTime(toTimeInputValue(lane['Planned Arrival Time']) || '');
+    setDispatchTime(toTimeInputValue(lane['Planned Dispatch Time']) || '');
     if (lane['Week']) setWeek(String(lane['Week']));
     if (lane['Carrier']) lookUpCarrierEmail(lane['Carrier']);
   }
@@ -102,7 +109,7 @@ export default function EmailTab({ lanes }) {
 
   function handleGeneratePreview() {
     setSubject(buildSubject(receivingName, week, loadRef));
-    setBody(buildBody({ receivingName, destination, collDay, collTime, numTrailers, loadRef }));
+    setBody(buildBody({ receivingName, destination, collDay, arrivalTime, dispatchTime, numTrailers, loadRef }));
     setStatus(null);
   }
 
@@ -212,10 +219,13 @@ export default function EmailTab({ lanes }) {
           </div>
         </div>
 
-        {/* Group: collection day + time + number of trailers */}
+        {/* Group: collection day, the two planned times, number of trailers.
+            Two columns rather than four — two time inputs plus a select and a
+            number field are too cramped side by side in this card. Reading
+            order (left to right, top to bottom) matches the email body. */}
         <div className="email-group email-group-a">
-          <div className="detail-grid-3">
-            <div className="field" style={{ marginBottom: 0 }}>
+          <div className="detail-grid">
+            <div className="field">
               <label>Collection day</label>
               <select value={collDay} onChange={(e) => setCollDay(e.target.value)}>
                 <option value="">—</option>
@@ -224,9 +234,13 @@ export default function EmailTab({ lanes }) {
                 ))}
               </select>
             </div>
+            <div className="field">
+              <label>Planned arrival time</label>
+              <input type="time" value={arrivalTime} onChange={(e) => setArrivalTime(e.target.value)} />
+            </div>
             <div className="field" style={{ marginBottom: 0 }}>
-              <label>Collection time</label>
-              <input type="time" value={collTime} onChange={(e) => setCollTime(e.target.value)} />
+              <label>Planned dispatch time</label>
+              <input type="time" value={dispatchTime} onChange={(e) => setDispatchTime(e.target.value)} />
             </div>
             <div className="field" style={{ marginBottom: 0 }}>
               <label>Number of trailers</label>
