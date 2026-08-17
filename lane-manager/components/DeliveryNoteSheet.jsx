@@ -1,14 +1,26 @@
-// The printable A4 Übergabeschein. Pure render — hand it a note object from
-// lib/deliveryNote.js and it lays out exactly one A4 page.
+// The A4 Übergabeschein. One component for both jobs: on screen it *is* the
+// form (every box is typed into in place), and in print it's the paper.
 //
-// Sizing is deliberately in mm/pt rather than px: this only ever exists to be
-// printed, and the whole thing is tuned to land inside 297mm minus the 8/9mm
-// page margin. If you add a row here, re-check it still prints on one page.
+// The trick that makes that safe: each editable box renders both a print-only
+// <span> and a screen-only <input>, fed from the same value. Printing therefore
+// lays out real wrapping text rather than a fixed-width input that could clip
+// a long value, and the printed height can't drift from what was measured.
+//
+// Sizing is deliberately in mm/pt — the whole thing is tuned to land inside
+// 297mm minus the 8/9mm page margin, with all ten freight rows present. If you
+// add a row or a section here, re-check it still prints on one page.
 //
 // Colours stay Carbon + Natural with a single Saffron accent bar that carries
 // no information, so a black & white printout loses nothing.
 
-import { CHECKLIST, PICKUP_ADDRESS, YARD_COLUMNS } from '../lib/deliveryNote';
+import {
+  CHECKLIST,
+  FREIGHT_COLUMNS,
+  FREIGHT_GROUPS,
+  freightTotals,
+  PICKUP_ADDRESS,
+  WRITE_BACK_NOTE_KEYS,
+} from '../lib/deliveryNote';
 
 /** German label with the English underneath, the compact bilingual pattern. */
 function Lbl({ de, en }) {
@@ -20,38 +32,88 @@ function Lbl({ de, en }) {
   );
 }
 
-/** A filled-in value, or an empty well to write in by hand. */
-function Val({ v, className = '' }) {
-  const text = String(v ?? '').trim();
-  if (!text) return <span className={`dn-val dn-blank ${className}`} />;
-  return <span className={`dn-val ${className}`}>{text}</span>;
+/**
+ * A value box. Read-only it's just text (or an empty well to write in by hand);
+ * editable it's that same text for print plus an input for the screen.
+ */
+function Val({ value, onChange, className = '', placeholder, align, title, wb }) {
+  const text = String(value ?? '').trim();
+  const printClass = `dn-val ${text ? '' : 'dn-blank'} ${className}`;
+
+  if (!onChange) {
+    return <span className={printClass} style={align ? { textAlign: align } : undefined}>{text}</span>;
+  }
+
+  return (
+    <>
+      <span className={`${printClass} dn-print-only`} style={align ? { textAlign: align } : undefined}>
+        {text}
+      </span>
+      <input
+        className={`dn-input dn-screen-only ${wb ? 'dn-wb' : ''} ${className}`}
+        style={align ? { textAlign: align } : undefined}
+        value={value ?? ''}
+        placeholder={placeholder || ''}
+        title={wb ? 'Also saved back to the lane' : title || ''}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </>
+  );
 }
 
-function Box({ on }) {
-  return <span className={`dn-box ${on ? 'dn-box-on' : ''}`} />;
+function Box({ on, onClick, title }) {
+  if (!onClick) return <span className={`dn-box ${on ? 'dn-box-on' : ''}`} />;
+  return (
+    <button
+      type="button"
+      className={`dn-box dn-box-btn ${on ? 'dn-box-on' : ''}`}
+      onClick={onClick}
+      title={title}
+      aria-pressed={on}
+    />
+  );
 }
 
-/** ja/nein pair, used by the trailer question and every checklist line. */
-function JaNein({ value, small }) {
+/**
+ * ja/nein pair. Clicking a box picks it; clicking the picked one clears back to
+ * blank, which is how a checklist line gets left for someone to tick by hand.
+ */
+function JaNein({ value, onChange, small }) {
+  const pick = (v) => (onChange ? () => onChange(value === v ? '' : v) : null);
   return (
     <>
       <span className={`dn-opt ${small ? 'dn-opt-sm' : ''}`}>
-        <Box on={value === 'ja'} />
+        <Box on={value === 'ja'} onClick={pick('ja')} title="ja / yes" />
         ja<span className="dn-en-b">&nbsp;/ yes</span>
       </span>
       <span className={`dn-opt ${small ? 'dn-opt-sm' : ''}`}>
-        <Box on={value === 'nein'} />
+        <Box on={value === 'nein'} onClick={pick('nein')} title="nein / no" />
         nein<span className="dn-en-b">&nbsp;/ no</span>
       </span>
     </>
   );
 }
 
-export default function DeliveryNoteSheet({ note }) {
-  // The paper has room for two freight lines; pad with a blank one so there's
-  // always somewhere to write a second load without breaking onto page 2.
-  const freightRows = [...note.freight];
-  while (freightRows.length < 2) freightRows.push(null);
+export default function DeliveryNoteSheet({ note, onField, onFreightCell, onChecklist }) {
+  // No handlers means print/preview mode — every box renders as plain text.
+  const f = (key) => (onField ? (v) => onField(key, v) : undefined);
+  const totals = freightTotals(note.freight);
+  const ambient = note.refrigerated === 'nein';
+
+  /**
+   * A box bound to one note field, gold-outlined if it also updates the lane.
+   * Deliberately a function that returns an element rather than a component
+   * declared here: a component defined inside render is a new type on every
+   * keystroke, which would remount the input and drop the caret.
+   */
+  const field = (k, { editable = true, ...rest } = {}) => (
+    <Val
+      value={note[k]}
+      onChange={editable ? f(k) : undefined}
+      wb={WRITE_BACK_NOTE_KEYS.has(k)}
+      {...rest}
+    />
+  );
 
   return (
     <div className="dn-sheet">
@@ -64,7 +126,7 @@ export default function DeliveryNoteSheet({ note }) {
         </div>
         <div className="dn-refchip">
           <span className="dn-en">Referenz / Reference</span>
-          <b>{note.reference || '—'}</b>
+          {field('reference', { className: 'dn-ref-val', align: 'right' })}
         </div>
       </div>
       <div className="dn-accentbar" />
@@ -85,29 +147,29 @@ export default function DeliveryNoteSheet({ note }) {
           </div>
           <div className="dn-cell">
             <Lbl de="1. Entladestelle" en="1st delivery address" />
-            <Val v={note.destination1} className="dn-addr" />
+            {field('destination1', { className: 'dn-addr' })}
           </div>
           <div className="dn-cell">
             <Lbl de="2. Entladestelle" en="2nd delivery address" />
-            <Val v={note.destination2} className="dn-addr" />
+            {field('destination2', { className: 'dn-addr' })}
           </div>
         </div>
         <div className="dn-grid dn-row-last" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           <div className="dn-cell">
             <Lbl de="LKW Spedition" en="Forwarder" />
-            <Val v={note.forwarder} />
+            {field('forwarder')}
           </div>
           <div className="dn-cell">
             <Lbl de="Verladedatum" en="Loading date" />
-            <Val v={note.loadingDate} />
+            {field('loadingDate', { placeholder: 'TT.MM.JJJJ' })}
           </div>
           <div className="dn-cell">
             <Lbl de="Ankunftszeit" en="Time of arrival" />
-            <Val v={note.arrivalTime} />
+            {field('arrivalTime', { placeholder: 'HH:MM' })}
           </div>
           <div className="dn-cell">
             <Lbl de="Tatsächliche Abfahrtszeit" en="Actual departure" />
-            <Val v={note.departureTime} />
+            {field('departureTime', { placeholder: 'HH:MM' })}
           </div>
         </div>
       </section>
@@ -120,28 +182,25 @@ export default function DeliveryNoteSheet({ note }) {
         <div className="dn-grid dn-row-last" style={{ gridTemplateColumns: '1fr 1.05fr .8fr 1.15fr' }}>
           <div className="dn-cell">
             <Lbl de="1. Kühlfahrzeug" en="Refrigerated trailer" />
-            <span className="dn-val" style={{ marginTop: '1.2mm' }}>
-              <JaNein value={note.refrigerated} />
+            <span className="dn-val dn-opts">
+              <JaNein
+                value={note.refrigerated}
+                onChange={onField ? (v) => onField('refrigerated', v || 'ja') : undefined}
+              />
             </span>
           </div>
           <div className="dn-cell">
             <Lbl de="2. Temp. Laderaum vor Beladung — SOLL" en="Loading space before loading — target" />
-            <Val v={note.tempTarget} />
+            {field('tempTarget')}
           </div>
           <div className="dn-cell">
             <Lbl de="Temp. Laderaum — IST" en="Loading space — actual" />
-            <Val v={note.tempActual} />
+            {field('tempActual', { placeholder: 'z. B. 2 °C' })}
           </div>
           <div className="dn-cell">
             <Lbl de="Ladegut" en="Goods" />
-            {String(note.goodsDe || '').trim() ? (
-              <span className="dn-val">
-                {note.goodsDe}
-                {note.goodsEn ? <span className="dn-en dn-en-block">{note.goodsEn}</span> : null}
-              </span>
-            ) : (
-              <span className="dn-val dn-blank" />
-            )}
+            {field('goodsDe', { editable: ambient, title: ambient ? '' : 'Fixed for refrigerated trailers' })}
+            {note.goodsEn ? <span className="dn-en dn-en-block">{note.goodsEn}</span> : null}
           </div>
         </div>
       </section>
@@ -154,122 +213,123 @@ export default function DeliveryNoteSheet({ note }) {
         <div className="dn-grid dn-row-last" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           <div className="dn-cell">
             <Lbl de="Kennzeichen LKW" en="Truck plate" />
-            <Val v={note.truckPlate} />
+            {field('truckPlate')}
           </div>
           <div className="dn-cell">
             <Lbl de="Kennzeichen Trailer" en="Trailer plate" />
-            <Val v={note.trailerPlate} />
+            {field('trailerPlate')}
           </div>
           <div className="dn-cell">
             <Lbl de="Rampe" en="Ramp" />
-            <Val v={note.ramp} />
+            {field('ramp')}
           </div>
           <div className="dn-cell">
             <Lbl de="Nr. Plombe" en="Seal no." />
-            <Val v={note.seal} />
+            {field('seal')}
           </div>
         </div>
       </section>
 
-      {/* ---------------- 4. freight & destination ---------------- */}
+      {/* ---------------- 4. freight + yard check out, merged ---------------- */}
       <section className="dn-sec">
         <h2>
-          Ladung &amp; Entladestelle <span className="dn-en">Freight &amp; destination</span>
+          Ladung &amp; Yard Check Out <span className="dn-en">Freight &amp; yard check out</span>
         </h2>
-        <table>
-          <thead>
-            <tr>
-              <th style={{ width: '27%' }}>
-                Ladung<span className="dn-en">Load</span>
-              </th>
-              <th className="dn-num" style={{ width: '11%' }}>
-                Boxen<span className="dn-en">Boxes</span>
-              </th>
-              <th className="dn-num" style={{ width: '13%' }}>
-                Palettenzahl<span className="dn-en">Pallets</span>
-              </th>
-              <th className="dn-num" style={{ width: '14%' }}>
-                Gewicht (kg)<span className="dn-en">Weight (kg)</span>
-              </th>
-              <th>
-                Inhalt<span className="dn-en">Contents</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {freightRows.map((row, i) => (
-              <tr key={i}>
-                <td className={row?.load ? '' : 'dn-fill'}>{row?.load || ''}</td>
-                <td className={`dn-num ${row?.boxes ? '' : 'dn-fill'}`}>{row?.boxes || ''}</td>
-                <td className={`dn-num ${row?.pallets ? '' : 'dn-fill'}`}>{row?.pallets || ''}</td>
-                <td className={`dn-num ${row?.weight ? '' : 'dn-fill'}`}>{row?.weight || ''}</td>
-                <td className={row?.contents ? '' : 'dn-fill'}>{row?.contents || ''}</td>
-              </tr>
+        <table className="dn-freight">
+          {/* Explicit widths: with table-layout:fixed the *first* row decides
+              them, and that row is the colSpan'd group header — which would
+              split each group evenly and squeeze the Ladung names. */}
+          <colgroup>
+            {FREIGHT_COLUMNS.map((c) => (
+              <col key={c.key} style={{ width: c.width || '13mm' }} />
             ))}
-          </tbody>
-        </table>
-      </section>
-
-      {/* ---------------- 5. yard check out ---------------- */}
-      <section className="dn-sec">
-        <h2>
-          Yard Check Out <span className="dn-en">Yard check out</span>
-        </h2>
-        <table>
+          </colgroup>
           <thead>
+            <tr className="dn-thead-groups">
+              {FREIGHT_GROUPS.map((g) => (
+                <th key={g.de} colSpan={g.columns.length}>
+                  {g.de}
+                  {g.en ? <span className="dn-en"> {g.en}</span> : null}
+                </th>
+              ))}
+            </tr>
             <tr>
-              <th style={{ width: '22%' }}>
-                Ladung<span className="dn-en">Load</span>
-              </th>
-              {YARD_COLUMNS.map((c) => (
-                <th className="dn-num" key={c.key}>
+              {FREIGHT_COLUMNS.map((c) => (
+                <th
+                  key={c.key}
+                  className={c.num ? 'dn-num' : ''}
+                  style={{ textAlign: c.align }}
+                >
                   {c.de}
-                  <span className="dn-en">{c.en || ' '}</span>
+                  {c.en ? <span className="dn-en">{c.en}</span> : null}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {note.yard.map((row, i) => (
+            {note.freight.map((row, i) => (
               <tr key={i}>
-                <td className={row?.load ? '' : 'dn-fill'}>{row?.load || ''}</td>
-                {YARD_COLUMNS.map((c) => (
-                  <td className={`dn-num ${row?.[c.key] ? '' : 'dn-fill'}`} key={c.key}>
-                    {row?.[c.key] || ''}
+                {FREIGHT_COLUMNS.map((c) => (
+                  <td
+                    key={c.key}
+                    className={`${c.num ? 'dn-num' : ''} ${row[c.key] ? '' : 'dn-fill'}`}
+                    style={{ textAlign: c.align }}
+                  >
+                    <Val
+                      value={row[c.key]}
+                      onChange={onFreightCell ? (v) => onFreightCell(i, c.key, v) : undefined}
+                      className="dn-cellval"
+                      align={c.num ? 'right' : c.align}
+                      wb={c.wb}
+                    />
                   </td>
                 ))}
               </tr>
             ))}
+            <tr className="dn-totals">
+              <td colSpan={2}>
+                Gesamt<span className="dn-en">Total</span>
+              </td>
+              <td className="dn-num dn-weight">
+                <span className="dn-en">Gewicht kg</span>
+                {field('totalWeight', { className: 'dn-cellval', align: 'right' })}
+              </td>
+              {FREIGHT_COLUMNS.slice(3).map((c) => (
+                <td className="dn-num" key={c.key}>
+                  {totals[c.key] || ''}
+                </td>
+              ))}
+            </tr>
           </tbody>
         </table>
       </section>
 
-      {/* ---------------- 6. pallet exchange ---------------- */}
+      {/* ---------------- 5. pallet exchange ---------------- */}
       <section className="dn-sec">
         <h2>
           Paletten Umschlag Produktion <span className="dn-en">Pallet exchange production</span>
         </h2>
-        <div className="dn-grid dn-row-last" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        <div className="dn-grid dn-row-last dn-tight" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           <div className="dn-cell">
             <Lbl de="Erhalten" en="Received" />
-            <Val v={note.palletsReceived} />
+            {field('palletsReceived')}
           </div>
           <div className="dn-cell">
             <Lbl de="Ausgegeben" en="Issued" />
-            <Val v={note.palletsIssued} />
+            {field('palletsIssued')}
           </div>
           <div className="dn-cell">
             <Lbl de="Gesamt Anzahl Europaletten" en="Total euro pallets" />
-            <Val v={note.palletsTotalEuro} />
+            {field('palletsTotalEuro')}
           </div>
           <div className="dn-cell">
             <Lbl de="Davon defekt" en="Of which damaged" />
-            <Val v={note.palletsDamaged} />
+            {field('palletsDamaged')}
           </div>
         </div>
       </section>
 
-      {/* ---------------- 7. checklist ---------------- */}
+      {/* ---------------- 6. checklist ---------------- */}
       <section className="dn-sec">
         <h2>
           Checkliste <span className="dn-en">Checklist</span>
@@ -283,43 +343,51 @@ export default function DeliveryNoteSheet({ note }) {
                 <span className="dn-en dn-en-block">{item.en}</span>
               </span>
               <span className="dn-marks">
-                <JaNein value={note.checklist[item.key]} small />
+                <JaNein
+                  value={note.checklist[item.key]}
+                  onChange={onChecklist ? (v) => onChecklist(item.key, v) : undefined}
+                  small
+                />
               </span>
             </li>
           ))}
         </ul>
       </section>
 
-      {/* ---------------- 8. loading & signatures ---------------- */}
+      {/* ---------------- 7. loading & signatures ---------------- */}
       <section className="dn-sec">
         <h2>
           Verladung &amp; Unterschriften <span className="dn-en">Loading &amp; signatures</span>
         </h2>
 
-        <div className="dn-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div className="dn-grid dn-tight" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
           <div className="dn-cell">
             <Lbl de="Verladung durchgeführt" en="Loading carried out by" />
-            <Val v={note.loadedBy} />
+            {field('loadedBy')}
           </div>
           <div className="dn-cell">
             <Lbl de="Papiere erstellt" en="Documents prepared by" />
-            <Val v={note.preparedBy} />
+            {field('preparedBy')}
           </div>
           <div className="dn-cell">
             <Lbl de="Papiere übergeben" en="Documents handed over by" />
-            <Val v={note.handedOverBy} />
+            {field('handedOverBy')}
           </div>
         </div>
 
         <div className="dn-grid dn-sig">
           <div className="dn-pane">
             <Lbl de="Fahrer" en="Truck driver — name in block capitals" />
-            <div className="dn-nameline">{note.driverName || ''}</div>
+            <div className="dn-nameline">
+              {field('driverName', { className: 'dn-cellval' })}
+            </div>
             <div className="dn-sigline">Unterschrift / Signature</div>
           </div>
           <div className="dn-pane">
             <Lbl de={PICKUP_ADDRESS[0]} en="Handed over by — name in block capitals" />
-            <div className="dn-nameline">{note.handedOverBy || ''}</div>
+            <div className="dn-nameline">
+              <span className="dn-val">{note.handedOverBy || ''}</span>
+            </div>
             <div className="dn-sigline">Unterschrift / Signature</div>
           </div>
         </div>

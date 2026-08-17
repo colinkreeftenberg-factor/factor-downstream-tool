@@ -150,6 +150,37 @@ the actual save/request the person is waiting on — so a missing or
 misnamed `backlog` tab won't break editing or Slack requests, it'll just
 mean nothing shows up in the History tab until the tab/headers are fixed.
 
+### Delivery Notes tab (Übergabeschein)
+
+Pick a lane and the tool builds a one-page A4 handover note for the
+transporter, bilingual German/English throughout. The pop-up shows the A4
+page itself and every box on it is typed into directly — what's on screen
+is what prints.
+
+The **Ladung & Yard Check Out** table is prefilled from a **`Referenz`
+tab** in the Factor Extra Source spreadsheet (override the name via the
+`REFERENZ_TAB` env var). Its five columns are read by position, not by
+header text:
+
+| Col | Meaning | Where it lands on the note |
+|---|---|---|
+| A | `Ladereferenz` — a *fragment* of the load reference, filled only on the first row of each block | picks the block (longest matching fragment wins) |
+| B | `Ladereihenfolge`, e.g. `3 (Kobenhaven)` | the `#` (sort order) and `Stadt / City` columns |
+| C | `Ladung` | `Ladung / Load` |
+| D | `Stück SOLL` | `Stück SOLL` |
+| E | `PLT SOLL` | `Paletten Outbound SOLL` |
+
+Blocks are separated by an empty row, and the rows inside a block are
+sorted by the number in column B — the tab itself isn't in loading order.
+The note always prints ten freight rows, whether the reference matched or
+not, so the paper is the same shape every time. If the tab is missing or
+renamed the note still prints, just with blank rows.
+
+Fields whose value also has a home on the lane are outlined in gold and
+written back to the sheet on print (with the usual `backlog` entry), so
+completing the note counts as completing the lane. The two loaded totals
+come from the **IST** columns only — the plan never overwrites the lane.
+
 ## Emailing carriers
 
 The "Email carrier" button (in the lane detail popup, right below the

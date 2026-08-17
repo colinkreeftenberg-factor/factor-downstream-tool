@@ -71,16 +71,115 @@ export const CHECKLIST = [
   },
 ];
 
-/** Yard Check Out columns — header text only, all filled in by hand on site. */
-export const YARD_COLUMNS = [
-  { key: 'outboundPalletsTarget', de: 'Outbound Pal. SOLL', en: 'Outb. pallets target' },
-  { key: 'unitsTarget', de: 'Stück SOLL', en: 'Units target' },
-  { key: 'outboundPalletsActual', de: 'Outbound Pal. IST', en: 'Outb. pallets actual' },
-  { key: 'yardPalletsTarget', de: 'Yard Pal. SOLL', en: 'Yard pallets target' },
-  { key: 'yardPalletsActual', de: 'Yard Pal. IST', en: 'Yard pallets actual' },
-  { key: 'yardCheckout', de: 'Yard Checkout', en: '' },
-  { key: 'trailerTemp', de: 'Trailer Temperatur', en: 'Trailer temp.' },
+/**
+ * The merged Ladung / Yard Check Out table. Lane identity on the left, then
+ * planned-vs-actual pairs, then the two yard sign-off columns. Grouped so the
+ * SOLL/IST pairs share one heading instead of repeating it six times, which is
+ * the only way eleven columns stay readable across an A4 page.
+ *
+ * `source: 'referenz'` marks the columns prefilled from the Referenz tab.
+ */
+export const FREIGHT_GROUPS = [
+  {
+    de: 'Ladung & Reihenfolge',
+    en: 'Load & loading order',
+    columns: [
+      { key: 'order', de: '#', en: '', width: '5mm', source: 'referenz', align: 'center' },
+      { key: 'city', de: 'Stadt', en: 'City', width: '26mm', source: 'referenz' },
+      { key: 'load', de: 'Ladung', en: 'Load', width: '40mm', source: 'referenz' },
+    ],
+  },
+  {
+    de: 'Stück',
+    en: 'Units',
+    columns: [
+      { key: 'unitsTarget', de: 'SOLL', en: '', num: true, source: 'referenz' },
+      { key: 'unitsActual', de: 'IST', en: '', num: true, wb: true },
+    ],
+  },
+  {
+    de: 'Paletten Outbound',
+    en: 'Outbound pallets',
+    columns: [
+      { key: 'palletsTarget', de: 'SOLL', en: '', num: true, source: 'referenz' },
+      { key: 'palletsActual', de: 'IST', en: '', num: true, wb: true },
+    ],
+  },
+  {
+    de: 'Paletten Yard',
+    en: 'Yard pallets',
+    columns: [
+      { key: 'yardPalletsTarget', de: 'SOLL', en: '', num: true },
+      { key: 'yardPalletsActual', de: 'IST', en: '', num: true },
+    ],
+  },
+  {
+    de: 'Yard Check Out',
+    en: '',
+    columns: [
+      { key: 'yardCheckout', de: 'Checkout', en: '', width: '15mm' },
+      { key: 'trailerTemp', de: 'Trailer Temp.', en: '', width: '15mm', num: true },
+    ],
+  },
 ];
+
+/** Flat column list, in render order. */
+export const FREIGHT_COLUMNS = FREIGHT_GROUPS.flatMap((g) => g.columns);
+
+/** Columns the totals row sums up. */
+const TOTAL_COLUMNS = [
+  'unitsTarget',
+  'unitsActual',
+  'palletsTarget',
+  'palletsActual',
+  'yardPalletsTarget',
+  'yardPalletsActual',
+];
+
+/**
+ * Always this many rows on the paper. A load reference with eight planned lanes
+ * still leaves room to add one by hand, and an unmatched reference gets ten
+ * blank rows rather than a collapsed table — the printed form is the same
+ * shape either way, which is what the yard team reads.
+ */
+export const FREIGHT_ROW_COUNT = 10;
+
+export function emptyFreightRow() {
+  return Object.fromEntries(FREIGHT_COLUMNS.map((c) => [c.key, '']));
+}
+
+/** Pads (or trims) to exactly FREIGHT_ROW_COUNT rows. */
+export function padFreightRows(rows) {
+  const out = (rows || []).slice(0, FREIGHT_ROW_COUNT).map((r) => ({ ...emptyFreightRow(), ...r }));
+  while (out.length < FREIGHT_ROW_COUNT) out.push(emptyFreightRow());
+  return out;
+}
+
+/** German decimals ("1.050,33") as well as plain numbers. */
+function toNumber(value) {
+  const s = str(value);
+  if (!s) return null;
+  const normalized = s.replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Column sums for the totals row — blank where nothing was entered. */
+export function freightTotals(rows) {
+  const totals = {};
+  for (const key of TOTAL_COLUMNS) {
+    let sum = 0;
+    let any = false;
+    for (const row of rows || []) {
+      const n = toNumber(row[key]);
+      if (n === null) continue;
+      sum += n;
+      any = true;
+    }
+    totals[key] = any ? String(Math.round(sum * 100) / 100) : '';
+  }
+  return totals;
+}
 
 /** dd.MM.yyyy — how a German transporter expects to read a date. */
 export function formatGermanDate(value) {
@@ -97,7 +196,7 @@ const str = (v) => String(v ?? '').trim();
  * prefilled; everything else starts blank for the pop-up to fill in. Nothing
  * here writes back to the sheet — the note is a print artefact only.
  */
-export function buildNoteFromLane(lane) {
+export function buildNoteFromLane(lane, referenzGroup = null) {
   const load = str(lane['Destination']);
 
   return {
@@ -126,19 +225,21 @@ export function buildNoteFromLane(lane) {
     ramp: str(lane['Bay door allocation']),
     seal: '',
 
-    // — freight —
-    freight: [
-      {
-        load,
-        boxes: str(lane['Total Boxes Loaded']),
-        pallets: str(lane['Pallets loaded']),
-        weight: '',
-        contents: '',
-      },
-    ],
-
-    // — yard check out — filled in on site, one row per load —
-    yard: [{ load }],
+    // — freight & yard check out, one row per planned lane —
+    // Prefilled from the Referenz tab when the load reference matches a block
+    // there; otherwise ten blank rows, so the paper looks the same either way.
+    freight: padFreightRows(
+      (referenzGroup?.rows || []).map((r) => ({
+        order: r.order === null ? '' : String(r.order),
+        city: r.city,
+        load: r.load,
+        unitsTarget: r.unitsTarget,
+        palletsTarget: r.palletsTarget,
+      }))
+    ),
+    freightMatched: Boolean(referenzGroup),
+    freightMatchedKey: referenzGroup?.key || '',
+    totalWeight: '',
 
     // — pallet exchange —
     palletsReceived: '',
@@ -176,8 +277,11 @@ export const WRITE_BACK_FIELDS = [
   { header: TRUCK_PLATE_HEADER, get: (n) => n.truckPlate },
   { header: TRAILER_PLATE_HEADER, get: (n) => n.trailerPlate },
   { header: 'Bay door allocation', get: (n) => n.ramp },
-  { header: 'Total Boxes Loaded', get: (n) => n.freight[0].boxes },
-  { header: 'Pallets loaded', get: (n) => n.freight[0].pallets },
+  // Both totals come from the IST columns only: "loaded" means what actually
+  // went on the trailer, and it also means opening a note and printing it
+  // unchanged never proposes overwriting the lane with the plan.
+  { header: 'Total Boxes Loaded', get: (n) => freightTotals(n.freight).unitsActual },
+  { header: 'Pallets loaded', get: (n) => freightTotals(n.freight).palletsActual },
   { header: 'Loader(s)', get: (n) => n.loadedBy },
   { header: 'Driver Name', get: (n) => n.driverName },
 ];

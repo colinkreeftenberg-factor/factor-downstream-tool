@@ -68,6 +68,21 @@ export async function readSheetAsObjects(spreadsheetId, tabName, opts = {}) {
 }
 
 /**
+ * Reads a tab as a plain array-of-arrays, header row included. For tabs that
+ * aren't a clean table — e.g. the Referenz tab, where column A is only filled
+ * on the first row of each block and blank rows separate the blocks — so the
+ * caller can find its own header row and treat blanks as meaningful.
+ */
+export async function readRawValues(spreadsheetId, tabName) {
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: tabName,
+  });
+  return res.data.values || [];
+}
+
+/**
  * Reads a single column (e.g. a lookup list on a "links" tab) and returns
  * the non-empty values below the header row.
  */

@@ -1,23 +1,23 @@
-// Übergabeschein tab: pick a lane, check/complete the fields in the pop-up,
-// print an A4 handover note for the transporter.
+// Delivery note tab: pick a lane, complete the note on the page itself, print.
+//
+// The pop-up shows the A4 page at full size and every box on it is typed into
+// directly — there's no separate form, so what's on screen is what prints.
 //
 // Anything typed here that has a home on the sheet (plates, actual times, ramp,
-// counts, driver) goes back to the lane on print, so filling in the note counts
-// as filling in the lane. The rest of the form — seal number, temperatures, yard
+// loaded totals, driver) goes back to the lane on print, so filling in the note
+// counts as filling in the lane. The rest — seal number, temperatures, yard
 // counts, pallet exchange, the checklist — has no column and stays on paper.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import DeliveryNoteSheet from './DeliveryNoteSheet';
 import {
   applyRefrigeratedChange,
   buildNoteFromLane,
-  CHECKLIST,
   diffForWriteBack,
-  WRITE_BACK_NOTE_KEYS,
   writeBackPayload,
-  YARD_COLUMNS,
 } from '../lib/deliveryNote';
+import { matchGroup } from '../lib/loadingReference';
 import { isToday } from '../lib/dateUtils';
 import { KEY_HEADER } from '../lib/columns';
 
@@ -57,6 +57,16 @@ export default function DeliveryNoteTab({ lanes, onLaneUpdated }) {
   const [scope, setScope] = useState('today'); // 'today' | 'all'
   const [note, setNote] = useState(null);
   const [noteLane, setNoteLane] = useState(null);
+  const [referenz, setReferenz] = useState({ groups: [], loaded: false, error: null });
+
+  // The planned lanes per load reference. Loaded once — the endpoint caches for
+  // five minutes anyway, and a failure here only costs the prefill.
+  useEffect(() => {
+    fetch('/api/loading-reference')
+      .then((r) => r.json())
+      .then((d) => setReferenz({ groups: d.groups || [], loaded: true, error: d.error || null }))
+      .catch(() => setReferenz({ groups: [], loaded: true, error: 'Could not load the Referenz tab' }));
+  }, []);
 
   const visibleLanes = useMemo(() => {
     const base = scope === 'today' ? lanes.filter((l) => isToday(l['Date'])) : lanes;
@@ -69,7 +79,8 @@ export default function DeliveryNoteTab({ lanes, onLaneUpdated }) {
   }, [lanes, scope, query]);
 
   function openNote(lane) {
-    const built = buildNoteFromLane(lane);
+    const group = matchGroup(referenz.groups, lane[KEY_HEADER]);
+    const built = buildNoteFromLane(lane, group);
     setNote({
       ...built,
       preparedBy: window.localStorage.getItem(PREPARED_BY_KEY) || '',
@@ -86,6 +97,12 @@ export default function DeliveryNoteTab({ lanes, onLaneUpdated }) {
   function rememberNames(n) {
     if (n.preparedBy) window.localStorage.setItem(PREPARED_BY_KEY, n.preparedBy);
     if (n.handedOverBy) window.localStorage.setItem(HANDED_OVER_BY_KEY, n.handedOverBy);
+  }
+
+  /** How many planned lanes the Referenz tab has for this reference. */
+  function plannedCount(lane) {
+    const group = matchGroup(referenz.groups, lane[KEY_HEADER]);
+    return group ? group.rows.length : 0;
   }
 
   return (
@@ -109,7 +126,10 @@ export default function DeliveryNoteTab({ lanes, onLaneUpdated }) {
       </div>
 
       <p className="notify-result no-print" style={{ marginTop: 0 }}>
-        Pick a lane to prefill the handover note. Everything stays editable in the pop-up before it prints.
+        Pick a lane to prefill the handover note, then complete it on the page itself before printing.
+        {referenz.error ? (
+          <span style={{ color: 'var(--red)' }}> Referenz tab unavailable — the freight rows start blank.</span>
+        ) : null}
       </p>
 
       <div className="card no-print" style={{ overflowX: 'auto' }}>
@@ -121,37 +141,44 @@ export default function DeliveryNoteTab({ lanes, onLaneUpdated }) {
               <th>Destination</th>
               <th>Date</th>
               <th>Ramp</th>
+              <th>Planned lanes</th>
               <th />
             </tr>
           </thead>
           <tbody>
             {visibleLanes.length === 0 && (
               <tr>
-                <td colSpan={6} style={{ color: 'var(--text-muted)' }}>
+                <td colSpan={7} style={{ color: 'var(--text-muted)' }}>
                   No lanes {scope === 'today' ? 'today' : ''} match this search.
                 </td>
               </tr>
             )}
-            {visibleLanes.map((lane) => (
-              <tr key={lane[KEY_HEADER]}>
-                <td style={{ fontWeight: 600 }}>{lane[KEY_HEADER]}</td>
-                <td>{lane['Carrier'] || '—'}</td>
-                <td>{lane['Destination'] || '—'}</td>
-                <td>{lane['Date'] || '—'}</td>
-                <td>{lane['Bay door allocation'] || '—'}</td>
-                <td style={{ textAlign: 'right' }}>
-                  <button className="btn btn-primary" onClick={() => openNote(lane)}>
-                    Übergabeschein
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {visibleLanes.map((lane) => {
+              const planned = plannedCount(lane);
+              return (
+                <tr key={lane[KEY_HEADER]}>
+                  <td style={{ fontWeight: 600 }}>{lane[KEY_HEADER]}</td>
+                  <td>{lane['Carrier'] || '—'}</td>
+                  <td>{lane['Destination'] || '—'}</td>
+                  <td>{lane['Date'] || '—'}</td>
+                  <td>{lane['Bay door allocation'] || '—'}</td>
+                  <td style={{ color: planned ? 'var(--text)' : 'var(--text-muted)' }}>
+                    {!referenz.loaded ? '…' : planned ? `${planned} from Referenz` : 'no match'}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button className="btn btn-primary" onClick={() => openNote(lane)}>
+                      Delivery note
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       {note && (
-        <DeliveryNoteModal
+        <DeliveryNoteEditor
           note={note}
           setNote={setNote}
           lane={noteLane}
@@ -165,46 +192,44 @@ export default function DeliveryNoteTab({ lanes, onLaneUpdated }) {
   );
 }
 
-/** Marks an input whose value goes back to the lane, not just onto the paper. */
-function LaneBadge() {
-  return (
-    <span className="dn-wb-badge" title="Saved back to the lane when you print">
-      ↩ lane
-    </span>
-  );
-}
-
-/** One labelled text input bound to a key on the note. */
-function NoteField({ note, setNote, name, label, hint, disabled, placeholder }) {
-  return (
-    <div className="field">
-      <label>
-        {label}
-        {WRITE_BACK_NOTE_KEYS.has(name) ? <LaneBadge /> : null}
-        {hint ? <span className="dn-hint"> {hint}</span> : null}
-      </label>
-      <input
-        value={note[name] || ''}
-        disabled={disabled}
-        placeholder={placeholder || ''}
-        onChange={(e) => setNote((n) => ({ ...n, [name]: e.target.value }))}
-      />
-    </div>
-  );
-}
-
-function DeliveryNoteModal({ note, setNote, lane, onClose, onBeforePrint, onLaneUpdated, onSavedToLane }) {
+function DeliveryNoteEditor({ note, setNote, lane, onClose, onBeforePrint, onLaneUpdated, onSavedToLane }) {
   const [mounted, setMounted] = useState(false);
   const [saveBack, setSaveBack] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const [zoom, setZoom] = useState(1);
   useEffect(() => setMounted(true), []);
 
-  // What the pop-up would change on the lane. DACH lanes come from the master
+  // What the note would change on the lane. DACH lanes come from the master
   // sheet and are read-only here — the WA Liste sync would overwrite anything
   // we wrote, and the row number wouldn't even point at the right sheet.
   const changes = useMemo(() => (lane?.editable ? diffForWriteBack(note, lane) : []), [note, lane]);
   const willSave = saveBack && changes.length > 0;
+
+  const onField = useCallback(
+    (key, value) => {
+      // The Kühlfahrzeug toggle drags the target temperature and the cargo
+      // wording with it, so it can't be a plain field write.
+      if (key === 'refrigerated') return setNote((n) => applyRefrigeratedChange(n, value));
+      setNote((n) => ({ ...n, [key]: value }));
+    },
+    [setNote]
+  );
+
+  const onFreightCell = useCallback(
+    (rowIndex, key, value) => {
+      setNote((n) => {
+        const freight = n.freight.map((row, i) => (i === rowIndex ? { ...row, [key]: value } : row));
+        return { ...n, freight };
+      });
+    },
+    [setNote]
+  );
+
+  const onChecklist = useCallback(
+    (key, value) => setNote((n) => ({ ...n, checklist: { ...n.checklist, [key]: value } })),
+    [setNote]
+  );
 
   async function handlePrint() {
     onBeforePrint(note);
@@ -236,264 +261,89 @@ function DeliveryNoteModal({ note, setNote, lane, onClose, onBeforePrint, onLane
     printNote();
   }
 
-  function setFreight(key, value) {
-    setNote((n) => {
-      const freight = [...n.freight];
-      freight[0] = { ...freight[0], [key]: value };
-      // The yard row and the freight row describe the same load, so keep the
-      // load name in step rather than making it two fields to remember.
-      const yard = key === 'load' ? [{ ...n.yard[0], load: value }] : n.yard;
-      return { ...n, freight, yard };
-    });
-  }
-
-  function setYard(key, value) {
-    setNote((n) => {
-      const yard = [...n.yard];
-      yard[0] = { ...yard[0], [key]: value };
-      return { ...n, yard };
-    });
-  }
-
-  const ambient = note.refrigerated === 'nein';
-
-  return (
-    <>
-      <div className="modal-backdrop no-print" onClick={onClose}>
-        <div className="modal modal-note" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-note-form">
-            <h2>
-              Übergabeschein · {note.reference || lane?.[KEY_HEADER] || 'lane'}
-            </h2>
-            <p className="dn-hint" style={{ marginTop: -8 }}>
-              Prefilled from the lane. Blank fields print as empty boxes to fill in by hand.
-            </p>
-
-            <fieldset className="dn-fs">
-              <legend>Adressen &amp; Informationen</legend>
-              <div className="dn-fs-grid">
-                <NoteField note={note} setNote={setNote} name="reference" label="Referenz / Reference" hint="· print only" />
-                <NoteField note={note} setNote={setNote} name="forwarder" label="LKW Spedition / Forwarder" />
-                <NoteField note={note} setNote={setNote} name="destination1" label="1. Entladestelle / 1st delivery address" />
-                <NoteField note={note} setNote={setNote} name="destination2" label="2. Entladestelle / 2nd delivery address" />
-                <NoteField note={note} setNote={setNote} name="loadingDate" label="Verladedatum / Loading date" placeholder="TT.MM.JJJJ" />
-                <NoteField note={note} setNote={setNote} name="arrivalTime" label="Ankunftszeit / Time of arrival" placeholder="HH:MM" />
-                <NoteField note={note} setNote={setNote} name="departureTime" label="Tatsächliche Abfahrtszeit / Actual departure" placeholder="HH:MM" />
-              </div>
-            </fieldset>
-
-            <fieldset className="dn-fs">
-              <legend>Temperatur &amp; Kühlung</legend>
-              <div className="dn-fs-grid">
-                <div className="field">
-                  <label>1. Kühlfahrzeug / Refrigerated trailer</label>
-                  <select
-                    value={note.refrigerated}
-                    onChange={(e) => setNote((n) => applyRefrigeratedChange(n, e.target.value))}
-                  >
-                    <option value="ja">ja / yes</option>
-                    <option value="nein">nein / no</option>
-                  </select>
-                </div>
-                <NoteField
-                  note={note}
-                  setNote={setNote}
-                  name="tempTarget"
-                  label="Temp. Laderaum SOLL / target"
-                  hint={ambient ? '· ambient' : ''}
-                />
-                <NoteField note={note} setNote={setNote} name="tempActual" label="Temp. Laderaum IST / actual" placeholder="z. B. 2 °C" />
-                <NoteField
-                  note={note}
-                  setNote={setNote}
-                  name="goodsDe"
-                  label="Ladegut / Goods (DE)"
-                  disabled={!ambient}
-                  hint={ambient ? '· editable' : '· fixed for reefers'}
-                />
-                <NoteField
-                  note={note}
-                  setNote={setNote}
-                  name="goodsEn"
-                  label="Ladegut / Goods (EN)"
-                  disabled={!ambient}
-                  placeholder={ambient ? 'optional English translation' : ''}
-                />
-              </div>
-            </fieldset>
-
-            <fieldset className="dn-fs">
-              <legend>Kennzeichen &amp; Zahlen</legend>
-              <div className="dn-fs-grid">
-                <NoteField note={note} setNote={setNote} name="truckPlate" label="Kennzeichen LKW / Truck plate" />
-                <NoteField note={note} setNote={setNote} name="trailerPlate" label="Kennzeichen Trailer / Trailer plate" />
-                <NoteField note={note} setNote={setNote} name="ramp" label="Rampe / Ramp" />
-                <NoteField note={note} setNote={setNote} name="seal" label="Nr. Plombe / Seal no." />
-              </div>
-            </fieldset>
-
-            <fieldset className="dn-fs">
-              <legend>Ladung &amp; Entladestelle</legend>
-              <div className="dn-fs-grid">
-                <div className="field">
-                  <label>Ladung / Load</label>
-                  <input value={note.freight[0].load || ''} onChange={(e) => setFreight('load', e.target.value)} />
-                </div>
-                <div className="field">
-                  <label>
-                    Boxen / Boxes
-                    <LaneBadge />
-                  </label>
-                  <input value={note.freight[0].boxes || ''} onChange={(e) => setFreight('boxes', e.target.value)} />
-                </div>
-                <div className="field">
-                  <label>
-                    Palettenzahl / Pallets
-                    <LaneBadge />
-                  </label>
-                  <input value={note.freight[0].pallets || ''} onChange={(e) => setFreight('pallets', e.target.value)} />
-                </div>
-                <div className="field">
-                  <label>Gewicht / Weight (kg)</label>
-                  <input value={note.freight[0].weight || ''} onChange={(e) => setFreight('weight', e.target.value)} />
-                </div>
-                <div className="field dn-fs-wide">
-                  <label>Inhalt / Contents</label>
-                  <input value={note.freight[0].contents || ''} onChange={(e) => setFreight('contents', e.target.value)} />
-                </div>
-              </div>
-            </fieldset>
-
-            <fieldset className="dn-fs">
-              <legend>
-                Yard Check Out <span className="dn-hint">· usually left blank and filled in at the yard</span>
-              </legend>
-              <div className="dn-fs-grid dn-fs-grid-3">
-                {YARD_COLUMNS.map((c) => (
-                  <div className="field" key={c.key}>
-                    <label>{c.en ? `${c.de} / ${c.en}` : c.de}</label>
-                    <input value={note.yard[0][c.key] || ''} onChange={(e) => setYard(c.key, e.target.value)} />
-                  </div>
-                ))}
-              </div>
-            </fieldset>
-
-            <fieldset className="dn-fs">
-              <legend>Paletten Umschlag Produktion</legend>
-              <div className="dn-fs-grid">
-                <NoteField note={note} setNote={setNote} name="palletsReceived" label="Erhalten / Received" />
-                <NoteField note={note} setNote={setNote} name="palletsIssued" label="Ausgegeben / Issued" />
-                <NoteField note={note} setNote={setNote} name="palletsTotalEuro" label="Gesamt Europaletten / Total euro pallets" />
-                <NoteField note={note} setNote={setNote} name="palletsDamaged" label="Davon defekt / Of which damaged" />
-              </div>
-            </fieldset>
-
-            <fieldset className="dn-fs">
-              <legend>
-                Checkliste <span className="dn-hint">· leave blank to tick by hand during loading</span>
-              </legend>
-              {CHECKLIST.map((item, i) => (
-                <div className="dn-chk-row" key={item.key}>
-                  <span className="dn-chk-num">{i + 1}</span>
-                  <span className="dn-chk-text">{item.de}</span>
-                  <select
-                    value={note.checklist[item.key] || ''}
-                    onChange={(e) =>
-                      setNote((n) => ({ ...n, checklist: { ...n.checklist, [item.key]: e.target.value } }))
-                    }
-                  >
-                    <option value="">— blank —</option>
-                    <option value="ja">ja / yes</option>
-                    <option value="nein">nein / no</option>
-                  </select>
-                </div>
-              ))}
-            </fieldset>
-
-            <fieldset className="dn-fs">
-              <legend>Verladung &amp; Unterschriften</legend>
-              <div className="dn-fs-grid">
-                <NoteField note={note} setNote={setNote} name="loadedBy" label="Verladung durchgeführt / Loading by" />
-                <NoteField note={note} setNote={setNote} name="preparedBy" label="Papiere erstellt / Prepared by" />
-                <NoteField note={note} setNote={setNote} name="handedOverBy" label="Papiere übergeben / Handed over by" />
-                <NoteField note={note} setNote={setNote} name="driverName" label="Fahrer / Truck driver" />
-              </div>
-            </fieldset>
-
-            <div className="dn-wb">
-              {!lane?.editable ? (
-                <p className="dn-wb-empty">
-                  This is a DACH Logs lane — read-only here, so the note prints without touching the
-                  lane.
-                </p>
-              ) : changes.length === 0 ? (
-                <p className="dn-wb-empty">
-                  Nothing new to save back — the note matches the lane. Fields marked{' '}
-                  <span className="dn-wb-badge">↩ lane</span> update the lane when you change them.
-                </p>
+  const editor = (
+    <div className="dn-editor-root">
+      <div className="dn-editor-backdrop" onClick={onClose}>
+        <div className="dn-editor" onClick={(e) => e.stopPropagation()}>
+          <div className="dn-editor-bar dn-chrome">
+            <div className="dn-editor-title">
+              Delivery note · <b>{note.reference || lane?.[KEY_HEADER] || 'lane'}</b>
+              {note.freightMatched ? (
+                <span className="dn-editor-sub">
+                  freight prefilled from Referenz · {note.freightMatchedKey}
+                </span>
               ) : (
-                <>
-                  <label className="dn-wb-toggle">
-                    <input
-                      type="checkbox"
-                      checked={saveBack}
-                      onChange={(e) => setSaveBack(e.target.checked)}
-                    />
-                    <span>
-                      Also save {changes.length} change{changes.length === 1 ? '' : 's'} back to the
-                      lane
-                    </span>
-                  </label>
-                  <ul className="dn-wb-list">
-                    {changes.map((c) => (
-                      <li key={c.header}>
-                        <span className="dn-wb-field">{c.label}</span>
-                        <span className="dn-wb-from">{c.from || 'empty'}</span>
-                        <span className="dn-wb-arrow">→</span>
-                        <span className="dn-wb-to">{c.to}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="dn-wb-note">
-                    Cleared fields are never written — an empty box here won't wipe a value on the
-                    sheet.
-                  </p>
-                </>
+                <span className="dn-editor-sub">no Referenz match · blank freight rows</span>
               )}
             </div>
-
-            {saveError && <p className="dn-wb-error">{saveError}</p>}
-
-            <div className="modal-actions">
-              <button type="button" className="btn" onClick={onClose}>
+            <div className="dn-editor-tools">
+              <button className="btn" onClick={() => setZoom((z) => Math.max(0.6, +(z - 0.1).toFixed(2)))}>
+                −
+              </button>
+              <span className="dn-zoom">{Math.round(zoom * 100)}%</span>
+              <button className="btn" onClick={() => setZoom((z) => Math.min(1.4, +(z + 0.1).toFixed(2)))}>
+                +
+              </button>
+              <button className="btn" onClick={onClose}>
                 Cancel
               </button>
-              <button type="button" className="btn btn-primary" onClick={handlePrint} disabled={saving}>
+              <button className="btn btn-primary" onClick={handlePrint} disabled={saving}>
                 {saving ? 'Saving…' : willSave ? 'Save & print' : 'Print / Drucken'}
               </button>
             </div>
           </div>
 
-          <div className="modal-note-preview">
-            <div className="dn-preview-label">Preview · A4</div>
-            <div className="dn-preview-clip">
-              <div className="dn-preview-scale">
-                <DeliveryNoteSheet note={note} />
-              </div>
+          <p className="dn-editor-help dn-chrome">
+            Type straight into the page — every shaded box is a field, and the ja/nein boxes are
+            clickable. Fields that also update the lane are outlined in gold.
+          </p>
+
+          <div className="dn-editor-scroll">
+            <div className="dn-editor-zoom" style={{ '--dn-zoom': zoom }}>
+              <DeliveryNoteSheet
+                note={note}
+                onField={onField}
+                onFreightCell={onFreightCell}
+                onChecklist={onChecklist}
+              />
             </div>
+          </div>
+
+          <div className="dn-editor-foot dn-chrome">
+            {!lane?.editable ? (
+              <p className="dn-wb-empty">
+                This is a DACH Logs lane — read-only here, so the note prints without touching the lane.
+              </p>
+            ) : changes.length === 0 ? (
+              <p className="dn-wb-empty">Nothing new to save back — the note matches the lane.</p>
+            ) : (
+              <>
+                <label className="dn-wb-toggle">
+                  <input type="checkbox" checked={saveBack} onChange={(e) => setSaveBack(e.target.checked)} />
+                  <span>
+                    Also save {changes.length} change{changes.length === 1 ? '' : 's'} back to the lane
+                  </span>
+                </label>
+                <ul className="dn-wb-list">
+                  {changes.map((c) => (
+                    <li key={c.header}>
+                      <span className="dn-wb-field">{c.label}</span>
+                      <span className="dn-wb-from">{c.from || 'empty'}</span>
+                      <span className="dn-wb-arrow">→</span>
+                      <span className="dn-wb-to">{c.to}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {saveError && <p className="dn-wb-error">{saveError}</p>}
           </div>
         </div>
       </div>
-
-      {/* The only copy that actually goes to the printer. Portalled to <body>
-          so hiding the dashboard for printing is a single CSS rule. */}
-      {mounted &&
-        createPortal(
-          <div className="dn-print-root">
-            <DeliveryNoteSheet note={note} />
-          </div>,
-          document.body
-        )}
-    </>
+    </div>
   );
+
+  // Portalled to <body> so hiding the dashboard for printing is one CSS rule,
+  // and so the thing being edited is literally the thing that prints.
+  return mounted ? createPortal(editor, document.body) : null;
 }
