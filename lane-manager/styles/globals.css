@@ -75,30 +75,29 @@ body {
   color: var(--text-muted);
 }
 
-/* Small "back to the tools index" pill, matching the one on the HTML tools. */
+/* "Back to the tools index" pill. Same size and colours as the header button
+   on the HTML tools, so the two surfaces look like one product. */
 .home-btn {
   flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   font-family: inherit;
-  font-size: 10.5px;
+  font-size: 12.5px;
   font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--text);
   text-decoration: none;
-  background: transparent;
-  border: 1px solid var(--border);
+  background: #fff;
+  border: 1.5px solid var(--border);
   border-radius: 999px;
-  padding: 5px 10px;
+  padding: 7px 14px;
   line-height: 1.2;
   white-space: nowrap;
-  transition: border-color 0.12s, color 0.12s;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .home-btn:hover {
-  border-color: var(--text, #141414);
-  color: var(--text, #141414);
+  border-color: var(--text);
+  box-shadow: 0 0 0 3px rgba(20, 20, 20, 0.08);
 }
 
 .btn {

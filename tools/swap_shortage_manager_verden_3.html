@@ -29,10 +29,8 @@
 
   /* header */
   .app-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:6px;}
-  .home-btn{margin-left:auto;flex:none;align-self:flex-start;display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-size:10.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:#5b5b54;text-decoration:none;background:transparent;border:1px solid #D9D7C9;border-radius:999px;padding:4px 10px;line-height:1.2;white-space:nowrap;transition:border-color .12s,color .12s;}
-  .home-btn:hover{border-color:#141414;color:#141414;}
   .app-header-inner{flex:1;display:flex;align-items:flex-start;gap:14px;}
-  .reload-btn{
+  .reload-btn, .home-btn{
     flex:none;margin-top:4px;
     appearance:none;border:1.5px solid var(--line);border-radius:999px;
     background:#fff;color:var(--carbon);cursor:pointer;
@@ -40,8 +38,11 @@
     padding:7px 14px;display:flex;align-items:center;gap:6px;white-space:nowrap;
     transition:border-color .15s ease, box-shadow .15s ease;
   }
-  .reload-btn:hover{border-color:var(--carbon);box-shadow:0 0 0 3px rgba(20,20,20,0.08);}
-  .reload-btn svg{width:13px;height:13px;display:block;}
+  .reload-btn:hover, .home-btn:hover{border-color:var(--carbon);box-shadow:0 0 0 3px rgba(20,20,20,0.08);}
+  .reload-btn svg, .home-btn svg{width:13px;height:13px;display:block;}
+  /* Sizing and colours come from the shared .reload-btn rule above, so the
+     two header buttons can never drift apart. */
+  .home-btn{margin-left:auto;text-decoration:none;}
   .logo-mark{width:38px;height:38px;border-radius:9px;overflow:hidden;flex:none;box-shadow:0 1px 0 rgba(20,20,20,0.06);margin-top:3px;}
   .logo-mark img{width:100%;height:100%;display:block;object-fit:cover;}
   .app-title{font-weight:600;font-size:26px;letter-spacing:0.01em;text-transform:uppercase;border-bottom:4px solid var(--saffron);padding-bottom:3px;display:inline-block;line-height:1.1;}
