@@ -119,6 +119,11 @@ export default function Dashboard() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Absolute URL on purpose: Lane Manager is its own deployment, so a
+              relative path would never reach the tools index. */}
+          <a className="home-btn" href="https://factor-downstream-tools.vercel.app/">
+            &#8592; Home
+          </a>
           <input
             className="search-box"
             placeholder="Search all lanes…"
