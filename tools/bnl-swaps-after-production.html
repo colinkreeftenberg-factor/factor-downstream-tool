@@ -821,11 +821,26 @@ function resolveRecipeName(slot, locale){
   if(!cfg) return null;
   const kit = state.kitcontentBySlot.get(String(slot).trim());
   if(!kit) return null;
-  // Recipe code is the first "-"-delimited segment of the SKU (e.g. "FE4014B" from "FE4014B-CS-1")
-  const recipeCode = (kit.sku || kit.receptcode || '').split('-')[0].trim();
-  if(!recipeCode) return null;
-  const v2 = state.verden2ByCode.get(recipeCode);
-  return (v2 && v2[cfg.nameKey]) ? v2[cfg.nameKey] : null;
+
+  // 1. Try SKU first — only trust it if it looks like a recipe code (FE… / FV…)
+  let recipeCode = '';
+  const skuPart = (kit.sku || '').split('-')[0].trim();
+  if(/^F[EV]/i.test(skuPart)) recipeCode = skuPart;
+
+  // 2. Receptcode format is "SLOT-RECIPECODE" (e.g. "416-FV0472A") — skip the slot prefix
+  if(!recipeCode && kit.receptcode){
+    const parts = kit.receptcode.split('-');
+    if(parts.length > 1) recipeCode = parts.slice(1).join('-').trim();
+  }
+
+  if(recipeCode){
+    const v2 = state.verden2ByCode.get(recipeCode);
+    if(v2 && v2[cfg.nameKey]) return v2[cfg.nameKey];
+  }
+
+  // 3. Dutch fallback: Kitcontent already stores the Dutch name directly
+  if(cfg.nameKey === 'dutchName') return kit.etiketnaam || kit.ingredientnaam || null;
+  return null;
 }
 
 /* =================================================================
