@@ -36,7 +36,7 @@
   .step-title{font-size:16.5px;font-weight:700;letter-spacing:-0.01em;}
   .step-desc{font-size:13px;color:var(--ink-dim);margin:8px 0 16px;line-height:1.5;max-width:680px;}
 
-  .live-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  .live-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
   @media (max-width:820px){.live-grid{grid-template-columns:repeat(2,1fr);}}
   .livecard{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;transition:.2s;}
   .livecard.ok{background:#E9F5E4;border-color:#BFDDB3;}
@@ -139,11 +139,6 @@
         <div class="lc-label">Kitcontent (this week)</div>
         <div class="lc-status" id="lc-kitcontent-status">Not loaded yet…</div>
         <button class="lc-refresh" data-src="kitcontent">Refresh</button>
-      </div>
-      <div class="livecard" id="lc-mealdb">
-        <div class="lc-label">Meal Database</div>
-        <div class="lc-status" id="lc-mealdb-status">Not loaded yet…</div>
-        <button class="lc-refresh" data-src="mealdb">Refresh</button>
       </div>
       <div class="livecard" id="lc-verden2">
         <div class="lc-label">Verden 2.0 (name fallback)</div>
@@ -539,7 +534,6 @@ const TEMPLATES_NOCOMP = {
 ================================================================= */
 const state = {
   kitcontentBySlot: new Map(),   // slot -> {receptcode, ingredientnaam, etiketnaam, sku}
-  mealDbBySku: new Map(),        // sku -> [{mealId, dutchName, frenchName}]
   verden2ByCode: new Map(),      // recipeCode -> {dutchName, frenchName}
   productionRows: [],            // flat array of box records
   availableDates: [],            // sorted unique production_date strings (desc)
@@ -662,69 +656,6 @@ function buildKitcontentIndex(rows){
       etiketnaam: idx.etiketnaam>=0 ? (r[idx.etiketnaam]||'').toString().trim() : '',
       sku: idx.sku>=0 ? (r[idx.sku]||'').toString().trim() : ''
     });
-    count++;
-  }
-  return { map, count };
-}
-
-function buildMealDatabaseIndex(rows){
-  // Find the header row by looking for any recognisable Meal Database column
-  // (not just "Meal ID", which may be absent or renamed).
-  let headerIdx = -1;
-  for(let i=0;i<Math.min(rows.length,10);i++){
-    const r = rows[i];
-    if(r.some(c => {
-      const v = (c||'').toString().trim().toLowerCase();
-      return v==='meal id' || v.includes('internal sku') ||
-             (v.includes('dutch') && v.includes('name')) ||
-             (v.includes('french') && v.includes('name'));
-    })){ headerIdx = i; break; }
-  }
-  // If still nothing found, assume row 0 is the header (column-position mode)
-  if(headerIdx===-1) headerIdx = 0;
-
-  const header = rows[headerIdx].map(h=>(h||'').toString().trim());
-  const idx = {
-    mealId: -1,
-    sku: -1,
-    dutchName: -1,
-    frenchName: -1
-  };
-  for(let i=0;i<header.length;i++){
-    const h = header[i].toLowerCase();
-    if(h==='meal id' && idx.mealId<0) idx.mealId = i;
-    if(h==='internal sku (dutch)' && idx.sku<0) idx.sku = i;
-    if(h.includes('dutch') && h.includes('name') && idx.dutchName<0) idx.dutchName = i;
-    if(h.includes('french') && h.includes('name') && idx.frenchName<0) idx.frenchName = i;
-  }
-  // Fallback: looser substring match if the exact column name shifted
-  if(idx.sku < 0){
-    for(let i=0;i<header.length;i++){
-      const h = header[i].toLowerCase();
-      if(h.includes('internal sku') || (h.includes('sku') && h.includes('dutch'))){ idx.sku = i; break; }
-    }
-  }
-  // Positional fallbacks when header text doesn't match known names
-  if(idx.mealId < 0 && header.length > 0) idx.mealId = 0;   // Column A
-  if(idx.dutchName < 0 && header.length > 5) idx.dutchName = 5;  // Column F
-  if(idx.frenchName < 0 && header.length > 9) idx.frenchName = 9; // Column J
-  if(idx.sku < 0) throw new Error('Could not find column "Internal SKU (Dutch)" in the Meal Database header row.');
-
-  const map = new Map();
-  let count = 0;
-  for(let i=headerIdx+1;i<rows.length;i++){
-    const r = rows[i];
-    if(!r || !r[idx.sku]) continue;
-    const sku = r[idx.sku].toString().trim();
-    const entry = {
-      mealId: idx.mealId>=0 ? (r[idx.mealId]||'').toString().trim() : '',
-      dutchName: idx.dutchName>=0 ? (r[idx.dutchName]||'').toString().trim() : '',
-      frenchName: idx.frenchName>=0 ? (r[idx.frenchName]||'').toString().trim() : ''
-    };
-    if(entry.dutchName==='#N/A') entry.dutchName='';
-    if(entry.frenchName==='#N/A') entry.frenchName='';
-    if(!map.has(sku)) map.set(sku, []);
-    map.get(sku).push(entry);
     count++;
   }
   return { map, count };
@@ -890,21 +821,11 @@ function resolveRecipeName(slot, locale){
   if(!cfg) return null;
   const kit = state.kitcontentBySlot.get(String(slot).trim());
   if(!kit) return null;
-
-  // Primary: Meal Database (keyed by SKU)
-  if(kit.sku){
-    const entries = state.mealDbBySku.get(kit.sku) || [];
-    for(const e of entries){ if(e[cfg.nameKey]) return e[cfg.nameKey]; }
-  }
-
-  // Fallback: Verden 2.0 (keyed by recipe code — first part of SKU, e.g. "FE4014B")
+  // Recipe code is the first "-"-delimited segment of the SKU (e.g. "FE4014B" from "FE4014B-CS-1")
   const recipeCode = (kit.sku || kit.receptcode || '').split('-')[0].trim();
-  if(recipeCode && state.verden2ByCode.size > 0){
-    const v2 = state.verden2ByCode.get(recipeCode);
-    if(v2 && v2[cfg.nameKey]) return v2[cfg.nameKey];
-  }
-
-  return null;
+  if(!recipeCode) return null;
+  const v2 = state.verden2ByCode.get(recipeCode);
+  return (v2 && v2[cfg.nameKey]) ? v2[cfg.nameKey] : null;
 }
 
 /* =================================================================
@@ -940,15 +861,6 @@ async function loadSource(src){
       const built = buildKitcontentIndex(payload.data);
       state.kitcontentBySlot = built.map;
       setLc(src, `Loaded · ${built.count} slot(s)`, 'ok');
-    } else if(src==='mealdb'){
-      const payload = await loadJson('/api/data?sheet=bnl_mealdb');
-      const built = buildMealDatabaseIndex(payload.data);
-      state.mealDbBySku = built.map;
-      if(built.count === 0){
-        setLc(src, `⚠ Loaded 0 rows — header found, but no data rows matched. Check the sheet for structure changes.`, 'warn');
-      } else {
-        setLc(src, `Loaded · ${built.count} row(s)`, 'ok');
-      }
     } else if(src==='verden2'){
       const payload = await loadJson('/api/data?sheet=bnl_verden2');
       const built = buildVerden2Index(payload.data);
@@ -1006,7 +918,7 @@ document.querySelectorAll('.lc-refresh').forEach(btn=>{
   btn.addEventListener('click', ()=> loadSource(btn.dataset.src));
 });
 window.addEventListener('load', ()=>{
-  loadSource('kitcontent'); loadSource('mealdb'); loadSource('verden2'); loadSource('production');
+  loadSource('kitcontent'); loadSource('verden2'); loadSource('production');
 });
 
 /* =================================================================
