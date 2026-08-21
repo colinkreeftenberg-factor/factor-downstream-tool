@@ -534,7 +534,7 @@ const TEMPLATES_NOCOMP = {
 ================================================================= */
 const state = {
   kitcontentBySlot: new Map(),   // slot -> {receptcode, ingredientnaam, etiketnaam, sku}
-  verden2ByCode: new Map(),      // recipeCode -> {dutchName, frenchName}
+  verden2BySlotWeek: new Map(),  // "SLOT|WEEK" -> {dutchName, frenchName}
   productionRows: [],            // flat array of box records
   availableDates: [],            // sorted unique production_date strings (desc)
   priceByBox: new Map(),         // boxId (no trailing letter) -> {productsize, totalOrderValue}
@@ -662,19 +662,21 @@ function buildKitcontentIndex(rows){
 }
 
 function buildVerden2Index(rows){
-  // Headers are in row 2 (index 1). Search first 5 rows for "Recipe Code".
+  // Headers are in row 2 (index 1). Search first 5 rows for "slot benl".
   let headerIdx = -1;
   for(let i=0;i<Math.min(rows.length,5);i++){
-    if(rows[i].some(c=>(c||'').toString().trim().toLowerCase()==='recipe code')){ headerIdx = i; break; }
+    if(rows[i].some(c=>(c||'').toString().trim().toLowerCase()==='slot benl')){ headerIdx = i; break; }
   }
   if(headerIdx===-1) headerIdx = 1; // positional fallback: row 2
 
   const header = rows[headerIdx].map(h=>(h||'').toString().trim().toLowerCase());
-  const iCode  = header.findIndex(h=>h==='recipe code');
+  const iSlot  = header.findIndex(h=>h==='slot benl');
+  const iWeek  = header.findIndex(h=>h==='week');
   const iDutch = header.findIndex(h=>h==='dutch name');
   const iFr    = header.findIndex(h=>h==='french name');
-  // Positional fallbacks based on known Verden 2.0 layout
-  const cCode  = iCode  >= 0 ? iCode  : 0;
+  // Positional fallbacks based on known Verden 2.0 layout (A=0,B=1,C=2,D=3,E=4,…,I=8,…,M=12)
+  const cSlot  = iSlot  >= 0 ? iSlot  : 4;
+  const cWeek  = iWeek  >= 0 ? iWeek  : 3;
   const cDutch = iDutch >= 0 ? iDutch : 8;
   const cFr    = iFr    >= 0 ? iFr    : 12;
 
@@ -682,13 +684,16 @@ function buildVerden2Index(rows){
   let count = 0;
   for(let i=headerIdx+1;i<rows.length;i++){
     const r = rows[i];
-    if(!r || !r[cCode]) continue;
-    const code = r[cCode].toString().trim();
-    if(!code || map.has(code)) continue; // first occurrence wins
+    if(!r) continue;
+    const slot = (r[cSlot]||'').toString().trim();
+    const week = (r[cWeek]||'').toString().trim();
+    if(!slot || !week) continue;
+    const key = slot + '|' + week;
+    if(map.has(key)) continue; // first occurrence wins
     const dutch = (r[cDutch]||'').toString().trim();
     const french = (r[cFr]||'').toString().trim();
     if(dutch==='#N/A' && french==='#N/A') continue; // skip placeholder rows
-    map.set(code, {
+    map.set(key, {
       dutchName:  dutch ==='#N/A' ? '' : dutch,
       frenchName: french==='#N/A' ? '' : french
     });
@@ -816,30 +821,33 @@ function buildProductionIndex(rows, odlIndex){
   return records;
 }
 
-function resolveRecipeName(slot, locale){
+function isoWeekStr(dateStr){
+  if(!dateStr) return null;
+  const d = new Date(dateStr);
+  if(isNaN(d)) return null;
+  d.setUTCHours(0,0,0,0);
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return 'W' + week;
+}
+
+function resolveRecipeName(slot, locale, date){
   const cfg = LOCALE_CONFIG[locale];
   if(!cfg) return null;
-  const kit = state.kitcontentBySlot.get(String(slot).trim());
-  if(!kit) return null;
 
-  // 1. Try SKU first — only trust it if it looks like a recipe code (FE… / FV…)
-  let recipeCode = '';
-  const skuPart = (kit.sku || '').split('-')[0].trim();
-  if(/^F[EV]/i.test(skuPart)) recipeCode = skuPart;
-
-  // 2. Receptcode format is "SLOT-RECIPECODE" (e.g. "416-FV0472A") — skip the slot prefix
-  if(!recipeCode && kit.receptcode){
-    const parts = kit.receptcode.split('-');
-    if(parts.length > 1) recipeCode = parts.slice(1).join('-').trim();
-  }
-
-  if(recipeCode){
-    const v2 = state.verden2ByCode.get(recipeCode);
+  // 1. Slot + week lookup in Verden2 (most reliable)
+  const week = isoWeekStr(date);
+  if(week){
+    const v2 = state.verden2BySlotWeek.get(String(slot).trim() + '|' + week);
     if(v2 && v2[cfg.nameKey]) return v2[cfg.nameKey];
   }
 
-  // 3. Dutch fallback: Kitcontent already stores the Dutch name directly
-  if(cfg.nameKey === 'dutchName') return kit.etiketnaam || kit.ingredientnaam || null;
+  // 2. Dutch fallback: Kitcontent stores the Dutch name directly
+  if(cfg.nameKey === 'dutchName'){
+    const kit = state.kitcontentBySlot.get(String(slot).trim());
+    if(kit) return kit.etiketnaam || kit.ingredientnaam || null;
+  }
   return null;
 }
 
@@ -879,7 +887,7 @@ async function loadSource(src){
     } else if(src==='verden2'){
       const payload = await loadJson('/api/data?sheet=bnl_verden2');
       const built = buildVerden2Index(payload.data);
-      state.verden2ByCode = built.map;
+      state.verden2BySlotWeek = built.map;
       if(built.count === 0){
         setLc(src, `⚠ Loaded 0 rows — check the sheet name and layout.`, 'warn');
       } else {
@@ -1313,7 +1321,8 @@ function confirmIncident(inc){
       // fill a templated one with. Compensation is unaffected.
       recipeUnknown: !!inc.slotUnknown,
       substituteUnknown: !!inc.substituteUnknown,
-      categoryIndex: inc.categoryIndex, businessUnit: businessUnit
+      categoryIndex: inc.categoryIndex, businessUnit: businessUnit,
+      date: inc.date
     });
   });
   inc.status = 'confirmed';
@@ -1359,8 +1368,8 @@ function renderReview(){
     </div>`;
 
   document.getElementById('tbody').innerHTML = rows.map(r=>{
-    const recipeName = resolveRecipeName(r.slot, r.locale) || 'Unknown';
-    const subName = r.type==='SWAP' ? (resolveRecipeName(r.substituteSlot, r.locale) || 'Unknown') : null;
+    const recipeName = resolveRecipeName(r.slot, r.locale, r.date) || 'Unknown';
+    const subName = r.type==='SWAP' ? (resolveRecipeName(r.substituteSlot, r.locale, r.date) || 'Unknown') : null;
     return `
     <tr>
       <td>${r.type==='SWAP'?'<span class="tag swap">Swap</span>':'<span class="tag short">Shortage</span>'}</td>
@@ -1405,9 +1414,9 @@ function buildBulkErrorRows(){
     if(r.categoryIndex===null || r.categoryIndex===undefined || isNaN(r.categoryIndex)) return;
     const cat = RECIPE_CATEGORIES[r.categoryIndex];
     const kit = state.kitcontentBySlot.get(String(r.slot));
-    const recipeName = (r.recipeUnknown ? null : resolveRecipeName(r.slot, r.locale)) || 'UNKNOWN';
+    const recipeName = (r.recipeUnknown ? null : resolveRecipeName(r.slot, r.locale, r.date)) || 'UNKNOWN';
     const subName = r.type==='SWAP'
-      ? ((r.substituteUnknown ? null : resolveRecipeName(r.substituteSlot, r.locale)) || 'UNKNOWN')
+      ? ((r.substituteUnknown ? null : resolveRecipeName(r.substituteSlot, r.locale, r.date)) || 'UNKNOWN')
       : null;
     const qty = r.qty || 1;
 
@@ -1533,9 +1542,9 @@ function buildCrmRows(){
   state.auditLog.forEach(r=>{
     if(!byCustomer[r.customerId]) byCustomer[r.customerId] = { customerId:r.customerId, locale:r.locale, swaps:[], missing:[] };
     if(r.type==='SWAP'){
-      byCustomer[r.customerId].swaps.push({ origin:r.slot, dest:r.substituteSlot, originUnknown:!!r.recipeUnknown, destUnknown:!!r.substituteUnknown });
+      byCustomer[r.customerId].swaps.push({ origin:r.slot, dest:r.substituteSlot, originUnknown:!!r.recipeUnknown, destUnknown:!!r.substituteUnknown, date:r.date });
     } else {
-      byCustomer[r.customerId].missing.push({ slot:r.slot, unknown:!!r.recipeUnknown });
+      byCustomer[r.customerId].missing.push({ slot:r.slot, unknown:!!r.recipeUnknown, date:r.date });
     }
   });
 
@@ -1558,13 +1567,13 @@ function buildCrmRows(){
     // generic email instead of a template with a blank recipe.
     let allKnown = true;
     const swapNames = cust.swaps.map(pair=>{
-      const origin = pair.originUnknown ? null : resolveRecipeName(pair.origin, locale);
-      const dest = pair.destUnknown ? null : resolveRecipeName(pair.dest, locale);
+      const origin = pair.originUnknown ? null : resolveRecipeName(pair.origin, locale, pair.date);
+      const dest = pair.destUnknown ? null : resolveRecipeName(pair.dest, locale, pair.date);
       if(!origin || !dest) allKnown = false;
       return { origin, dest };
     });
     const missingNames = cust.missing.map(m=>{
-      const name = m.unknown ? null : resolveRecipeName(m.slot, locale);
+      const name = m.unknown ? null : resolveRecipeName(m.slot, locale, m.date);
       if(!name) allKnown = false;
       return name;
     });
