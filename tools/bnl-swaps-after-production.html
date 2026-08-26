@@ -826,6 +826,8 @@ function isoWeekStr(dateStr){
   const d = new Date(dateStr);
   if(isNaN(d)) return null;
   d.setUTCHours(0,0,0,0);
+  // HF weeks start Thursday; shift +4 days so Thursday aligns with Monday in the ISO algorithm
+  d.setUTCDate(d.getUTCDate() + 4);
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
