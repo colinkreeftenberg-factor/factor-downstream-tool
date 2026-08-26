@@ -197,6 +197,10 @@
   .table-scroll td{padding:8px 10px;border-bottom:1px solid var(--line);color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:12px;}
   tr.row-allergen-mismatch td{background:var(--tint-cherry);}
   tr.row-allergen-mismatch:hover td{background:var(--tint-watermelon);}
+  .drive-status{font-size:11px;margin-top:5px;min-height:15px;font-weight:500;}
+  .drive-status.uploading{color:var(--dijon);}
+  .drive-status.ok{color:var(--basil);}
+  .drive-status.err{color:var(--cherry);}
   .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10.5px;font-weight:700;}
   .badge.like{background:var(--tint-basil);color:var(--basil);}
   .badge.cross{background:var(--tint-ocean);color:var(--ocean);}
@@ -352,10 +356,23 @@
     </div>
 
     <div class="export-row">
-      <button class="primary-btn" id="download-p2l" disabled data-i18n="download_p2l">Download modified box file (.csv)</button>
-      <button class="secondary-btn" id="download-bartender" disabled data-i18n="download_bartender">Download Bartender import file (.csv)</button>
-      <button class="secondary-btn" id="download-allergen-report" disabled data-i18n="download_allergen">Download allergen report (.csv)</button>
+      <div>
+        <button class="primary-btn" id="download-p2l" disabled data-i18n="download_p2l">Download modified box file (.csv)</button>
+        <div class="drive-status" id="drive-status-p2l"></div>
+      </div>
+      <div>
+        <button class="secondary-btn" id="download-bartender" disabled data-i18n="download_bartender">Download Bartender import file (.csv)</button>
+        <div class="drive-status" id="drive-status-bartender"></div>
+      </div>
+      <div>
+        <button class="secondary-btn" id="download-allergen-report" disabled data-i18n="download_allergen">Download allergen report (.csv)</button>
+        <div class="drive-status" id="drive-status-allergen"></div>
+      </div>
       <button class="secondary-btn" id="reset-runs" data-i18n="reset_runs">Reset to original file</button>
+    </div>
+    <div style="margin-top:14px;">
+      <button class="secondary-btn" id="send-email-btn" disabled style="border-color:var(--ocean);color:var(--ocean);">✉ Send email summary</button>
+      <div class="field-note" style="margin-top:4px;">Sends a summary to addresses in the 'email' tab of the Verden sheet. Download files first so Drive links are included.</div>
     </div>
     <div id="session-log" style="margin-top:20px;"></div>
   </div>
@@ -446,6 +463,9 @@
     return MARKET_CONFIG[p] ? p : null;
   }
 
+  // ================= constants =================
+  const DRIVE_FOLDER_ID = '19LeJPBo5CLGWBQ7XE6dtm9wf_HyEl-Qt';
+
   // ================= state =================
   const state = {
     recipeIndex: [], recipeBySlot: new Map(),
@@ -456,7 +476,8 @@
     boxPriceMap: {},
     p2lHeader: [], boxes: [],
     shortages: [], impactStrategy: 'avoid-overlap', boxTouchCount: new Map(),
-    lastRunBatch: [], auditLog: [], sessionRuns: []
+    lastRunBatch: [], auditLog: [], sessionRuns: [],
+    driveFiles: {}
   };
   let leftoverSeq = 0, shortageSeq = 0;
 
@@ -515,6 +536,7 @@
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    return csv;
   }
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1597,16 +1619,156 @@
     ).join('');
   }
 
+  // ================= Drive + Email helpers =================
+  async function uploadToDrive(filename, csvContent, statusKey){
+    setDriveStatus(statusKey, 'uploading', '⏳ Saving to Drive…');
+    try {
+      const res = await fetch('/api/upload-to-drive', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ filename, content: csvContent, folderId: DRIVE_FOLDER_ID })
+      });
+      const data = await res.json();
+      if (data.ok){
+        state.driveFiles[statusKey] = { fileId: data.fileId, name: data.name };
+        setDriveStatus(statusKey, 'ok', '✓ Saved to Drive');
+      } else {
+        setDriveStatus(statusKey, 'err', '✗ Drive save failed: ' + (data.error || 'unknown error'));
+      }
+    } catch(e){
+      setDriveStatus(statusKey, 'err', '✗ Drive save failed: ' + e.message);
+    }
+  }
+
+  function setDriveStatus(key, type, msg){
+    const el = document.getElementById('drive-status-' + key);
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'drive-status ' + type;
+  }
+
+  async function sendEmailSummary(){
+    const btn = document.getElementById('send-email-btn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Sending…';
+
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2,'0');
+    const mm = String(now.getMonth()+1).padStart(2,'0');
+    const subject = `Proactive Swap Output created on ${dd}.${mm}`;
+
+    const totalSwaps = state.sessionRuns.reduce((s,r)=>s+(r.likeCount||0)+(r.crossCount||0),0);
+    const totalShorts = state.sessionRuns.reduce((s,r)=>s+(r.shortCount||0),0);
+    const totalBoxes = state.sessionRuns.reduce((s,r)=>s+(r.toProcess||0),0);
+
+    // Build per-run table rows
+    const runRows = state.sessionRuns.map(r=>`
+      <tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;">${escapeHtml(r.label)}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;">${r.toProcess}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;">${r.likeCount}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;">${r.crossCount}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;">${r.shortCount}</td>
+      </tr>`).join('');
+
+    // Unique SKUs from audit log
+    const skuSet = new Map();
+    state.auditLog.forEach(e=>{
+      if (e.originalSku) skuSet.set(e.originalSku, e.originalLabel);
+      if (e.replacementSku) skuSet.set(e.replacementSku, e.replacementLabel);
+    });
+    const skuRows = [...skuSet.entries()].map(([sku,label])=>
+      `<tr><td style="padding:6px 12px;border-bottom:1px solid #eee;font-family:monospace;">${escapeHtml(sku)}</td><td style="padding:6px 12px;border-bottom:1px solid #eee;">${escapeHtml(label||'')}</td></tr>`
+    ).join('');
+
+    // Drive file links
+    const driveBaseUrl = `https://drive.google.com/drive/folders/${DRIVE_FOLDER_ID}`;
+    const fileLinks = Object.entries(state.driveFiles).map(([key, f])=>{
+      const label = {p2l:'Modified Box File', bartender:'Bartender Import File', allergen:'Allergen Report'}[key] || key;
+      const url = `https://drive.google.com/file/d/${f.fileId}/view`;
+      return `<li><a href="${url}" style="color:#18849F;">${label} — ${escapeHtml(f.name)}</a></li>`;
+    }).join('');
+
+    const html = `
+<!DOCTYPE html><html><body style="font-family:'Helvetica Neue',Arial,sans-serif;color:#141414;max-width:640px;margin:0 auto;padding:24px 16px;">
+<div style="border-bottom:4px solid #FFC800;padding-bottom:12px;margin-bottom:24px;">
+  <h1 style="font-size:22px;font-weight:800;margin:0;">Proactive Swap Output — ${dd}.${mm}</h1>
+  <p style="color:#5b5b54;margin:6px 0 0;font-size:13px;">Generated by Factor Ops Tool — Verden Swap &amp; Shortage Manager v4</p>
+</div>
+<table style="width:100%;border-collapse:collapse;background:#f9f9f5;border:1px solid #D9D7C9;border-radius:12px;overflow:hidden;margin-bottom:24px;">
+  <tr><td style="padding:14px 18px;border-bottom:1px solid #D9D7C9;">
+    <span style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#8a897d;">Total boxes processed</span>
+    <div style="font-size:26px;font-weight:800;">${totalBoxes}</div>
+  </td>
+  <td style="padding:14px 18px;border-bottom:1px solid #D9D7C9;">
+    <span style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#8a897d;">Total swaps</span>
+    <div style="font-size:26px;font-weight:800;color:#206B19;">${totalSwaps}</div>
+  </td>
+  <td style="padding:14px 18px;border-bottom:1px solid #D9D7C9;">
+    <span style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#8a897d;">Total shortages</span>
+    <div style="font-size:26px;font-weight:800;color:#9B2629;">${totalShorts}</div>
+  </td></tr>
+</table>
+<h2 style="font-size:14px;font-weight:700;margin-bottom:8px;">Run details</h2>
+<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px;">
+  <thead><tr style="background:#F1F1EA;">
+    <th style="text-align:left;padding:8px 12px;border-bottom:2px solid #FFC800;font-size:10px;text-transform:uppercase;letter-spacing:.05em;">Run</th>
+    <th style="padding:8px 12px;border-bottom:2px solid #FFC800;font-size:10px;text-transform:uppercase;">Boxes</th>
+    <th style="padding:8px 12px;border-bottom:2px solid #FFC800;font-size:10px;text-transform:uppercase;">Like-for-like</th>
+    <th style="padding:8px 12px;border-bottom:2px solid #FFC800;font-size:10px;text-transform:uppercase;">Cross-swap</th>
+    <th style="padding:8px 12px;border-bottom:2px solid #FFC800;font-size:10px;text-transform:uppercase;">Short</th>
+  </tr></thead>
+  <tbody>${runRows}</tbody>
+</table>
+${skuRows ? `<h2 style="font-size:14px;font-weight:700;margin-bottom:8px;">SKUs involved</h2>
+<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:24px;">
+  <thead><tr style="background:#F1F1EA;"><th style="text-align:left;padding:6px 12px;border-bottom:2px solid #FFC800;">SKU</th><th style="text-align:left;padding:6px 12px;border-bottom:2px solid #FFC800;">Meal name</th></tr></thead>
+  <tbody>${skuRows}</tbody>
+</table>` : ''}
+${fileLinks ? `<h2 style="font-size:14px;font-weight:700;margin-bottom:8px;">Export files</h2>
+<ul style="font-size:13px;line-height:1.7;">${fileLinks}</ul>
+<p style="font-size:12px;color:#8a897d;margin-top:4px;"><a href="${driveBaseUrl}" style="color:#18849F;">Open Drive folder →</a></p>` : `<p style="font-size:13px;color:#8a897d;">No files were uploaded to Drive in this session.</p>`}
+<p style="margin-top:32px;font-size:11px;color:#b8b7a8;border-top:1px solid #D9D7C9;padding-top:14px;">Sent automatically by Factor Ops Tools · factor-downstream-tools.vercel.app</p>
+</body></html>`;
+
+    try {
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ subject, html })
+      });
+      const data = await res.json();
+      if (data.ok){
+        btn.textContent = '✓ Email sent!';
+        btn.style.background = 'var(--tint-basil)';
+        btn.style.color = 'var(--basil)';
+        btn.style.border = '1px solid var(--basil)';
+        setTimeout(()=>{ btn.textContent = 'Send email summary'; btn.style = ''; btn.disabled = false; }, 5000);
+      } else {
+        btn.textContent = '✗ Failed — check console';
+        btn.disabled = false;
+        console.error('Email API error:', data.error);
+      }
+    } catch(e){
+      btn.textContent = '✗ Failed: ' + e.message;
+      btn.disabled = false;
+    }
+  }
+
   // ================= stage 4: export =================
   function refreshExportGate(){
     const ok = state.sessionRuns.length>0;
     document.getElementById('download-p2l').disabled = !ok;
     document.getElementById('download-bartender').disabled = !ok;
     document.getElementById('download-allergen-report').disabled = !ok;
+    document.getElementById('send-email-btn').disabled = !ok;
   }
 
+  document.getElementById('send-email-btn').addEventListener('click', sendEmailSummary);
+
   document.getElementById('download-p2l').addEventListener('click', ()=>{
-    downloadCSV('p2l_modified.csv', state.p2lHeader, state.boxes.map(b=>b.raw));
+    const csv = downloadCSV('p2l_modified.csv', state.p2lHeader, state.boxes.map(b=>b.raw));
+    uploadToDrive('p2l_modified.csv', csv, 'p2l');
   });
 
   document.getElementById('download-bartender').addEventListener('click', ()=>{
@@ -1626,9 +1788,10 @@
       'culinary sku': e.originalSku,
       'comment': e.impact==='SWAP' ? `Swap to ${e.replacementSlotNum}: ${e.replacementLabel}` : 'Shortage'
     }));
-    downloadCSV('bartender_import.csv',
+    const csv = downloadCSV('bartender_import.csv',
       ['customer id','box id','error category','error sub category','complaint','additional detail 1','additional detail 2','ingredient','recipe name','compensation type','compensation amount','recipe index','culinary sku','comment'],
       rows);
+    uploadToDrive('bartender_import.csv', csv, 'bartender');
   });
 
   document.getElementById('download-allergen-report').addEventListener('click', ()=>{
@@ -1650,7 +1813,8 @@
         'Allergen Change': allergenChange
       };
     });
-    downloadCSV('allergen_report.csv', ['BoxID','Customer ID','Amount','Original','New','Allergen Change'], rows);
+    const csv = downloadCSV('allergen_report.csv', ['BoxID','Customer ID','Amount','Original','New','Allergen Change'], rows);
+    uploadToDrive('allergen_report.csv', csv, 'allergen');
   });
 
   document.getElementById('reset-runs').addEventListener('click', ()=>{

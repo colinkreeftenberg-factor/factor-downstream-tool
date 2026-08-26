@@ -8,6 +8,7 @@ const SOURCES = {
   bartender: { spreadsheetId: LINE_SHEET_ID, range: 'Bartender!A:Z' },
   odl: { spreadsheetId: LINE_SHEET_ID, range: 'ODL!A:Z' },
   defaults: { spreadsheetId: LINE_SHEET_ID, range: 'Defaults!A:Z' },
+  email: { spreadsheetId: LINE_SHEET_ID, range: 'email!A:Z' },
   verden: { spreadsheetId: BACKEND_SHEET_ID, range: 'Verden!A:BZ' },
   boxpricetz: { spreadsheetId: BACKEND_SHEET_ID, range: 'BoxPriceTZ!A:Z' },
   mealdb: { spreadsheetId: BACKEND_SHEET_ID, range: "'Meal Database'!A:Z" },
