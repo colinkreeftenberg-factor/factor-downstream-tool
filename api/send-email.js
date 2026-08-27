@@ -27,13 +27,18 @@ async function getSheetsClient() {
 
 function parseKey(raw) {
   try { return JSON.parse(raw); } catch (_) {}
-  // Common Vercel paste issue: private_key PEM block has literal newlines
-  // instead of \n escape sequences. Fix only inside that field.
-  const repaired = raw.replace(
-    /("private_key"\s*:\s*")([\s\S]*?)("(?:\s*,|\s*\}))/,
-    (_, pre, val, suf) => pre + val.replace(/\r?\n/g, '\\n') + suf
-  );
-  return JSON.parse(repaired);
+  // Vercel converts \n escape sequences to real newlines when storing env vars.
+  // This breaks the private_key PEM block inside the JSON string.
+  // Fix: locate the private_key string value and escape its literal newlines.
+  const keyStart = raw.indexOf('"private_key"');
+  if (keyStart === -1) throw new SyntaxError('Invalid service account JSON — no private_key field found');
+  const openQuote = raw.indexOf('"', raw.indexOf(':', keyStart)) + 1;
+  let closeQuote = openQuote;
+  while (closeQuote < raw.length && raw[closeQuote] !== '"') closeQuote++;
+  const fixed = raw.slice(0, openQuote)
+    + raw.slice(openQuote, closeQuote).replace(/\r?\n/g, '\\n')
+    + raw.slice(closeQuote);
+  return JSON.parse(fixed);
 }
 
 async function getGmailClient(sender) {
