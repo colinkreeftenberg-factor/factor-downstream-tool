@@ -26,26 +26,42 @@ async function getSheetsClient() {
 }
 
 function parseKey(raw) {
+  if (!raw) throw new Error('Service account JSON env var is empty or not set');
   try { return JSON.parse(raw); } catch (_) {}
-  // Vercel converts \n escape sequences to real newlines when storing env vars.
-  // This breaks the private_key PEM block inside the JSON string.
-  // Fix: locate the private_key string value and escape its literal newlines.
+  // Vercel converts \n in env var values to actual newlines, breaking the
+  // private_key PEM string. Find the value boundaries and escape them back.
   const keyStart = raw.indexOf('"private_key"');
-  if (keyStart === -1) throw new SyntaxError('Invalid service account JSON — no private_key field found');
-  const openQuote = raw.indexOf('"', raw.indexOf(':', keyStart)) + 1;
-  let closeQuote = openQuote;
+  if (keyStart === -1) throw new SyntaxError('Service account JSON has no private_key field');
+  const colonPos  = raw.indexOf(':', keyStart);
+  const openQuote = raw.indexOf('"', colonPos) + 1;
+  let closeQuote  = openQuote;
   while (closeQuote < raw.length && raw[closeQuote] !== '"') closeQuote++;
   const fixed = raw.slice(0, openQuote)
     + raw.slice(openQuote, closeQuote).replace(/\r?\n/g, '\\n')
     + raw.slice(closeQuote);
-  return JSON.parse(fixed);
+  try {
+    return JSON.parse(fixed);
+  } catch (e) {
+    throw new SyntaxError(`Could not parse service account JSON even after newline fix: ${e.message}`);
+  }
 }
 
 async function getGmailClient(sender) {
   const raw = process.env.GMAIL_SERVICE_ACCOUNT_KEY || process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  const credentials = parseKey(raw);
+  let credentials;
+  try {
+    credentials = parseKey(raw);
+  } catch (e) {
+    throw new Error(`[key-parse] ${e.message}`);
+  }
   const auth = new GoogleAuth({ credentials, scopes: [GMAIL_SCOPE], subject: sender });
-  return auth.getClient();
+  let client;
+  try {
+    client = await auth.getClient();
+  } catch (e) {
+    throw new Error(`[gmail-auth] ${e.message}`);
+  }
+  return client;
 }
 
 async function fetchEmailRecipients() {
