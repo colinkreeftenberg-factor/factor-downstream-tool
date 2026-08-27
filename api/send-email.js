@@ -25,9 +25,20 @@ async function getSheetsClient() {
   return auth.getClient();
 }
 
+function parseKey(raw) {
+  try { return JSON.parse(raw); } catch (_) {}
+  // Common Vercel paste issue: private_key PEM block has literal newlines
+  // instead of \n escape sequences. Fix only inside that field.
+  const repaired = raw.replace(
+    /("private_key"\s*:\s*")([\s\S]*?)("(?:\s*,|\s*\}))/,
+    (_, pre, val, suf) => pre + val.replace(/\r?\n/g, '\\n') + suf
+  );
+  return JSON.parse(repaired);
+}
+
 async function getGmailClient(sender) {
   const raw = process.env.GMAIL_SERVICE_ACCOUNT_KEY || process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  const credentials = JSON.parse(raw);
+  const credentials = parseKey(raw);
   const auth = new GoogleAuth({ credentials, scopes: [GMAIL_SCOPE], subject: sender });
   return auth.getClient();
 }
