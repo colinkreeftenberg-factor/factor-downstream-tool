@@ -1,23 +1,23 @@
 // api/send-email.js
 //
 // Fetches recipient addresses from the 'email' tab of the LINE sheet,
-// then sends an HTML email via Gmail API using the service account with
-// domain-wide delegation.
+// then sends an HTML email via Gmail API using the Gmail service account
+// with domain-wide delegation.
 //
-// Required env var: GOOGLE_SERVICE_ACCOUNT_KEY (already set)
-// Required env var: GMAIL_SENDER — the Workspace user the service account
-//   impersonates to send mail, e.g. colin.kreeftenberg@factor75.eu
-//   (domain-wide delegation must be enabled for the service account with
-//    scope https://www.googleapis.com/auth/gmail.send)
+// Required env vars:
+//   GOOGLE_SERVICE_ACCOUNT_KEY — existing service account (for Sheets read)
+//   GMAIL_SERVICE_ACCOUNT_KEY  — service account with Gmail DWD enabled
+//                                (factor-downstream@team-factor-downstream.iam.gserviceaccount.com)
+//                                Falls back to GOOGLE_SERVICE_ACCOUNT_KEY if not set.
+//   GMAIL_SENDER               — Workspace user to impersonate, e.g. yourname@factor75.eu
 //
 // POST body: { subject: string, html: string }
 
 const { GoogleAuth } = require('google-auth-library');
 
-const LINE_SHEET_ID   = '1CJ7raeP-Ex7eOkQ0ShpbgXKeHi1EJWXE6XNITArW7Do';
-const SHEETS_SCOPE    = 'https://www.googleapis.com/auth/spreadsheets.readonly';
-const GMAIL_SCOPE     = 'https://www.googleapis.com/auth/gmail.send';
-const DRIVE_SCOPE     = 'https://www.googleapis.com/auth/drive.readonly';
+const LINE_SHEET_ID = '1CJ7raeP-Ex7eOkQ0ShpbgXKeHi1EJWXE6XNITArW7Do';
+const SHEETS_SCOPE  = 'https://www.googleapis.com/auth/spreadsheets.readonly';
+const GMAIL_SCOPE   = 'https://www.googleapis.com/auth/gmail.send';
 
 async function getSheetsClient() {
   const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
@@ -26,7 +26,8 @@ async function getSheetsClient() {
 }
 
 async function getGmailClient(sender) {
-  const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+  const raw = process.env.GMAIL_SERVICE_ACCOUNT_KEY || process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+  const credentials = JSON.parse(raw);
   const auth = new GoogleAuth({ credentials, scopes: [GMAIL_SCOPE], subject: sender });
   return auth.getClient();
 }

@@ -55,7 +55,7 @@
   .info-box b{color:var(--ink);}
 
   /* stages */
-  .stage{background:#FBFBF7;border:1px solid var(--line);border-radius:var(--radius);padding:26px 26px 28px;margin-bottom:18px;position:relative;}
+  .stage{background:#FBFBF7;border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px 22px;margin-bottom:14px;position:relative;}
   .stage[data-disabled="true"]{opacity:.45;pointer-events:none;}
   .stage-head{display:flex;align-items:baseline;gap:12px;margin-bottom:4px;}
   .stage-num{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:500;background:var(--natural-2);border:1px solid var(--line);padding:2px 9px;border-radius:999px;}
@@ -72,18 +72,18 @@
   .dz-file{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink);word-break:break-all;}
   .dz-hint{font-size:11px;color:var(--ink-faint);margin-top:2px;}
 
-  /* compact live-feed strip */
-  .live-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
-  @media (max-width:760px){.live-grid{grid-template-columns:1fr;}}
-  .livecard{border:1.5px solid var(--line);border-radius:12px;padding:8px 12px;background:var(--white);transition:background .2s,border-color .2s;}
-  .livecard.loaded{background:var(--tint-basil);border-color:var(--basil);}
-  .livecard-top{display:flex;justify-content:space-between;align-items:center;gap:6px;}
-  .livecard .dz-label{font-size:11.5px;font-weight:700;}
-  .livecard .dz-file{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .livecard .dz-hint{font-size:9.5px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--dijon);flex:none;}
+  /* compact live-status pills */
+  .live-status-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+  .live-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid var(--line);border-radius:999px;background:var(--white);font-size:11.5px;}
+  .live-pill.loaded{border-color:var(--basil);background:var(--tint-basil);}
+  .live-pill.error{border-color:var(--cherry);background:var(--tint-cherry);}
+  .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--dijon);flex:none;}
   .live-dot.ok{background:var(--basil);}
   .live-dot.error{background:var(--cherry);}
+  .live-pill-label{font-weight:700;color:var(--ink);}
+  .live-pill-val{color:var(--ink-dim);max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .live-pill-refresh,.live-pill-upload{background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:12px;padding:0 2px;line-height:1;}
+  .live-pill-refresh:hover,.live-pill-upload:hover{color:var(--ocean);}
   .manual-fallback-link{color:var(--ocean);text-decoration:underline;cursor:pointer;font-weight:500;}
 
   label.field-label{display:block;font-size:12px;color:var(--ink-dim);margin-bottom:7px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;}
@@ -133,10 +133,10 @@
   .coverage-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-dim);margin-bottom:4px;}
   .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;position:relative;top:1px;}
 
-  .num-strip{display:flex;gap:14px;flex-wrap:wrap;margin:16px 0 4px;}
-  .num-card{background:var(--natural);border:1px solid var(--line);border-radius:14px;padding:14px 18px;min-width:128px;}
-  .num-card .n{font-size:23px;font-weight:800;}
-  .num-card .l{font-size:10.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;font-weight:500;}
+  .num-strip{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px;}
+  .num-card{background:var(--natural);border:1px solid var(--line);border-radius:10px;padding:8px 13px;min-width:90px;}
+  .num-card .n{font-size:18px;font-weight:800;}
+  .num-card .l{font-size:9.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;font-weight:500;}
   .num-card.basil .n{color:var(--basil);}
   .num-card.dijon .n{color:var(--dijon);}
   .num-card.cherry .n{color:var(--cherry);}
@@ -240,10 +240,6 @@
     <button class="lang-btn" data-lang="de" id="lang-de">DE</button>
   </div>
 
-  <div class="info-box" data-i18n="info_box">
-    No zone or meal-choice data yet, so impact spreads evenly across the run instead. Protein/allergens come from the Meal Database when a recipe's Rackfile code matches — otherwise it's a flagged guess. Compensation is automatic: <b>€5 / 120 kr</b> swaps by market, <b>price-based</b> shortages (manual fallback until SE/DK box prices land).
-  </div>
-
   <!-- STAGE 1 -->
   <div class="stage" id="stage1">
     <div class="stage-head"><span class="stage-num">01</span><span class="stage-title">Load data</span></div>
@@ -262,41 +258,37 @@
         <input type="file" id="file-p2l" accept=".csv">
       </div>
     </div>
-    <div class="live-grid">
-      <div class="livecard" id="live-mealdb">
-        <div class="livecard-top">
-          <div class="dz-label">Meal Database <span class="live-dot" id="mealdb-dot"></span></div>
-          <button class="ghost-btn small" id="refresh-mealdb" type="button">Refresh</button>
-        </div>
-        <div class="dz-file" id="mealdb-status" title="Fetching live data…">Fetching live data…</div>
-        <div class="dz-hint" title="Published &quot;Meal Database&quot; tab">"Meal Database" tab · <label class="manual-fallback-link" for="file-mealdb">upload CSV</label></div>
+    <div class="live-status-row" id="live-status-row">
+      <div class="live-pill" id="live-mealdb">
+        <span class="live-dot" id="mealdb-dot"></span>
+        <span class="live-pill-label">Meal DB</span>
+        <span class="live-pill-val" id="mealdb-status">…</span>
+        <button class="live-pill-refresh" id="refresh-mealdb" type="button" title="Refresh">↺</button>
+        <label class="live-pill-upload" for="file-mealdb" title="Upload CSV">↑</label>
         <input type="file" id="file-mealdb" accept=".csv" style="display:none;">
       </div>
-      <div class="livecard" id="live-odl">
-        <div class="livecard-top">
-          <div class="dz-label">ODL <span class="live-dot" id="odl-dot"></span></div>
-          <button class="ghost-btn small" id="refresh-odl" type="button">Refresh</button>
-        </div>
-        <div class="dz-file" id="odl-status" title="Fetching live data…">Fetching live data…</div>
-        <div class="dz-hint" title="Published &quot;ODL&quot; tab">"ODL" tab · <label class="manual-fallback-link" for="file-odl">upload CSV</label></div>
+      <div class="live-pill" id="live-odl">
+        <span class="live-dot" id="odl-dot"></span>
+        <span class="live-pill-label">ODL</span>
+        <span class="live-pill-val" id="odl-status">…</span>
+        <button class="live-pill-refresh" id="refresh-odl" type="button" title="Refresh">↺</button>
+        <label class="live-pill-upload" for="file-odl" title="Upload CSV">↑</label>
         <input type="file" id="file-odl" accept=".csv" style="display:none;">
       </div>
-      <div class="livecard" id="live-defaults">
-        <div class="livecard-top">
-          <div class="dz-label">Defaults <span class="live-dot" id="defaults-dot"></span></div>
-          <button class="ghost-btn small" id="refresh-defaults" type="button">Refresh</button>
-        </div>
-        <div class="dz-file" id="defaults-status" title="Fetching live data…">Fetching live data…</div>
-        <div class="dz-hint" title="Published &quot;Defaults&quot; tab — customers without meal choice">"Defaults" tab · <label class="manual-fallback-link" for="file-defaults">upload CSV</label></div>
+      <div class="live-pill" id="live-defaults">
+        <span class="live-dot" id="defaults-dot"></span>
+        <span class="live-pill-label">Defaults</span>
+        <span class="live-pill-val" id="defaults-status">…</span>
+        <button class="live-pill-refresh" id="refresh-defaults" type="button" title="Refresh">↺</button>
+        <label class="live-pill-upload" for="file-defaults" title="Upload CSV">↑</label>
         <input type="file" id="file-defaults" accept=".csv" style="display:none;">
       </div>
-      <div class="livecard" id="live-boxprice">
-        <div class="livecard-top">
-          <div class="dz-label">Box price <span class="live-dot" id="boxprice-dot"></span></div>
-          <button class="ghost-btn small" id="refresh-boxprice" type="button">Refresh</button>
-        </div>
-        <div class="dz-file" id="boxprice-status" title="Fetching live data…">Fetching live data…</div>
-        <div class="dz-hint" title="Published &quot;BoxPriceTZ&quot; tab, used for shortage price-per-meal">"BoxPriceTZ" tab · <label class="manual-fallback-link" for="file-boxprice">upload CSV</label></div>
+      <div class="live-pill" id="live-boxprice">
+        <span class="live-dot" id="boxprice-dot"></span>
+        <span class="live-pill-label">Box prices</span>
+        <span class="live-pill-val" id="boxprice-status">…</span>
+        <button class="live-pill-refresh" id="refresh-boxprice" type="button" title="Refresh">↺</button>
+        <label class="live-pill-upload" for="file-boxprice" title="Upload CSV">↑</label>
         <input type="file" id="file-boxprice" accept=".csv" style="display:none;">
       </div>
     </div>
@@ -323,7 +315,7 @@
     </div>
 
     <div id="shortage-cards"></div>
-    <button class="ghost-btn" id="add-shortage" data-i18n="add_shortage">+ Add shortage</button>
+    <button class="ghost-btn" id="add-shortage" data-i18n="add_shortage">+ Add another incident</button>
   </div>
 
   <!-- STAGE 3 -->
@@ -346,7 +338,7 @@
           <input type="checkbox" id="swap-credit-enabled">
           <span data-i18n="enable_swap_credit">Enable swap credit (€5 TZ · 120 kr TV/TK)</span>
         </label>
-        <div class="field-note" data-i18n="swap_credit_note">Toggle on to apply swap compensation automatically per box's market.</div>
+        <div class="field-note" data-i18n="swap_credit_note">Only toggle on if aligned with leadership.</div>
       </div>
       <div>
         <label class="field-label" data-i18n="shortage_credit_fallback">Shortage credit fallback (€/kr)</label>
@@ -356,24 +348,12 @@
     </div>
 
     <div class="export-row">
-      <div>
-        <button class="primary-btn" id="download-p2l" disabled data-i18n="download_p2l">Download modified box file (.csv)</button>
-        <div class="drive-status" id="drive-status-p2l"></div>
-      </div>
-      <div>
-        <button class="secondary-btn" id="download-bartender" disabled data-i18n="download_bartender">Download Bartender import file (.csv)</button>
-        <div class="drive-status" id="drive-status-bartender"></div>
-      </div>
-      <div>
-        <button class="secondary-btn" id="download-allergen-report" disabled data-i18n="download_allergen">Download allergen report (.csv)</button>
-        <div class="drive-status" id="drive-status-allergen"></div>
-      </div>
+      <button class="primary-btn" id="download-p2l" disabled data-i18n="download_p2l">Download modified box file (.csv)</button>
+      <button class="secondary-btn" id="download-bartender" disabled data-i18n="download_bartender">Bulk - Error Report (.csv)</button>
+      <button class="secondary-btn" id="download-allergen-report" disabled data-i18n="download_allergen">Download allergen report (.csv)</button>
       <button class="secondary-btn" id="reset-runs" data-i18n="reset_runs">Reset to original file</button>
     </div>
-    <div style="margin-top:14px;">
-      <button class="secondary-btn" id="send-email-btn" disabled style="border-color:var(--ocean);color:var(--ocean);">✉ Send email summary</button>
-      <div class="field-note" style="margin-top:4px;">Sends a summary to addresses in the 'email' tab of the Verden sheet. Download files first so Drive links are included.</div>
-    </div>
+    <div class="drive-export-status" id="drive-export-status" style="display:none;margin-top:10px;font-size:11.5px;color:var(--ink-dim);"></div>
     <div id="session-log" style="margin-top:20px;"></div>
   </div>
 
@@ -392,15 +372,15 @@
       stage2_strategy_label: 'Multiple shortages — how should impact spread across customers?',
       strategy_spread: '<b>Spread</b> — avoid a customer missing 2 different meals',
       strategy_concentrate: '<b>Concentrate</b> — reuse already-impacted customers (max 2 per customer)',
-      add_shortage: '+ Add shortage',
+      add_shortage: '+ Add another incident',
       stage3_title: 'Run against the box file', stage3_desc: 'Applies all shortages in order: like-for-like → cross-swap → shortage.',
       run_all: 'Run all',
       stage4_title: 'Export', stage4_desc: 'Download the modified box file and the Bartender-format import file (cumulative across this session).',
       swap_credit: 'Swap credit', enable_swap_credit: 'Enable swap credit (€5 TZ · 120 kr TV/TK)',
-      swap_credit_note: 'Toggle on to apply swap compensation automatically per box\'s market.',
+      swap_credit_note: 'Only toggle on if aligned with leadership.',
       shortage_credit_fallback: 'Shortage credit fallback (€/kr)',
       shortage_credit_note: 'Only used when a box has no live price data — normal shortages use box price ÷ meals × units short.',
-      download_p2l: 'Download modified box file (.csv)', download_bartender: 'Download Bartender import file (.csv)',
+      download_p2l: 'Download modified box file (.csv)', download_bartender: 'Bulk - Error Report (.csv)',
       download_allergen: 'Download allergen report (.csv)', reset_runs: 'Reset to original file',
       recipe_short: 'Recipe short', units_short: 'Units short', which_recipes_match: 'Which recipes match',
       substitute_step: 'Substitute Step', leftover_recipe: 'Leftover recipe', units_available: 'Units available',
@@ -414,15 +394,15 @@
       stage2_strategy_label: 'Mehrere Fehlmengen — wie soll die Auswirkung auf Kunden verteilt werden?',
       strategy_spread: '<b>Verteilen</b> — vermeiden, dass ein Kunde 2 verschiedene Mahlzeiten verpasst',
       strategy_concentrate: '<b>Konzentrieren</b> — bereits betroffene Kunden wiederverwenden (max. 2 pro Kunde)',
-      add_shortage: '+ Fehlmenge hinzufügen',
+      add_shortage: '+ Weiteren Vorfall hinzufügen',
       stage3_title: 'Gegen die Box-Datei ausführen', stage3_desc: 'Wendet alle Fehlmengen an: Gleichwertig → Cross-Swap → Fehlmenge.',
       run_all: 'Alle ausführen',
       stage4_title: 'Export', stage4_desc: 'Lade die modifizierte Box-Datei und die Bartender-Importdatei herunter (kumulativ).',
       swap_credit: 'Swap-Gutschrift', enable_swap_credit: 'Swap-Gutschrift aktivieren (€5 TZ · 120 kr TV/TK)',
-      swap_credit_note: 'Aktivieren, um Swap-Vergütung automatisch nach Markt anzuwenden.',
+      swap_credit_note: 'Nur einschalten, wenn mit der Geschäftsführung abgestimmt.',
       shortage_credit_fallback: 'Fehlmengen-Gutschrift Fallback (€/kr)',
       shortage_credit_note: 'Nur wenn keine Live-Preisdaten für eine Box vorliegen — normale Fehlmengen: Box-Preis ÷ Mahlzeiten × fehlende Einheiten.',
-      download_p2l: 'Modifizierte Box-Datei herunterladen (.csv)', download_bartender: 'Bartender-Importdatei herunterladen (.csv)',
+      download_p2l: 'Modifizierte Box-Datei herunterladen (.csv)', download_bartender: 'Bulk - Error Report (.csv)',
       download_allergen: 'Allergenbericht herunterladen (.csv)', reset_runs: 'Auf Originaldatei zurücksetzen',
       recipe_short: 'Kurzrezept', units_short: 'Fehlende Einheiten', which_recipes_match: 'Welche Rezepte passen',
       substitute_step: 'Ersatzschritt', leftover_recipe: 'Restrezept', units_available: 'Verfügbare Einheiten',
@@ -1118,13 +1098,8 @@
       <div class="sub-section-label" data-i18n="substitute_step">Substitute Step</div>
       <div class="leftover-rows-mount"></div>
       <button class="primary-btn add-leftover-btn" type="button" data-i18n="create_swap" style="margin-top:8px;">CREATE SWAP</button>
-      <div class="coverage-legend" style="margin-top:18px;">
-        <span><span class="dot" style="background:var(--basil)"></span><span data-i18n="like_lbl">Like-for-like</span></span>
-        <span><span class="dot" style="background:var(--ocean)"></span><span data-i18n="cross_lbl">Cross-swap</span></span>
-        <span><span class="dot" style="background:var(--cherry)"></span><span data-i18n="short_lbl">Remaining shortage</span></span>
-      </div>
-      <div class="coverage-bar coverage-bar-mount"></div>
-      <div class="coverage-text-mount" style="font-size:12.5px;color:var(--ink-dim);"></div>
+      <div class="coverage-bar coverage-bar-mount" style="margin-top:14px;"></div>
+      <div class="coverage-text-mount" style="font-size:12px;color:var(--ink-dim);margin-top:4px;"></div>
     `;
     shortage._el = {
       card,
@@ -1232,7 +1207,7 @@
       const shortRec = state.recipeBySlot.get(shortage.slot);
       const compat = computeCompatibility(shortRec, rec);
       const id = ++leftoverSeq;
-      lf = {id, slot:rec.slot, label:rec.label, qty:0, likeForLike: compat ? !!compat.proteinMatch : false, manualOverride:false};
+      lf = {id, slot:rec.slot, label:rec.label, qty:0, likeForLike: compat ? !!compat.proteinMatch : false};
       const emptyIdx = shortage.leftovers.findIndex(x=>!x.slot);
       if (emptyIdx >= 0) shortage.leftovers[emptyIdx] = lf; else shortage.leftovers.push(lf);
       renderLeftoversForCard(shortage);
@@ -1248,7 +1223,7 @@
   // ================= leftovers / Substitute Step (per shortage card) =================
   function addLeftoverToShortage(shortage){
     const id = ++leftoverSeq;
-    shortage.leftovers.push({id, slot:'', label:'', qty:0, likeForLike:false, manualOverride:false});
+    shortage.leftovers.push({id, slot:'', label:'', qty:0, likeForLike:false});
     renderLeftoversForCard(shortage);
   }
 
@@ -1288,7 +1263,7 @@
       block.className = 'leftover-block';
       block.setAttribute('data-lfblock', lf.id);
       block.innerHTML = `
-        <div class="leftover-row">
+        <div class="leftover-row" style="grid-template-columns:2fr .9fr auto;">
           <div>
             <label class="field-label" data-i18n="leftover_recipe">${t('leftover_recipe')}</label>
             <div class="lf-combo-mount"></div>
@@ -1296,10 +1271,6 @@
           <div>
             <label class="field-label" data-i18n="units_available">${t('units_available')}</label>
             <input type="number" min="0" class="lf-qty" data-lfid="${lf.id}" value="${lf.qty||''}">
-          </div>
-          <div class="like-toggle ${lf.likeForLike?'on':''}">
-            <input type="checkbox" ${lf.likeForLike?'checked':''} class="lf-like">
-            <span data-i18n="like_for_like">${t('like_for_like')}</span>
           </div>
           <button class="remove-btn lf-remove">Remove</button>
         </div>
@@ -1315,13 +1286,10 @@
           lf.slot = rec ? rec.slot : '';
           lf.label = rec ? rec.label : '';
           const shortRec = state.recipeBySlot.get(shortage.slot);
-          if (!lf.manualOverride && shortRec && rec){
+          if (shortRec && rec){
             const compat = computeCompatibility(shortRec, rec);
             lf.likeForLike = compat ? !!compat.proteinMatch : false;
           }
-          const toggle = block.querySelector('.like-toggle');
-          toggle.classList.toggle('on', !!lf.likeForLike);
-          toggle.querySelector('input').checked = !!lf.likeForLike;
           renderLeftoverStatusInBlock(shortage, lf, block);
           renderCoverageForCard(shortage);
           renderMatchMatrixForCard(shortage);
@@ -1332,11 +1300,6 @@
 
       block.querySelector('.lf-qty').addEventListener('input', e=>{
         lf.qty = parseInt(e.target.value||'0',10) || 0;
-        renderCoverageForCard(shortage);
-      });
-      block.querySelector('.lf-like').addEventListener('change', e=>{
-        lf.likeForLike = e.target.checked; lf.manualOverride = true;
-        block.querySelector('.like-toggle').classList.toggle('on', lf.likeForLike);
         renderCoverageForCard(shortage);
       });
       block.querySelector('.lf-remove').addEventListener('click', ()=>{
@@ -1605,7 +1568,6 @@
       if (r.warnCount>0){
         html += `<div class="danger-box">${r.warnCount} swap(s) introduce a potential new allergen. Review before exporting.</div>`;
       }
-      html += `<div class="seq-wrap"><div class="seq-strip">` + r.strip.map(o=>`<div class="seq-block ${o}"></div>`).join('') + `</div></div>`;
       html += `</div>`;
     });
     el.innerHTML = html;
@@ -1620,37 +1582,70 @@
   }
 
   // ================= Drive + Email helpers =================
-  async function uploadToDrive(filename, csvContent, statusKey){
-    setDriveStatus(statusKey, 'uploading', '⏳ Saving to Drive…');
-    try {
-      const res = await fetch('/api/upload-to-drive', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ filename, content: csvContent, folderId: DRIVE_FOLDER_ID })
-      });
-      const data = await res.json();
-      if (data.ok){
-        state.driveFiles[statusKey] = { fileId: data.fileId, name: data.name };
-        setDriveStatus(statusKey, 'ok', '✓ Saved to Drive');
-      } else {
-        setDriveStatus(statusKey, 'err', '✗ Drive save failed: ' + (data.error || 'unknown error'));
-      }
-    } catch(e){
-      setDriveStatus(statusKey, 'err', '✗ Drive save failed: ' + e.message);
+  function buildAllCSVs(){
+    const p2lCsv = toCSV(state.p2lHeader, state.boxes.map(b=>b.raw));
+    const bartenderRows = state.auditLog.map(e=>({
+      'customer id': stripLeadingLetters(e.customerId),
+      'box id': stripTrailingLetter(e.boxId),
+      'error category': 'operations_use_only',
+      'error sub category': '_recipes',
+      'complaint': 'internal_production_error_inventory',
+      'additional detail 1': e.impact==='SWAP' ? 'sku_change' : 'missing',
+      'additional detail 2': 'impact_high',
+      'ingredient': '',
+      'recipe name': e.originalLabel,
+      'compensation type': 'credit',
+      'compensation amount': (e.compensation===null||e.compensation===undefined) ? '' : e.compensation.toFixed(2),
+      'recipe index': e.originalSlotNum,
+      'culinary sku': e.originalSku,
+      'comment': e.impact==='SWAP' ? `Swap to ${e.replacementSlotNum}: ${e.replacementLabel}` : 'Shortage'
+    }));
+    const bartenderCsv = toCSV(
+      ['customer id','box id','error category','error sub category','complaint','additional detail 1','additional detail 2','ingredient','recipe name','compensation type','compensation amount','recipe index','culinary sku','comment'],
+      bartenderRows);
+    const allergenRows = state.auditLog.map(e=>{
+      let allergenChange;
+      if (e.impact === 'SWAP'){
+        if (e.allergenFlag === 'warn') allergenChange = (e.newAllergens||[]).join(', ') || 'None';
+        else if (e.allergenFlag === 'safe') allergenChange = 'None';
+        else allergenChange = 'Unknown';
+      } else { allergenChange = 'None'; }
+      return {'BoxID':e.boxId,'Customer ID':stripLeadingLetters(e.customerId),'Amount':e.qty,'Original':e.originalLabel,'New':e.impact==='SWAP'?e.replacementLabel:'Shortage','Allergen Change':allergenChange};
+    });
+    const allergenCsv = toCSV(['BoxID','Customer ID','Amount','Original','New','Allergen Change'], allergenRows);
+    return { p2lCsv, bartenderCsv, allergenCsv };
+  }
+
+  async function triggerAllDriveAndEmail(){
+    const statusEl = document.getElementById('drive-export-status');
+    statusEl.style.display = '';
+    statusEl.innerHTML = '⏳ Saving all files to Drive…';
+    const { p2lCsv, bartenderCsv, allergenCsv } = buildAllCSVs();
+    const uploads = [
+      { key:'p2l', filename:'p2l_modified.csv', csv: p2lCsv },
+      { key:'bartender', filename:'bulk_error_report.csv', csv: bartenderCsv },
+      { key:'allergen', filename:'allergen_report.csv', csv: allergenCsv }
+    ];
+    const results = await Promise.allSettled(uploads.map(u =>
+      fetch('/api/upload-to-drive', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ filename: u.filename, content: u.csv, folderId: DRIVE_FOLDER_ID })
+      }).then(r=>r.json()).then(data=>{
+        if (data.ok) state.driveFiles[u.key] = { fileId: data.fileId, name: data.name };
+        return data;
+      })
+    ));
+    const failed = results.filter(r=>r.status==='rejected'||(r.value&&!r.value.ok));
+    if (failed.length){
+      statusEl.innerHTML = `⚠ Drive: ${3-failed.length}/3 saved · Sending email…`;
+    } else {
+      statusEl.innerHTML = '✓ All files saved to Drive · Sending email…';
     }
+    await sendEmailSummary(statusEl);
   }
 
-  function setDriveStatus(key, type, msg){
-    const el = document.getElementById('drive-status-' + key);
-    if (!el) return;
-    el.textContent = msg;
-    el.className = 'drive-status ' + type;
-  }
-
-  async function sendEmailSummary(){
-    const btn = document.getElementById('send-email-btn');
-    btn.disabled = true;
-    btn.textContent = '⏳ Sending…';
+  async function sendEmailSummary(statusEl){
+    if (!statusEl) statusEl = document.getElementById('drive-export-status');
 
     const now = new Date();
     const dd = String(now.getDate()).padStart(2,'0');
@@ -1739,19 +1734,14 @@ ${fileLinks ? `<h2 style="font-size:14px;font-weight:700;margin-bottom:8px;">Exp
       });
       const data = await res.json();
       if (data.ok){
-        btn.textContent = '✓ Email sent!';
-        btn.style.background = 'var(--tint-basil)';
-        btn.style.color = 'var(--basil)';
-        btn.style.border = '1px solid var(--basil)';
-        setTimeout(()=>{ btn.textContent = 'Send email summary'; btn.style = ''; btn.disabled = false; }, 5000);
+        statusEl.innerHTML = '✓ All files saved to Drive · ✉ Email sent to ' + (data.sentTo||[]).length + ' recipient(s)';
+        statusEl.style.color = 'var(--basil)';
       } else {
-        btn.textContent = '✗ Failed — check console';
-        btn.disabled = false;
+        statusEl.innerHTML = '⚠ Drive saved · ✗ Email failed: ' + escapeHtml(data.error||'unknown');
         console.error('Email API error:', data.error);
       }
     } catch(e){
-      btn.textContent = '✗ Failed: ' + e.message;
-      btn.disabled = false;
+      statusEl.innerHTML = '⚠ Drive saved · ✗ Email error: ' + escapeHtml(e.message);
     }
   }
 
@@ -1761,60 +1751,49 @@ ${fileLinks ? `<h2 style="font-size:14px;font-weight:700;margin-bottom:8px;">Exp
     document.getElementById('download-p2l').disabled = !ok;
     document.getElementById('download-bartender').disabled = !ok;
     document.getElementById('download-allergen-report').disabled = !ok;
-    document.getElementById('send-email-btn').disabled = !ok;
   }
 
-  document.getElementById('send-email-btn').addEventListener('click', sendEmailSummary);
-
   document.getElementById('download-p2l').addEventListener('click', ()=>{
-    const csv = downloadCSV('p2l_modified.csv', state.p2lHeader, state.boxes.map(b=>b.raw));
-    uploadToDrive('p2l_modified.csv', csv, 'p2l');
+    const { p2lCsv } = buildAllCSVs();
+    downloadCSV('p2l_modified.csv', state.p2lHeader, state.boxes.map(b=>b.raw));
+    triggerAllDriveAndEmail();
   });
 
   document.getElementById('download-bartender').addEventListener('click', ()=>{
-    const rows = state.auditLog.map(e=>({
-      'customer id': stripLeadingLetters(e.customerId),
-      'box id': stripTrailingLetter(e.boxId),
-      'error category': 'operations_use_only',
-      'error sub category': '_recipes',
-      'complaint': 'internal_production_error_inventory',
-      'additional detail 1': e.impact==='SWAP' ? 'sku_change' : 'missing',
-      'additional detail 2': 'impact_high',
-      'ingredient': '',
-      'recipe name': e.originalLabel,
-      'compensation type': 'credit',
-      'compensation amount': (e.compensation===null||e.compensation===undefined) ? '' : e.compensation.toFixed(2),
-      'recipe index': e.originalSlotNum,
-      'culinary sku': e.originalSku,
-      'comment': e.impact==='SWAP' ? `Swap to ${e.replacementSlotNum}: ${e.replacementLabel}` : 'Shortage'
-    }));
-    const csv = downloadCSV('bartender_import.csv',
+    const { bartenderCsv } = buildAllCSVs();
+    downloadCSV('bulk_error_report.csv',
       ['customer id','box id','error category','error sub category','complaint','additional detail 1','additional detail 2','ingredient','recipe name','compensation type','compensation amount','recipe index','culinary sku','comment'],
-      rows);
-    uploadToDrive('bartender_import.csv', csv, 'bartender');
+      state.auditLog.map(e=>({
+        'customer id': stripLeadingLetters(e.customerId),
+        'box id': stripTrailingLetter(e.boxId),
+        'error category': 'operations_use_only',
+        'error sub category': '_recipes',
+        'complaint': 'internal_production_error_inventory',
+        'additional detail 1': e.impact==='SWAP' ? 'sku_change' : 'missing',
+        'additional detail 2': 'impact_high',
+        'ingredient': '',
+        'recipe name': e.originalLabel,
+        'compensation type': 'credit',
+        'compensation amount': (e.compensation===null||e.compensation===undefined) ? '' : e.compensation.toFixed(2),
+        'recipe index': e.originalSlotNum,
+        'culinary sku': e.originalSku,
+        'comment': e.impact==='SWAP' ? `Swap to ${e.replacementSlotNum}: ${e.replacementLabel}` : 'Shortage'
+      })));
+    triggerAllDriveAndEmail();
   });
 
   document.getElementById('download-allergen-report').addEventListener('click', ()=>{
-    const rows = state.auditLog.map(e=>{
-      let allergenChange;
-      if (e.impact === 'SWAP'){
-        if (e.allergenFlag === 'warn') allergenChange = (e.newAllergens||[]).join(', ') || 'None';
-        else if (e.allergenFlag === 'safe') allergenChange = 'None';
-        else allergenChange = 'Unknown'; // meal DB match missing for one or both recipes
-      } else {
-        allergenChange = 'None'; // shortage: nothing new introduced
-      }
-      return {
-        'BoxID': e.boxId,
-        'Customer ID': stripLeadingLetters(e.customerId),
-        'Amount': e.qty,
-        'Original': e.originalLabel,
-        'New': e.impact === 'SWAP' ? e.replacementLabel : 'Shortage',
-        'Allergen Change': allergenChange
-      };
-    });
-    const csv = downloadCSV('allergen_report.csv', ['BoxID','Customer ID','Amount','Original','New','Allergen Change'], rows);
-    uploadToDrive('allergen_report.csv', csv, 'allergen');
+    downloadCSV('allergen_report.csv', ['BoxID','Customer ID','Amount','Original','New','Allergen Change'],
+      state.auditLog.map(e=>{
+        let allergenChange;
+        if (e.impact === 'SWAP'){
+          if (e.allergenFlag === 'warn') allergenChange = (e.newAllergens||[]).join(', ') || 'None';
+          else if (e.allergenFlag === 'safe') allergenChange = 'None';
+          else allergenChange = 'Unknown';
+        } else { allergenChange = 'None'; }
+        return {'BoxID':e.boxId,'Customer ID':stripLeadingLetters(e.customerId),'Amount':e.qty,'Original':e.originalLabel,'New':e.impact==='SWAP'?e.replacementLabel:'Shortage','Allergen Change':allergenChange};
+      }));
+    triggerAllDriveAndEmail();
   });
 
   document.getElementById('reset-runs').addEventListener('click', ()=>{
