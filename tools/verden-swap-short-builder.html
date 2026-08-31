@@ -40,14 +40,13 @@
   .step-title{font-size:16.5px;font-weight:700;letter-spacing:-0.01em;}
   .step-desc{font-size:13px;color:var(--ink-dim);margin:8px 0 16px;line-height:1.5;max-width:680px;}
 
-  .live-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
-  @media (max-width:820px){.live-grid{grid-template-columns:repeat(2,1fr);}}
-  .livecard{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;transition:.2s;}
+  .live-grid{display:flex;flex-wrap:wrap;gap:5px;}
+  .livecard{border:1.5px solid var(--line);border-radius:8px;padding:4px 9px;background:#fff;transition:.2s;display:flex;align-items:center;gap:7px;flex:1 1 140px;min-width:0;}
   .livecard.ok{background:#E9F5E4;border-color:#BFDDB3;}
   .livecard.warn{background:#FBE3E3;border-color:#E9B7B8;}
-  .lc-label{font-size:11.5px;font-weight:700;}
-  .lc-status{font-size:11px;color:var(--ink-dim);margin-top:3px;}
-  .lc-refresh{margin-top:8px;background:none;border:1px solid var(--line);color:var(--carbon);border-radius:999px;padding:4px 10px;font-size:10.5px;cursor:pointer;font-family:inherit;}
+  .lc-label{font-size:10px;font-weight:700;white-space:nowrap;}
+  .lc-status{font-size:9.5px;color:var(--ink-dim);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lc-refresh{background:none;border:1px solid var(--line);color:var(--carbon);border-radius:999px;padding:1px 6px;font-size:9px;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;}
   .lc-refresh:hover{border-color:var(--carbon);}
 
   label.field-label{display:block;font-size:11px;color:var(--ink-dim);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
@@ -154,23 +153,28 @@
     <div class="live-grid">
       <div class="livecard" id="lc-bartender">
         <div class="lc-label">Bartender</div>
-        <div class="lc-status" id="lc-bartender-status">Not loaded yet…</div>
-        <button class="lc-refresh" data-src="bartender">Refresh</button>
+        <div class="lc-status" id="lc-bartender-status">Not loaded…</div>
+        <button class="lc-refresh" data-src="bartender">↺</button>
       </div>
       <div class="livecard" id="lc-odl">
         <div class="lc-label">ODL</div>
-        <div class="lc-status" id="lc-odl-status">Not loaded yet…</div>
-        <button class="lc-refresh" data-src="odl">Refresh</button>
+        <div class="lc-status" id="lc-odl-status">Not loaded…</div>
+        <button class="lc-refresh" data-src="odl">↺</button>
+      </div>
+      <div class="livecard" id="lc-verden2">
+        <div class="lc-label">Verden2</div>
+        <div class="lc-status" id="lc-verden2-status">Not loaded…</div>
+        <button class="lc-refresh" data-src="verden2">↺</button>
       </div>
       <div class="livecard" id="lc-verden">
-        <div class="lc-label">Meal Database</div>
-        <div class="lc-status" id="lc-verden-status">Not loaded yet…</div>
-        <button class="lc-refresh" data-src="verden">Refresh</button>
+        <div class="lc-label">Meal DB (SKU)</div>
+        <div class="lc-status" id="lc-verden-status">Not loaded…</div>
+        <button class="lc-refresh" data-src="verden">↺</button>
       </div>
       <div class="livecard" id="lc-boxprice">
-        <div class="lc-label">Box prices (TZ)</div>
-        <div class="lc-status" id="lc-boxprice-status">Not loaded yet…</div>
-        <button class="lc-refresh" data-src="boxprice">Refresh</button>
+        <div class="lc-label">Box prices</div>
+        <div class="lc-status" id="lc-boxprice-status">Not loaded…</div>
+        <button class="lc-refresh" data-src="boxprice">↺</button>
       </div>
     </div>
   </div>
@@ -296,6 +300,8 @@ const LOCALES = ['de-DE','sv-SE','da-DK'];
    than silently matching or not matching.*/
 function localSlotForMarket(week, germanSlot, market){
   if(market === 'TZ') return String(germanSlot);
+  const v2 = state.verden2ByKey.get(weekKey(week)+'|'+String(germanSlot));
+  if(v2 && v2.slotDkse) return v2.slotDkse; // covers TV (Sweden) and TK (Denmark)
   const entry = state.recipeByKey.get(weekKey(week)+'|'+String(germanSlot));
   return (entry && entry.nor) ? entry.nor : null;
 }
@@ -622,8 +628,9 @@ const state = {
   bartenderByLine: new Map(),
   bartenderByBox: new Map(),    // "BOXNORM" -> [{line, productionDay, ...}]
   odlByBoxNorm: new Map(),
-  recipeByKey: new Map(),       // "WEEK|SLOT" -> {code, german, swedish, danish}
-  weekSlotOptions: new Map(),   // "WEEK" -> [{slot, code, german, swedish, danish}]
+  recipeByKey: new Map(),       // "WEEK|SLOT" -> {code, german, swedish, danish} (Meal DB — SKU only)
+  weekSlotOptions: new Map(),   // "WEEK" -> [{slot, ...}] — built from Verden2
+  verden2ByKey: new Map(),      // "WEEK|SLOT_DE" -> {german, swedish, danish, slotDkse, slotBenl}
   boxPriceMap: {},
   incidents: [],
   incidentSeq: 0,
@@ -819,6 +826,62 @@ function buildRecipeIndex(rows){
   return { byKey, byWeek };
 }
 
+function buildVerden2IndexForVerden(rows){
+  let headerIdx = -1;
+  for(let i=0;i<Math.min(rows.length,5);i++){
+    if(rows[i].some(c=>(c||'').toString().trim().toLowerCase()==='slot de')){ headerIdx=i; break; }
+  }
+  if(headerIdx===-1) headerIdx = 1;
+
+  const header    = rows[headerIdx].map(h=>(h||'').toString().trim().toLowerCase());
+  const iSlotDe   = header.findIndex(h=>h==='slot de');
+  const iSlotDkse = header.findIndex(h=>h==='slot dkse');
+  const iSlotBenl = header.findIndex(h=>h==='slot benl');
+  const iWeek     = header.findIndex(h=>h==='week');
+  const iGerman   = header.findIndex(h=>h==='german name');
+  const iSwedish  = header.findIndex(h=>h==='swedish name');
+  const iDanish   = header.findIndex(h=>h==='danish name');
+
+  const cSlotDe   = iSlotDe   >= 0 ? iSlotDe   : 6;  // col G
+  const cSlotDkse = iSlotDkse >= 0 ? iSlotDkse : 5;  // col F
+  const cSlotBenl = iSlotBenl >= 0 ? iSlotBenl : 4;  // col E
+  const cWeek     = iWeek     >= 0 ? iWeek     : 3;  // col D
+  const cGerman   = iGerman   >= 0 ? iGerman   : 11; // col L
+  const cSwedish  = iSwedish  >= 0 ? iSwedish  : 10; // col K
+  const cDanish   = iDanish   >= 0 ? iDanish   : 9;  // col J
+
+  const byKey  = new Map();
+  const byWeek = new Map();
+  let count = 0;
+  for(let i=headerIdx+1;i<rows.length;i++){
+    const r = rows[i];
+    if(!r) continue;
+    const slotDe = (r[cSlotDe]||'').toString().trim();
+    const week   = (r[cWeek]  ||'').toString().trim();
+    if(!slotDe || !week) continue;
+    const wk  = weekKey(week);
+    const key = wk+'|'+slotDe;
+    if(byKey.has(key)) continue;
+    const german  = (r[cGerman] ||'').toString().trim();
+    const swedish = (r[cSwedish]||'').toString().trim();
+    const danish  = (r[cDanish] ||'').toString().trim();
+    if(german==='#N/A' && swedish==='#N/A' && danish==='#N/A') continue;
+    const entry = {
+      slot:     slotDe,
+      german:   german ==='#N/A' ? '' : german,
+      swedish:  swedish==='#N/A' ? '' : swedish,
+      danish:   danish ==='#N/A' ? '' : danish,
+      slotDkse: (r[cSlotDkse]||'').toString().trim(),
+      slotBenl: (r[cSlotBenl]||'').toString().trim()
+    };
+    byKey.set(key, entry);
+    if(!byWeek.has(wk)) byWeek.set(wk, []);
+    byWeek.get(wk).push(entry);
+    count++;
+  }
+  return { byKey, byWeek, count };
+}
+
 function buildBoxPriceMap(rows){
   let headerIdx = -1;
   for(let i=0;i<Math.min(rows.length,5);i++){
@@ -872,8 +935,19 @@ async function loadSource(src){
     } else if(src==='verden'){
       const payload = await loadJson('/api/data?sheet=verden');
       const built = buildRecipeIndex(payload.data);
-      state.recipeByKey = built.byKey; state.weekSlotOptions = built.byWeek;
-      setLc(src, `Loaded · ${state.recipeByKey.size} slot/week rows`, 'ok');
+      state.recipeByKey = built.byKey;
+      // weekSlotOptions is owned by Verden2; Meal DB only enriches recipeByKey for SKU codes
+      setLc(src, `Loaded · ${state.recipeByKey.size} slot/week rows (SKU)`, 'ok');
+    } else if(src==='verden2'){
+      const payload = await loadJson('/api/data?sheet=bnl_verden2');
+      const built = buildVerden2IndexForVerden(payload.data);
+      state.verden2ByKey = built.byKey;
+      state.weekSlotOptions = built.byWeek;
+      if(built.count === 0){
+        setLc(src, `⚠ Loaded 0 rows — check the sheet.`, 'warn');
+      } else {
+        setLc(src, `Loaded · ${built.count} recipe(s)`, 'ok');
+      }
     } else if(src==='boxprice'){
       const payload = await loadJson('/api/data?sheet=boxpricetz');
       const built = buildBoxPriceMap(payload.data);
@@ -907,7 +981,7 @@ document.querySelectorAll('.lc-refresh').forEach(btn=>{
   btn.addEventListener('click', ()=> loadSource(btn.dataset.src));
 });
 window.addEventListener('load', ()=>{
-  loadSource('bartender'); loadSource('odl'); loadSource('verden'); loadSource('boxprice');
+  loadSource('bartender'); loadSource('odl'); loadSource('verden2'); loadSource('verden'); loadSource('boxprice');
 });
 
 /* =================================================================
@@ -1036,8 +1110,8 @@ function getSlotOptionsFor(week, market){
   // recipe code, or the bare slot number if even that's missing.
   return (state.weekSlotOptions.get(weekKey(week))||[])
     .map(o=>{
-      const hasName = o[cfg.nameKey] && o[cfg.nameKey] !== '#N/A';
-      return { slot:o.slot, label: hasName ? o[cfg.nameKey] : 'No name available', code:o.code, unnamed: !hasName };
+      const name = (o[cfg.nameKey] && o[cfg.nameKey]!=='#N/A') ? o[cfg.nameKey] : null;
+      return { slot:o.slot, label: name||'No name available', code:o.code||'', unnamed: !name };
     })
     .sort((a,b)=> a.slot.localeCompare(b.slot, undefined, {numeric:true}));
 }
@@ -1247,12 +1321,15 @@ function findMatches(incident){
     incident.notes.push(`Meal marked UNKNOWN — matched on slot ${incident.slot}; these customers get the generic email.`);
   } else {
     const entry = state.recipeByKey.get(wk+'|'+String(incident.slot));
-    if(entry && cfg){
-      incident.recipeCode = entry.code;
-      incident.recipeName = (entry[cfg.nameKey] && entry[cfg.nameKey]!=='#N/A') ? entry[cfg.nameKey] : null;
-      if(!incident.recipeName) incident.warnings.push(`No recipe name for slot ${incident.slot} / week ${incident.week||'?'}.`);
-    } else {
-      incident.warnings.push(`Could not resolve recipe data for slot ${incident.slot} (week ${incident.week||'unknown'}). If this meal isn't in the Meal Database, re-add the incident with the UNKNOWN option.`);
+    if(entry){ incident.recipeCode = entry.code; }
+    if(entry && cfg){ incident.recipeName = (entry[cfg.nameKey] && entry[cfg.nameKey]!=='#N/A') ? entry[cfg.nameKey] : null; }
+    // Fallback to Verden2 for name
+    if(!incident.recipeName && cfg){
+      const v2 = state.verden2ByKey.get(wk+'|'+String(incident.slot));
+      if(v2 && v2[cfg.nameKey]) incident.recipeName = v2[cfg.nameKey];
+    }
+    if(!incident.recipeName){
+      incident.warnings.push(`No recipe name for slot ${incident.slot} / week ${incident.week||'?'}.`);
     }
   }
 
@@ -1577,11 +1654,12 @@ function renderBulkDownloads(){
    CRM EXPORT
 ================================================================= */
 function resolveRecipeForCrm(week, slot, nameKey){
-  const entry = state.recipeByKey.get(weekKey(week)+'|'+String(slot));
-  if(!entry) return { known:false, name:null };
-  const name = entry[nameKey];
-  if(!name || name==='#N/A') return { known:false, name:null };
-  return { known:true, name };
+  const key = weekKey(week)+'|'+String(slot);
+  const entry = state.recipeByKey.get(key);
+  if(entry){ const n = entry[nameKey]; if(n && n!=='#N/A') return { known:true, name:n }; }
+  const v2 = state.verden2ByKey.get(key);
+  if(v2 && v2[nameKey]) return { known:true, name:v2[nameKey] };
+  return { known:false, name:null };
 }
 
 function buildCrmRows(){
