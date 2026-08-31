@@ -1108,10 +1108,13 @@ function getSlotOptionsFor(week, market){
   // FE-code recipes, which the name lookup doesn't cover) — that made
   // genuinely-real slots impossible to select at all. Fall back to the
   // recipe code, or the bare slot number if even that's missing.
-  return (state.weekSlotOptions.get(weekKey(week))||[])
+  const wkKey = weekKey(week);
+  return (state.weekSlotOptions.get(wkKey)||[])
     .map(o=>{
       const name = (o[cfg.nameKey] && o[cfg.nameKey]!=='#N/A') ? o[cfg.nameKey] : null;
-      return { slot:o.slot, label: name||'No name available', code:o.code||'', unnamed: !name };
+      const mdEntry = state.recipeByKey.get(wkKey+'|'+o.slot);
+      const code = (mdEntry && mdEntry.code) || '';
+      return { slot:o.slot, label: name||'No name available', code, unnamed: !name };
     })
     .sort((a,b)=> a.slot.localeCompare(b.slot, undefined, {numeric:true}));
 }
@@ -1386,7 +1389,9 @@ function renderIncidents(){
               .filter(o=> o.slot !== String(inc.slot))
               .map(o=>{
                 const hasName = cfg && o[cfg.nameKey] && o[cfg.nameKey] !== '#N/A';
-                return { slot:o.slot, label: hasName ? o[cfg.nameKey] : 'No name available', code:o.code, unnamed: !hasName };
+                const mdEntry = state.recipeByKey.get(wk+'|'+o.slot);
+                const code = (mdEntry && mdEntry.code) || '';
+                return { slot:o.slot, label: hasName ? o[cfg.nameKey] : 'No name available', code, unnamed: !hasName };
               })
               .sort((a,b)=> a.slot.localeCompare(b.slot, undefined, {numeric:true}))),
           placeholder: 'Search substitute recipe, or pick UNKNOWN…',
