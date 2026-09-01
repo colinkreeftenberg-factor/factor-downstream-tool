@@ -137,6 +137,9 @@
   .num-card{background:var(--natural);border:1px solid var(--border-soft);border-radius:14px;padding:14px 18px;min-width:128px;}
   .num-card .n{font-family:var(--disp);font-size:23px;font-weight:800;}
   .num-card .l{font-size:10.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;font-family:var(--sans);font-weight:500;}
+  .num-card.sm{padding:7px 12px;min-width:80px;border-radius:10px;}
+  .num-card.sm .n{font-size:16px;}
+  .num-card.sm .l{font-size:9.5px;margin-top:2px;}
   .num-card.basil .n{color:var(--basil);}
   .num-card.dijon .n{color:var(--dijon);}
   .num-card.cherry .n{color:var(--cherry);}
@@ -360,7 +363,6 @@
       <button class="primary-btn" id="download-box" disabled>Download modified P2L (.csv)</button>
       <button class="secondary-btn" id="download-bartender" disabled>Download bulk-error (.csv)</button>
       <button class="secondary-btn" id="reset-runs">Reset to original file</button>
-      <button class="primary-btn" id="btn-post-drive" disabled style="background:var(--basil);color:#fff;">Save to Drive &amp; Email</button>
     </div>
     <div class="drive-status" id="drive-status"></div>
     <div id="session-log" style="margin-top:20px;"></div>
@@ -1511,10 +1513,10 @@
       html += `<div class="run-result-block">`;
       html += `<div class="run-result-title">${escapeHtml(r.shortRec.label)}</div>`;
       html += '<div class="num-strip">';
-      html += `<div class="num-card"><div class="n">${r.totalFound}</div><div class="l">Found in file</div></div>`;
-      html += `<div class="num-card basil"><div class="n">${r.likeCount}</div><div class="l">Like-for-like swap</div></div>`;
-      html += `<div class="num-card ocean"><div class="n">${r.crossCount}</div><div class="l">Cross-swap</div></div>`;
-      html += `<div class="num-card cherry"><div class="n">${r.shortCount}</div><div class="l">Unresolved shortage</div></div>`;
+      html += `<div class="num-card sm"><div class="n">${r.totalFound}</div><div class="l">Found in file</div></div>`;
+      html += `<div class="num-card sm basil"><div class="n">${r.likeCount}</div><div class="l">Like-for-like</div></div>`;
+      html += `<div class="num-card sm ocean"><div class="n">${r.crossCount}</div><div class="l">Cross-swap</div></div>`;
+      html += `<div class="num-card sm cherry"><div class="n">${r.shortCount}</div><div class="l">Still short</div></div>`;
       html += '</div>';
       if (r.notFoundInFile>0){
         html += `<div class="warn-box">${r.notFoundInFile} of the ${r.shortQtyVal} reported units don't show up as boxes in this file.</div>`;
@@ -1522,7 +1524,6 @@
       if (r.warnCount>0){
         html += `<div class="danger-box">${r.warnCount} swap(s) introduce a potential new allergen. Review before exporting.</div>`;
       }
-      html += `<div class="seq-wrap"><div class="seq-strip">` + r.strip.map(o=>`<div class="seq-block ${o}"></div>`).join('') + `</div></div>`;
       html += `</div>`;
     });
     el.innerHTML = html;
@@ -1541,18 +1542,21 @@
     const ok = state.sessionRuns.length>0;
     document.getElementById('download-box').disabled = !ok;
     document.getElementById('download-bartender').disabled = !ok;
-    document.getElementById('btn-post-drive').disabled = !ok;
   }
 
-  function buildAllCSVs(){
+  function buildAllFiles(){
     const swapCreditEnabled = document.getElementById('swap-credit-enabled').checked;
     const compSwap = swapCreditEnabled ? 5.0 : 0;
     const compShort = parseFloat(document.getElementById('comp-short-fallback').value||'0') || 0;
+    const stamp = todayDDMM();
+    const files = [];
 
+    // P2L
     const p2lHeaders = ['Production Date','BoxID','SKU','Qty'];
     const p2lRows = state.boxRows.map(r=>({'Production Date':r.productionDate,'BoxID':r.boxId,'SKU':r.sku,'Qty':r.qty}));
-    const p2lCsv = "﻿" + toCSV(p2lHeaders, p2lRows);
+    files.push({ name: `factor_p2l_modified_${stamp}.csv`, content: "﻿" + toCSV(p2lHeaders, p2lRows), mimeType:'text/csv' });
 
+    // Bulk error
     const bulkHeaders = ['customer id','box id','error category','error sub category','complaint','additional detail 1','additional detail 2','ingredient','recipe name','compensation type','compensation amount','recipe index','culinary sku','comment'];
     const bulkRows = state.auditLog.map(e=>({
       'customer id': stripLeadingLetters(e.customerId),
@@ -1570,27 +1574,34 @@
       'culinary sku': e.originalSku,
       'comment': e.impact==='SWAP' ? `Swap to ${e.replacementRecipeIndexNum}: ${e.replacementNameEN}` : 'Shortage'
     }));
-    const bulkCsv = "﻿" + toCSV(bulkHeaders, bulkRows);
+    files.push({ name: `bulk-error_${stamp}.csv`, content: "﻿" + toCSV(bulkHeaders, bulkRows), mimeType:'text/csv' });
 
-    const stamp = todayDDMM();
-    return [
-      { name: `factor_p2l_modified_${stamp}.csv`, content: p2lCsv },
-      { name: `bulk-error_${stamp}.csv`, content: bulkCsv }
-    ];
+    // CRM comms (if run has happened)
+    if (lastCrmBuild){
+      CRM_LOCALES.forEach(loc=>{
+        const rows = lastCrmBuild.resultByLocale[loc] || [];
+        if (rows.length) files.push({ name: `cc_email_${fileSafe(loc)}_${stamp}.txt`, content: "﻿" + toTxt(rows), mimeType:'text/plain' });
+      });
+      if (lastCrmBuild.manualReviewRows.length){
+        files.push({ name: 'cc_email_needs_review.csv', content: "﻿" + toCSV(['customer_id','flag_reason'], lastCrmBuild.manualReviewRows), mimeType:'text/csv' });
+      }
+    }
+
+    return files;
   }
 
   async function triggerAllDriveAndEmail(){
     const statusEl = document.getElementById('drive-status');
     statusEl.className = 'drive-status uploading';
     statusEl.textContent = 'Uploading to Drive…';
-    const files = buildAllCSVs();
+    const files = buildAllFiles();
     const links = [];
     try{
       for (const f of files){
         const resp = await fetch('/api/upload-to-drive', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ filename: f.name, content: f.content, mimeType: 'text/csv', folderId: DRIVE_FOLDER_ID })
+          body: JSON.stringify({ filename: f.name, content: f.content, mimeType: f.mimeType || 'text/csv', folderId: DRIVE_FOLDER_ID })
         });
         const data = await resp.json();
         if (data.error) throw new Error(data.error);
@@ -1639,11 +1650,13 @@
     }
   }
 
-  document.getElementById('btn-post-drive').addEventListener('click', triggerAllDriveAndEmail);
+  function triggerDriveInBackground(){
+    triggerAllDriveAndEmail().catch(()=>{});
+  }
 
   document.getElementById('download-box').addEventListener('click', ()=>{
-    const csvFiles = buildAllCSVs();
-    const p2lFile = csvFiles.find(f=>f.name.startsWith('factor_p2l'));
+    const files = buildAllFiles();
+    const p2lFile = files.find(f=>f.name.startsWith('factor_p2l'));
     if (!p2lFile) return;
     const blob = new Blob([p2lFile.content], {type:'text/csv;charset=utf-8;'});
     const url = URL.createObjectURL(blob);
@@ -1651,11 +1664,12 @@
     a.href = url; a.download = p2lFile.name;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    triggerDriveInBackground();
   });
 
   document.getElementById('download-bartender').addEventListener('click', ()=>{
-    const csvFiles = buildAllCSVs();
-    const bulkFile = csvFiles.find(f=>f.name.startsWith('bulk-error'));
+    const files = buildAllFiles();
+    const bulkFile = files.find(f=>f.name.startsWith('bulk-error'));
     if (!bulkFile) return;
     const blob = new Blob([bulkFile.content], {type:'text/csv;charset=utf-8;'});
     const url = URL.createObjectURL(blob);
@@ -1663,6 +1677,7 @@
     a.href = url; a.download = bulkFile.name;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    triggerDriveInBackground();
   });
 
   document.getElementById('reset-runs').addEventListener('click', ()=>{
@@ -1846,10 +1861,10 @@
 
     row.querySelectorAll('button[data-loc-idx]').forEach(btn=>{
       const loc = CRM_LOCALES[+btn.dataset.locIdx];
-      btn.addEventListener('click', ()=> downloadTxt(loc, lastCrmBuild.resultByLocale[loc] || []));
+      btn.addEventListener('click', ()=>{ downloadTxt(loc, lastCrmBuild.resultByLocale[loc] || []); triggerDriveInBackground(); });
     });
     const reviewBtn = document.getElementById('btn-crm-review');
-    if (reviewBtn) reviewBtn.addEventListener('click', ()=> downloadManualReview(lastCrmBuild.manualReviewRows));
+    if (reviewBtn) reviewBtn.addEventListener('click', ()=>{ downloadManualReview(lastCrmBuild.manualReviewRows); triggerDriveInBackground(); });
   }
 
   // ================= stage 6: Slack =================
