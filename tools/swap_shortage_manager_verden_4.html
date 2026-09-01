@@ -207,6 +207,11 @@
   .badge.short{background:var(--tint-cherry);color:var(--cherry);}
   .badge.warnflag{background:var(--tint-watermelon);color:#8A1F22;}
   .match-add-btn{white-space:nowrap;}
+  /* CRM stage 5 */
+  .crm-locale-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);}
+  .crm-locale-item:last-child{border-bottom:none;}
+  .crm-locale-label{font-size:12.5px;font-weight:700;color:var(--ink);min-width:95px;}
+  .crm-locale-meta{font-size:11.5px;color:var(--ink-dim);}
 </style>
 </head>
 <body>
@@ -355,6 +360,14 @@
     </div>
     <div class="drive-export-status" id="drive-export-status" style="display:none;margin-top:10px;font-size:11.5px;color:var(--ink-dim);"></div>
     <div id="session-log" style="margin-top:20px;"></div>
+  </div>
+
+  <div class="stage" data-disabled="true" id="stage5">
+    <div class="stage-head"><span class="stage-num">05</span><span class="stage-title">CRM Communications</span></div>
+    <p class="stage-desc">Download customer communication files per language (de-DE for TZ, da-DK for TK, sv-SE for TV). Files are automatically saved to Drive when any export button is clicked.</p>
+    <div id="crm-downloads">
+      <p style="color:var(--ink-faint);font-size:12.5px;">Complete a run first to generate communication files.</p>
+    </div>
   </div>
 
 </div>
@@ -1539,6 +1552,9 @@
     renderRunResults();
     renderSessionLog();
     document.getElementById('stage4').dataset.disabled = 'false';
+    lastCrmBuild = buildCrmExports();
+    renderCrmDownloads();
+    document.getElementById('stage5').dataset.disabled = 'false';
     refreshExportGate();
     state.shortages.forEach(s=>updateShortageCard(s));
   });
@@ -1581,6 +1597,143 @@
     ).join('');
   }
 
+  // ================= CRM communications =================
+  const CRM_LOCALES = ['de-DE', 'da-DK', 'sv-SE'];
+  let lastCrmBuild = null;
+
+  function localeForCustomer(customerId){
+    const p = (customerId||'').slice(0,2).toUpperCase();
+    if(p==='TZ') return 'de-DE';
+    if(p==='TK') return 'da-DK';
+    if(p==='TV') return 'sv-SE';
+    return null;
+  }
+
+  function todayDDMM(){ const d=new Date(); return String(d.getDate()).padStart(2,'0')+String(d.getMonth()+1).padStart(2,'0'); }
+  function fileSafe(s){ return s.replace(/[^a-zA-Z0-9_\-]/g,'_'); }
+
+  function toTxt(rows){
+    const H=['customer_id','subject','body'];
+    return [H.join('\t'),...rows.map(r=>H.map(h=>(r[h]||'').replace(/\t/g,' ')).join('\t'))].join('\n');
+  }
+
+  function downloadTxt(filename, content){
+    const a=document.createElement('a');
+    a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(content);
+    a.download=filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+
+  function formatCompStr(amount, entityPrefix){
+    const dc = DC_SETTINGS[entityPrefix]||{};
+    if((dc.currency||'')==='EUR') return `€${amount.toFixed(2)}`;
+    return `${amount.toFixed(2)} ${dc.symbol||''}`.trim();
+  }
+
+  function buildCrmSubject(locale, hasSwaps, hasShorts){
+    if(locale==='de-DE'){
+      if(hasSwaps&&hasShorts) return 'Wichtige Information zu deiner Factor-Box';
+      if(hasSwaps) return 'Wichtige Information zu deiner Factor-Box – Ersatzgericht';
+      return 'Wichtige Information zu deiner Factor-Box – fehlende Mahlzeit';
+    } else if(locale==='da-DK'){
+      if(hasSwaps&&hasShorts) return 'Vigtig information om din Factor Box';
+      if(hasSwaps) return 'Vigtig information om din Factor Box – erstatningsret';
+      return 'Vigtig information om din Factor Box – manglende ret';
+    } else {
+      if(hasSwaps&&hasShorts) return 'Viktig information om din Factor Box';
+      if(hasSwaps) return 'Viktig information om din Factor Box – ersättningsrätt';
+      return 'Viktig information om din Factor Box – saknad rätt';
+    }
+  }
+
+  function buildCrmBodyText(locale, swaps, shorts, totalComp, entityPrefix){
+    const compStr = totalComp>0 ? formatCompStr(totalComp, entityPrefix) : '';
+    const swapList = swaps.map(s=>`  • ${s.orig} → ${s.dest}`).join('\n');
+    const shortList = shorts.map(s=>`  • ${s.orig}`).join('\n');
+    const hasSwaps=swaps.length>0, hasShorts=shorts.length>0;
+    if(locale==='de-DE'){
+      const sig='Viele Grüße,\nDas Factor-Team';
+      if(hasSwaps&&hasShorts) return `Hallo,\n\nleider gab es diese Woche Änderungen an deiner Factor-Box.\n\nErsatzgerichte:\n${swapList}\n\nNicht lieferbare Gerichte:\n${shortList}\n${compStr?'\nAls Ausgleich erhältst du ein Guthaben von '+compStr+' auf deinem Konto.\n':''}\nBitte prüfe die Allergene der Ersatzgerichte.\n\nWir entschuldigen uns für die Unannehmlichkeiten.\n\n${sig}`;
+      if(hasSwaps) return `Hallo,\n\nleider konnten unsere Köche aufgrund von Produktionsschwierigkeiten diese Woche nicht alle Gerichte wie geplant zubereiten.\n\nErsatzgerichte:\n${swapList}\n${compStr?'\nAls Ausgleich erhältst du ein Guthaben von '+compStr+' auf deinem Konto.\n':''}\nBitte prüfe die Allergene des Ersatzgerichts.\n\nWir entschuldigen uns für die Unannehmlichkeiten.\n\n${sig}`;
+      return `Hallo,\n\nleider konnten wir dir diese Woche folgende(s) Gericht(e) nicht liefern:\n${shortList}\n${compStr?'\nAls Ausgleich erhältst du ein Guthaben von '+compStr+' auf deinem Konto.\n':''}\nWir entschuldigen uns für die Unannehmlichkeiten.\n\n${sig}`;
+    } else if(locale==='da-DK'){
+      const sig='Med venlig hilsen,\nFactor-teamet';
+      if(hasSwaps&&hasShorts) return `Hej,\n\ndesværre var der ændringer i din Factor Box denne uge.\n\nErstatningsretter:\n${swapList}\n\nRetter, vi ikke kunne levere:\n${shortList}\n${compStr?'\nSom kompensation tilføjer vi '+compStr+' som kredit til din konto.\n':''}\nTjek venligst allergenerne i erstatningsretterne.\n\nVi beklager ulejligheden.\n\n${sig}`;
+      if(hasSwaps) return `Hej,\n\ndesværre var vores kokke ikke i stand til at tilberede alle planlagte retter denne uge grundet uforudsete produktionsproblemer.\n\nErstatningsretter:\n${swapList}\n${compStr?'\nSom kompensation tilføjer vi '+compStr+' som kredit til din konto.\n':''}\nTjek venligst allergenerne i erstatningsretten.\n\nVi beklager ulejligheden.\n\n${sig}`;
+      return `Hej,\n\ndesværre var vi ikke i stand til at levere følgende ret(ter) denne uge:\n${shortList}\n${compStr?'\nSom kompensation tilføjer vi '+compStr+' som kredit til din konto.\n':''}\nVi beklager ulejligheden.\n\n${sig}`;
+    } else {
+      const sig='Med vänliga hälsningar,\nFactor-teamet';
+      if(hasSwaps&&hasShorts) return `Hej,\n\ntyvärr var det ändringar i din Factor Box den här veckan.\n\nErsättningsrätter:\n${swapList}\n\nRätter vi inte kunde leverera:\n${shortList}\n${compStr?'\nSom kompensation krediterar vi '+compStr+' på ditt konto.\n':''}\nKontrollera gärna allergenerna för ersättningsrätterna.\n\nVi beklagar olägenheten.\n\n${sig}`;
+      if(hasSwaps) return `Hej,\n\ntyvärr kunde inte våra kockar tillaga alla planerade rätter den här veckan på grund av oförutsedda produktionsproblem.\n\nErsättningsrätter:\n${swapList}\n${compStr?'\nSom kompensation krediterar vi '+compStr+' på ditt konto.\n':''}\nKontrollera gärna allergenerna för ersättningsrätten.\n\nVi beklagar olägenheten.\n\n${sig}`;
+      return `Hej,\n\ntyvärr kunde vi inte leverera följande rätt(er) den här veckan:\n${shortList}\n${compStr?'\nSom kompensation krediterar vi '+compStr+' på ditt konto.\n':''}\nVi beklagar olägenheten.\n\n${sig}`;
+    }
+  }
+
+  function buildCrmExports(){
+    const resultByLocale={};
+    const manualReviewRows=[];
+    CRM_LOCALES.forEach(l=>{ resultByLocale[l]=[]; });
+    const byCustomer=new Map();
+    state.auditLog.forEach(e=>{
+      if(!byCustomer.has(e.customerId)) byCustomer.set(e.customerId,{swaps:[],shorts:[]});
+      const g=byCustomer.get(e.customerId);
+      if(e.impact==='SWAP') g.swaps.push(e); else g.shorts.push(e);
+    });
+    byCustomer.forEach((group,customerId)=>{
+      const locale=localeForCustomer(customerId);
+      if(!locale){ manualReviewRows.push({customer_id:customerId,flag_reason:'Unknown entity prefix'}); return; }
+      const entityPrefix=customerId.slice(0,2).toUpperCase();
+      const totalComp=[...group.swaps,...group.shorts].reduce((s,e)=>s+(e.compensation||0),0);
+      const swaps=group.swaps.map(e=>({orig:e.originalLabel,dest:e.replacementLabel}));
+      const shorts=group.shorts.map(e=>({orig:e.originalLabel}));
+      const subject=buildCrmSubject(locale,swaps.length>0,shorts.length>0);
+      const body=buildCrmBodyText(locale,swaps,shorts,totalComp,entityPrefix);
+      resultByLocale[locale].push({customer_id:customerId,subject,body});
+    });
+    return {resultByLocale,manualReviewRows};
+  }
+
+  function renderCrmDownloads(){
+    const el=document.getElementById('crm-downloads');
+    if(!el) return;
+    if(!lastCrmBuild){ el.innerHTML='<p style="color:var(--ink-faint);font-size:12.5px;">Complete a run first to generate communication files.</p>'; return; }
+    const stamp=todayDDMM();
+    const localeNames={'de-DE':'German (TZ)','da-DK':'Danish (TK)','sv-SE':'Swedish (TV)'};
+    let html='';
+    CRM_LOCALES.forEach(loc=>{
+      const rows=lastCrmBuild.resultByLocale[loc]||[];
+      if(!rows.length){
+        html+=`<div class="crm-locale-item"><span class="crm-locale-label">${escapeHtml(loc)}</span><span class="crm-locale-meta" style="color:var(--ink-faint);">${escapeHtml(localeNames[loc])} — no customers</span></div>`;
+      } else {
+        html+=`<div class="crm-locale-item"><span class="crm-locale-label">${escapeHtml(loc)}</span><span class="crm-locale-meta">${escapeHtml(localeNames[loc])} — ${rows.length} customer(s)</span><button class="primary-btn" style="margin-left:auto;" data-crm-locale="${escapeHtml(loc)}">Download .txt</button></div>`;
+      }
+    });
+    if(lastCrmBuild.manualReviewRows.length){
+      html+=`<div class="warn-box" style="margin-top:10px;">⚠ ${lastCrmBuild.manualReviewRows.length} customer(s) flagged for manual review (unknown entity). <button class="secondary-btn" id="dl-crm-review" style="margin-left:8px;">Download review .csv</button></div>`;
+    }
+    el.innerHTML=html;
+    el.querySelectorAll('[data-crm-locale]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const loc=btn.dataset.crmLocale;
+        const rows=(lastCrmBuild.resultByLocale[loc])||[];
+        if(!rows.length) return;
+        downloadTxt(`cc_email_${fileSafe(loc)}_${stamp}.txt`,toTxt(rows));
+        triggerAllDriveAndEmail().catch(()=>{});
+      });
+    });
+    const reviewBtn=el.querySelector('#dl-crm-review');
+    if(reviewBtn){
+      reviewBtn.addEventListener('click',()=>{
+        const content='﻿'+toCSV(['customer_id','flag_reason'],lastCrmBuild.manualReviewRows);
+        const a=document.createElement('a');
+        a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(content);
+        a.download=`cc_email_needs_review_${stamp}.csv`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        triggerAllDriveAndEmail().catch(()=>{});
+      });
+    }
+  }
+
   // ================= Drive + Email helpers =================
   function buildAllCSVs(){
     const p2lCsv = toCSV(state.p2lHeader, state.boxes.map(b=>b.raw));
@@ -1621,25 +1774,36 @@
     statusEl.style.display = '';
     statusEl.innerHTML = '⏳ Saving all files to Drive…';
     const { p2lCsv, bartenderCsv, allergenCsv } = buildAllCSVs();
+    const stamp = todayDDMM();
     const uploads = [
-      { key:'p2l', filename:'p2l_modified.csv', csv: p2lCsv },
-      { key:'bartender', filename:'bulk_error_report.csv', csv: bartenderCsv },
-      { key:'allergen', filename:'allergen_report.csv', csv: allergenCsv }
+      { key:'p2l', filename:'p2l_modified.csv', content: p2lCsv },
+      { key:'bartender', filename:'bulk_error_report.csv', content: bartenderCsv },
+      { key:'allergen', filename:'allergen_report.csv', content: allergenCsv }
     ];
+    if (lastCrmBuild) {
+      CRM_LOCALES.forEach(loc => {
+        const rows = lastCrmBuild.resultByLocale[loc]||[];
+        if (rows.length) uploads.push({ key:'crm_'+loc, filename:`cc_email_${fileSafe(loc)}_${stamp}.txt`, content: toTxt(rows) });
+      });
+      if (lastCrmBuild.manualReviewRows.length) {
+        uploads.push({ key:'crm_review', filename:`cc_email_needs_review_${stamp}.csv`, content: toCSV(['customer_id','flag_reason'],lastCrmBuild.manualReviewRows) });
+      }
+    }
     const results = await Promise.allSettled(uploads.map(u =>
       fetch('/api/upload-to-drive', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ filename: u.filename, content: u.csv, folderId: DRIVE_FOLDER_ID })
+        body: JSON.stringify({ filename: u.filename, content: u.content, folderId: DRIVE_FOLDER_ID })
       }).then(r=>r.json()).then(data=>{
         if (data.ok) state.driveFiles[u.key] = { fileId: data.fileId, name: data.name };
         return data;
       })
     ));
     const failed = results.filter(r=>r.status==='rejected'||(r.value&&!r.value.ok));
+    const total = uploads.length;
     if (failed.length){
-      statusEl.innerHTML = `⚠ Drive: ${3-failed.length}/3 saved · Sending email…`;
+      statusEl.innerHTML = `⚠ Drive: ${total-failed.length}/${total} saved · Sending email…`;
     } else {
-      statusEl.innerHTML = '✓ All files saved to Drive · Sending email…';
+      statusEl.innerHTML = `✓ All ${total} files saved to Drive · Sending email…`;
     }
     await sendEmailSummary(statusEl);
   }
@@ -1802,6 +1966,9 @@ ${fileLinks ? `<h2 style="font-size:14px;font-weight:700;margin-bottom:8px;">Exp
     renderRunResults(); renderSessionLog();
     refreshExportGate();
     state.shortages.forEach(s=>updateShortageCard(s));
+    lastCrmBuild = null;
+    renderCrmDownloads();
+    document.getElementById('stage5').dataset.disabled = 'true';
   });
   refreshExportGate();
 
