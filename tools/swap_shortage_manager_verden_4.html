@@ -1601,11 +1601,10 @@
   const CRM_LOCALES = ['de-DE', 'da-DK', 'sv-SE'];
   let lastCrmBuild = null;
 
-  function localeForCustomer(customerId){
-    const p = (customerId||'').slice(0,2).toUpperCase();
-    if(p==='TZ') return 'de-DE';
-    if(p==='TK') return 'da-DK';
-    if(p==='TV') return 'sv-SE';
+  function marketToLocale(market){
+    if(market==='TZ') return 'de-DE';
+    if(market==='TK') return 'da-DK';
+    if(market==='TV') return 'sv-SE';
     return null;
   }
 
@@ -1624,10 +1623,10 @@
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   }
 
-  function formatCompStr(amount, entityPrefix){
-    const dc = DC_SETTINGS[entityPrefix]||{};
-    if((dc.currency||'')==='EUR') return `€${amount.toFixed(2)}`;
-    return `${amount.toFixed(2)} ${dc.symbol||''}`.trim();
+  function formatCompStr(amount, market){
+    const mc = MARKET_CONFIG[market]||{};
+    if((mc.currency||'')==='EUR') return `€${amount.toFixed(2)}`;
+    return `${amount.toFixed(2)} ${mc.symbol||''}`.trim();
   }
 
   function buildCrmSubject(locale, hasSwaps, hasShorts){
@@ -1675,20 +1674,22 @@
     CRM_LOCALES.forEach(l=>{ resultByLocale[l]=[]; });
     const byCustomer=new Map();
     state.auditLog.forEach(e=>{
-      if(!byCustomer.has(e.customerId)) byCustomer.set(e.customerId,{swaps:[],shorts:[]});
-      const g=byCustomer.get(e.customerId);
+      const market=e.market||(e.boxId||'').slice(0,2).toUpperCase();
+      const cid=e.customerId||e.boxId;
+      const key=`${market}|${cid}`;
+      if(!byCustomer.has(key)) byCustomer.set(key,{swaps:[],shorts:[],cid,market});
+      const g=byCustomer.get(key);
       if(e.impact==='SWAP') g.swaps.push(e); else g.shorts.push(e);
     });
-    byCustomer.forEach((group,customerId)=>{
-      const locale=localeForCustomer(customerId);
-      if(!locale){ manualReviewRows.push({customer_id:customerId,flag_reason:'Unknown entity prefix'}); return; }
-      const entityPrefix=customerId.slice(0,2).toUpperCase();
+    byCustomer.forEach((group)=>{
+      const locale=marketToLocale(group.market);
+      if(!locale){ manualReviewRows.push({customer_id:group.cid,flag_reason:'Unknown market: '+group.market}); return; }
       const totalComp=[...group.swaps,...group.shorts].reduce((s,e)=>s+(e.compensation||0),0);
       const swaps=group.swaps.map(e=>({orig:e.originalLabel,dest:e.replacementLabel}));
       const shorts=group.shorts.map(e=>({orig:e.originalLabel}));
       const subject=buildCrmSubject(locale,swaps.length>0,shorts.length>0);
-      const body=buildCrmBodyText(locale,swaps,shorts,totalComp,entityPrefix);
-      resultByLocale[locale].push({customer_id:customerId,subject,body});
+      const body=buildCrmBodyText(locale,swaps,shorts,totalComp,group.market);
+      resultByLocale[locale].push({customer_id:group.cid,subject,body});
     });
     return {resultByLocale,manualReviewRows};
   }
