@@ -20,6 +20,7 @@
     --tint-saffron:rgba(255,200,0,.22); --tint-watermelon:rgba(255,88,93,.16);
 
     --disp:'Plus Jakarta Sans', sans-serif; --sans:'IBM Plex Sans', sans-serif; --mono:'IBM Plex Mono', monospace;
+    --natural-2:#E7E6DC; --line:#D9D7C9;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -57,10 +58,10 @@
   .info-box{border:1px solid var(--border);background:var(--white);color:var(--ink-dim);border-radius:16px;padding:14px 18px;font-size:12.5px;margin:20px 0;font-family:var(--sans);}
   .info-box b{color:var(--ink);}
 
-  .stage{background:var(--card);border:1px solid var(--border-soft);border-radius:22px;padding:28px 28px 30px;margin-bottom:18px;position:relative;box-shadow:0 1px 0 rgba(20,20,20,.02);}
-  .stage.disabled{opacity:.42;pointer-events:none;}
+  .stage{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:28px 28px 30px;margin-bottom:18px;position:relative;box-shadow:0 1px 0 rgba(20,20,20,.02);}
+  .stage[data-disabled="true"]{opacity:.45;pointer-events:none;}
   .stage-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;}
-  .stage-num{font-family:var(--sans);color:var(--carbon);background:var(--saffron);font-size:11px;font-weight:800;letter-spacing:.04em;border-radius:7px;padding:3px 8px;}
+  .stage-num{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--ink-faint);background:rgba(20,20,20,.06);border-radius:99px;padding:2px 9px;}
   .stage-title{font-family:var(--disp);font-size:17px;font-weight:700;text-transform:uppercase;letter-spacing:.01em;}
   .stage-desc{color:var(--ink-dim);font-size:13px;margin:6px 0 20px;max-width:680px;font-family:var(--sans);}
 
@@ -73,15 +74,18 @@
   .dz-hint{font-size:11px;color:var(--ink-faint);margin-top:4px;font-family:var(--sans);}
   input[type=file]{display:none;}
 
-  .live-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px;}
-  @media (max-width:820px){.live-grid{grid-template-columns:1fr;}}
-  .livecard{border:1.5px solid var(--border);border-radius:16px;padding:16px;background:var(--white);}
-  .livecard-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
   .ghost-btn.small{padding:5px 10px;font-size:11px;margin-top:0;}
-  .live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--dijon);margin-left:6px;position:relative;top:-1px;}
-  .live-dot.ok{background:var(--basil);}
-  .live-dot.error{background:var(--cherry);}
-  .manual-fallback-link{color:var(--ocean);text-decoration:underline;cursor:pointer;font-weight:500;}
+  .live-status-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+  .live-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid var(--line);border-radius:999px;background:var(--white);font-size:11.5px;}
+  .live-pill.loaded{border-color:var(--basil);background:var(--tint-basil);}
+  .live-pill.error{border-color:var(--cherry);background:var(--tint-cherry);}
+  .live-pill-label{font-weight:700;color:var(--ink);}
+  .live-pill-val{color:var(--ink-dim);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .live-pill-refresh,.live-pill-upload{background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:12px;padding:0 2px;line-height:1;}
+  .drive-status{font-size:11px;margin-top:5px;min-height:15px;font-weight:500;}
+  .drive-status.uploading{color:var(--dijon);}
+  .drive-status.ok{color:var(--basil);}
+  .drive-status.err{color:var(--cherry);}
 
   label.field-label{display:block;font-size:12px;color:var(--ink-dim);margin-bottom:7px;font-family:var(--sans);font-weight:500;text-transform:uppercase;letter-spacing:.04em;}
   input[type=number], input[type=text]{width:100%;background:var(--natural);border:1px solid var(--border);color:var(--ink);padding:10px 12px;border-radius:10px;font-size:13.5px;font-family:var(--sans);}
@@ -257,10 +261,6 @@
   </div>
   <div class="app-sub">Directs unavoidable swaps and shortages to the right customers with the right substitutes, then generates the compensation file and the customer emails in one pass.</div>
 
-  <div class="info-box">
-    No zone or meal-choice data yet, so impact spreads evenly across the run instead. Protein and allergens come from the Meal Database when a recipe matches — otherwise it's a flagged guess.
-  </div>
-
   <!-- STAGE 1 -->
   <div class="stage" id="stage1">
     <div class="stage-head"><span class="stage-num">01</span><span class="stage-title">Load data</span></div>
@@ -273,40 +273,39 @@
         <input type="file" id="file-box" accept=".csv">
       </div>
     </div>
-    <div class="live-grid">
-      <div class="livecard" id="live-kitcontent">
-        <div class="livecard-top">
-          <div class="dz-label">Kitcontent <span class="live-dot" id="kitcontent-dot"></span></div>
-          <button class="ghost-btn small" id="refresh-kitcontent" type="button">Refresh</button>
-        </div>
-        <div class="dz-file" id="kitcontent-status">Fetching live data…</div>
-        <div class="dz-hint">"Kitcontent" tab. <label class="manual-fallback-link" for="file-kitcontent">Upload a CSV instead</label></div>
+    <div class="live-status-row">
+      <div class="live-pill" id="pill-kitcontent">
+        <span class="live-pill-label">Kitcontent</span>
+        <span class="live-pill-val" id="kitcontent-val">Fetching…</span>
+        <button class="live-pill-refresh" id="refresh-kitcontent" type="button" title="Refresh">↻</button>
+        <label class="live-pill-upload" for="file-kitcontent" title="Upload CSV">⬆</label>
         <input type="file" id="file-kitcontent" accept=".csv" style="display:none;">
       </div>
-      <div class="livecard" id="live-mealdb">
-        <div class="livecard-top">
-          <div class="dz-label">Meal Database <span class="live-dot" id="mealdb-dot"></span></div>
-          <button class="ghost-btn small" id="refresh-mealdb" type="button">Refresh</button>
-        </div>
-        <div class="dz-file" id="mealdb-status">Fetching live data…</div>
-        <div class="dz-hint">"Meal Database" tab. <label class="manual-fallback-link" for="file-mealdb">Upload a CSV instead</label></div>
+      <div class="live-pill" id="pill-mealdb">
+        <span class="live-pill-label">Meal DB</span>
+        <span class="live-pill-val" id="mealdb-val">Fetching…</span>
+        <button class="live-pill-refresh" id="refresh-mealdb" type="button" title="Refresh">↻</button>
+        <label class="live-pill-upload" for="file-mealdb" title="Upload CSV">⬆</label>
         <input type="file" id="file-mealdb" accept=".csv" style="display:none;">
       </div>
-      <div class="livecard" id="live-odl">
-        <div class="livecard-top">
-          <div class="dz-label">BNL ODL <span class="live-dot" id="odl-dot"></span></div>
-          <button class="ghost-btn small" id="refresh-odl" type="button">Refresh</button>
-        </div>
-        <div class="dz-file" id="odl-status">Fetching live data…</div>
-        <div class="dz-hint">"BNL ODL" tab, also used for customer locale. <label class="manual-fallback-link" for="file-odl">Upload a CSV instead</label></div>
+      <div class="live-pill" id="pill-odl">
+        <span class="live-pill-label">BNL ODL</span>
+        <span class="live-pill-val" id="odl-val">Fetching…</span>
+        <button class="live-pill-refresh" id="refresh-odl" type="button" title="Refresh">↻</button>
+        <label class="live-pill-upload" for="file-odl" title="Upload CSV">⬆</label>
         <input type="file" id="file-odl" accept=".csv" style="display:none;">
+      </div>
+      <div class="live-pill" id="pill-defaults">
+        <span class="live-pill-label">Defaults</span>
+        <span class="live-pill-val" id="defaults-val">Fetching…</span>
+        <button class="live-pill-refresh" id="refresh-defaults" type="button" title="Refresh">↻</button>
       </div>
     </div>
     <div id="stage1-summary"></div>
   </div>
 
   <!-- STAGE 2 -->
-  <div class="stage disabled" id="stage2">
+  <div class="stage" data-disabled="true" id="stage2">
     <div class="stage-head"><span class="stage-num">02</span><span class="stage-title">Shortages &amp; leftovers</span></div>
     <p class="stage-desc">Add every recipe you're short on. Each gets its own match matrix and leftovers.</p>
 
@@ -329,7 +328,7 @@
   </div>
 
   <!-- STAGE 3 -->
-  <div class="stage disabled" id="stage3">
+  <div class="stage" data-disabled="true" id="stage3">
     <div class="stage-head"><span class="stage-num">03</span><span class="stage-title">Run against the box file</span></div>
     <p class="stage-desc">Applies all shortages in order: like-for-like → cross-swap → shortage.</p>
     <button class="primary-btn" id="run-btn">Run all</button>
@@ -337,31 +336,38 @@
   </div>
 
   <!-- STAGE 4 -->
-  <div class="stage disabled" id="stage4">
+  <div class="stage" data-disabled="true" id="stage4">
     <div class="stage-head"><span class="stage-num">04</span><span class="stage-title">Export</span></div>
     <p class="stage-desc">Download the modified files (cumulative across this session).</p>
 
     <div class="row two">
       <div>
-        <label class="field-label">Credit amount — swap (€)</label>
-        <input type="number" min="0" id="comp-swap" value="5">
+        <label class="field-label">Swap credit</label>
+        <label class="like-toggle" id="swap-credit-toggle-label" for="swap-credit-enabled">
+          <input type="checkbox" id="swap-credit-enabled">
+          <span>Enable swap credit (€5 per swap)</span>
+        </label>
+        <div class="field-note">Only toggle on if aligned with leadership.</div>
       </div>
       <div>
-        <label class="field-label">Credit amount — shortage (€)</label>
-        <input type="number" min="0" id="comp-short" value="11">
+        <label class="field-label">Shortage credit fallback (€)</label>
+        <input type="number" min="0" step="0.01" id="comp-short-fallback" value="11">
+        <div class="field-note">Credit amount per missing meal.</div>
       </div>
     </div>
 
     <div class="export-row">
-      <button class="primary-btn" id="download-box" disabled>Download modified P2L file (.csv)</button>
+      <button class="primary-btn" id="download-box" disabled>Download modified P2L (.csv)</button>
       <button class="secondary-btn" id="download-bartender" disabled>Download bulk-error (.csv)</button>
       <button class="secondary-btn" id="reset-runs">Reset to original file</button>
+      <button class="primary-btn" id="btn-post-drive" disabled style="background:var(--basil);color:#fff;">Save to Drive &amp; Email</button>
     </div>
+    <div class="drive-status" id="drive-status"></div>
     <div id="session-log" style="margin-top:20px;"></div>
   </div>
 
   <!-- STAGE 5 -->
-  <div class="stage disabled" id="stage5">
+  <div class="stage" data-disabled="true" id="stage5">
     <div class="stage-head"><span class="stage-num">05</span><span class="stage-title">Customer communications</span></div>
     <p class="stage-desc">Locale is looked up per customer from BNL ODL (entity + language). One unicode text file per locale, UTF-8 — customers needing a manual look are excluded and require manual processing.</p>
     <div class="step-body" id="crmReviewBody"></div>
@@ -369,7 +375,7 @@
   </div>
 
   <!-- STAGE 6 -->
-  <div class="stage disabled" id="stage6">
+  <div class="stage" data-disabled="true" id="stage6">
     <div class="stage-head"><span class="stage-num">06</span><span class="stage-title">Slack update</span></div>
     <p class="stage-desc">A short summary to post in the ops channel.</p>
     <div class="step-body" id="slackBody"></div>
@@ -443,10 +449,12 @@
     masterRows: [], recipeIndex: [], recipeBySku: new Map(),
     mealDbRows: [], mealDbByDigits: new Map(),
     odlRows: [], odlByExact: new Map(), odlByStripped: new Map(), customerLocale: new Map(),
+    defaultsRows: [], defaultsCustomerIds: new Set(),
     originalBoxRows: [], boxRows: [],
     shortages: [], impactStrategy: 'avoid-overlap', boxTouchCount: new Map(),
     lastRunBatch: [], auditLog: [], sessionRuns: []
   };
+  const DRIVE_FOLDER_ID = '19LeJPBo5CLGWBQ7XE6dtm9wf_HyEl-Qt';
   let leftoverSeq = 0;
   let shortageSeq = 0;
   let lastCrmBuild = null;
@@ -819,10 +827,10 @@
 
   // ================= live data via secure /api/data endpoint (service account, server-side) =================
   function setLiveStatus(which, status, message){
-    const dot = document.getElementById(which+'-dot');
-    const statusEl = document.getElementById(which+'-status');
-    dot.className = 'live-dot' + (status==='ok' ? ' ok' : status==='error' ? ' error' : '');
-    statusEl.textContent = message;
+    const pill = document.getElementById('pill-'+which);
+    const val = document.getElementById(which+'-val');
+    if (pill){ pill.classList.toggle('loaded', status==='ok'); pill.classList.toggle('error', status==='error'); }
+    if (val) val.textContent = message;
   }
   async function loadJson(url, timeoutMs){
     timeoutMs = timeoutMs || 20000;
@@ -874,12 +882,38 @@
       setLiveStatus('odl', 'error', `Couldn't reach the live sheet (${err.message}). Upload a CSV instead, or hit Refresh to retry.`);
     }
   }
+  function processDefaultsRows(rows){
+    if (!rows || rows.length < 2){ state.defaultsCustomerIds = new Set(); renderStage1Summary(); return; }
+    const header = rows[0].map(h=>(h||'').trim().toLowerCase());
+    let custCol = header.findIndex(h=>h==='customer_id'||h==='customer id'||h==='customerid');
+    if (custCol < 0) custCol = 2;
+    state.defaultsRows = rows;
+    state.defaultsCustomerIds = new Set();
+    rows.slice(1).forEach(row=>{
+      const cid = (row[custCol]||'').trim();
+      if (cid) state.defaultsCustomerIds.add(cid);
+    });
+    renderStage1Summary();
+  }
+  async function fetchLiveDefaults(){
+    setLiveStatus('defaults', 'loading', 'Fetching…');
+    try{
+      const payload = await loadJson('/api/data?sheet=defaults');
+      processDefaultsRows(valuesToStringRows(payload.data));
+      setLiveStatus('defaults', 'ok', `${state.defaultsCustomerIds.size} default customers`);
+    } catch(err){
+      setLiveStatus('defaults', 'error', `Error: ${err.message}`);
+    }
+  }
+
   document.getElementById('refresh-kitcontent').addEventListener('click', fetchLiveKitcontent);
   document.getElementById('refresh-mealdb').addEventListener('click', fetchLiveMealDb);
   document.getElementById('refresh-odl').addEventListener('click', fetchLiveOdl);
+  document.getElementById('refresh-defaults').addEventListener('click', fetchLiveDefaults);
   fetchLiveKitcontent();
   fetchLiveMealDb();
   fetchLiveOdl();
+  fetchLiveDefaults();
 
   function afterCatalogChange(){
     renderStage1Summary();
@@ -889,7 +923,7 @@
 
   function renderStage1Summary(){
     const el = document.getElementById('stage1-summary');
-    const anyLoaded = state.masterRows.length || state.originalBoxRows.length || state.mealDbRows.length || state.odlRows.length;
+    const anyLoaded = state.masterRows.length || state.originalBoxRows.length || state.mealDbRows.length || state.odlRows.length || state.defaultsCustomerIds.size;
     if (!anyLoaded){ el.innerHTML=''; return; }
     let html = '<div class="num-strip">';
     if (state.recipeIndex.length){
@@ -901,6 +935,9 @@
       const withLocale = [...state.customerLocale.values()].filter(Boolean).length;
       html += `<div class="num-card"><div class="n">${state.odlRows.length}</div><div class="l">BNL ODL rows loaded</div></div>`;
       html += `<div class="num-card ${withLocale===state.customerLocale.size?'basil':'dijon'}"><div class="n">${withLocale}/${state.customerLocale.size}</div><div class="l">Customers with a resolved locale</div></div>`;
+    }
+    if (state.defaultsCustomerIds.size){
+      html += `<div class="num-card"><div class="n">${state.defaultsCustomerIds.size}</div><div class="l">Default customers (priority 1)</div></div>`;
     }
     if (state.originalBoxRows.length){
       const boxes = new Set(state.originalBoxRows.map(r=>r.boxId)).size;
@@ -926,7 +963,7 @@
 
   function maybeUnlockStage2(){
     const ready = state.recipeIndex.length && state.originalBoxRows.length && state.odlRows.length;
-    document.getElementById('stage2').classList.toggle('disabled', !ready);
+    document.getElementById('stage2').setAttribute('data-disabled', ready ? 'false' : 'true');
   }
 
   // ================= stage 2: shortages =================
@@ -962,7 +999,7 @@
 
   function updateRunGate(){
     const ready = state.shortages.some(s=>s.sku && s.qty>0);
-    document.getElementById('stage3').classList.toggle('disabled', !ready);
+    document.getElementById('stage3').setAttribute('data-disabled', ready ? 'false' : 'true');
   }
   function renderStrategyVisibility(){
     document.getElementById('strategy-box').style.display = state.shortages.length > 1 ? 'block' : 'none';
@@ -1280,34 +1317,54 @@
   function selectBoxesForShortage(shortRec, qtyNeeded, strategy){
     const instances = [];
     state.boxRows.forEach((row, idx)=>{
-      if (row.sku === shortRec.sku){ for (let u=0;u<row.qty;u++) instances.push({rowIdx: idx, boxId: row.boxId}); }
+      if (row.sku === shortRec.sku){
+        const cust = lookupCustomer(row.boxId);
+        const isDefault = cust.customerId ? state.defaultsCustomerIds.has(cust.customerId) : false;
+        const isToTt = cust.customerId ? state.customerLocale.has(cust.customerId) : false;
+        for (let u=0;u<row.qty;u++) instances.push({rowIdx: idx, boxId: row.boxId, isDefault, isToTt});
+      }
     });
     const totalFound = instances.length;
     const toProcess = Math.min(qtyNeeded, totalFound);
     if (toProcess <= 0) return { selected: [], totalFound };
 
     const touchCountOf = inst => state.boxTouchCount.get(inst.boxId) || 0;
-    let buckets;
-    if (strategy === 'concentrate'){
-      buckets = [
-        instances.filter(i => { const c=touchCountOf(i); return c>=1 && c<CONCENTRATE_CAP; }),
-        instances.filter(i => touchCountOf(i)===0),
-        instances.filter(i => touchCountOf(i)>=CONCENTRATE_CAP)
-      ];
-    } else {
-      buckets = [
-        instances.filter(i => touchCountOf(i)===0),
-        instances.filter(i => touchCountOf(i)>0).sort((a,b)=> touchCountOf(a)-touchCountOf(b))
-      ];
+
+    // Respect concentrate/spread within each priority tier
+    function selectFromPool(pool, need){
+      if (!pool.length || need <= 0) return [];
+      let buckets;
+      if (strategy === 'concentrate'){
+        buckets = [
+          pool.filter(i => { const c=touchCountOf(i); return c>=1 && c<CONCENTRATE_CAP; }),
+          pool.filter(i => touchCountOf(i)===0),
+          pool.filter(i => touchCountOf(i)>=CONCENTRATE_CAP)
+        ];
+      } else {
+        buckets = [
+          pool.filter(i => touchCountOf(i)===0),
+          pool.filter(i => touchCountOf(i)>0).sort((a,b)=> touchCountOf(a)-touchCountOf(b))
+        ];
+      }
+      let picked = [];
+      for (const bucket of buckets){
+        if (picked.length >= need) break;
+        const n = need - picked.length;
+        if (bucket.length <= n) picked = picked.concat(bucket);
+        else picked = picked.concat(evenStrideSelect(bucket.length, n).map(p=>bucket[p]));
+      }
+      return picked;
     }
 
-    let selected = [];
-    for (const bucket of buckets){
-      if (selected.length >= toProcess) break;
-      const need = toProcess - selected.length;
-      if (bucket.length <= need) selected = selected.concat(bucket);
-      else selected = selected.concat(evenStrideSelect(bucket.length, need).map(p=>bucket[p]));
-    }
+    // Priority 1: defaults (no meal choice), Priority 2: TO/TT (in ODL), Priority 3: others
+    const defaultsPool = instances.filter(i=>i.isDefault);
+    const toTtPool = instances.filter(i=>!i.isDefault && i.isToTt);
+    const othersPool = instances.filter(i=>!i.isDefault && !i.isToTt);
+
+    let selected = selectFromPool(defaultsPool, toProcess);
+    if (selected.length < toProcess) selected = selected.concat(selectFromPool(toTtPool, toProcess - selected.length));
+    if (selected.length < toProcess) selected = selected.concat(selectFromPool(othersPool, toProcess - selected.length));
+
     return { selected, totalFound };
   }
 
@@ -1432,15 +1489,15 @@
     state.lastRunBatch = results;
     renderRunResults();
     renderSessionLog();
-    document.getElementById('stage4').classList.remove('disabled');
+    document.getElementById('stage4').setAttribute('data-disabled', 'false');
     refreshExportGate();
     state.shortages.forEach(s=>updateShortageCard(s));
 
     lastCrmBuild = buildCrmExports();
     renderCrmReview();
     renderCrmDownloads();
-    document.getElementById('stage5').classList.remove('disabled');
-    document.getElementById('stage6').classList.remove('disabled');
+    document.getElementById('stage5').setAttribute('data-disabled', 'false');
+    document.getElementById('stage6').setAttribute('data-disabled', 'false');
     renderSlack();
   });
 
@@ -1479,22 +1536,25 @@
     ).join('');
   }
 
-  // ================= stage 4: export (P2L + bulk-error) =================
+  // ================= stage 4: export (P2L + bulk-error + Drive) =================
   function refreshExportGate(){
     const ok = state.sessionRuns.length>0;
     document.getElementById('download-box').disabled = !ok;
     document.getElementById('download-bartender').disabled = !ok;
+    document.getElementById('btn-post-drive').disabled = !ok;
   }
 
-  document.getElementById('download-box').addEventListener('click', ()=>{
-    downloadCSV('factor_p2l_modified.csv', ['Production Date','BoxID','SKU','Qty'],
-      state.boxRows.map(r=>({'Production Date':r.productionDate,'BoxID':r.boxId,'SKU':r.sku,'Qty':r.qty})));
-  });
+  function buildAllCSVs(){
+    const swapCreditEnabled = document.getElementById('swap-credit-enabled').checked;
+    const compSwap = swapCreditEnabled ? 5.0 : 0;
+    const compShort = parseFloat(document.getElementById('comp-short-fallback').value||'0') || 0;
 
-  document.getElementById('download-bartender').addEventListener('click', ()=>{
-    const compSwap = parseFloat(document.getElementById('comp-swap').value||'0') || 0;
-    const compShort = parseFloat(document.getElementById('comp-short').value||'0') || 0;
-    const rows = state.auditLog.map(e=>({
+    const p2lHeaders = ['Production Date','BoxID','SKU','Qty'];
+    const p2lRows = state.boxRows.map(r=>({'Production Date':r.productionDate,'BoxID':r.boxId,'SKU':r.sku,'Qty':r.qty}));
+    const p2lCsv = "﻿" + toCSV(p2lHeaders, p2lRows);
+
+    const bulkHeaders = ['customer id','box id','error category','error sub category','complaint','additional detail 1','additional detail 2','ingredient','recipe name','compensation type','compensation amount','recipe index','culinary sku','comment'];
+    const bulkRows = state.auditLog.map(e=>({
       'customer id': stripLeadingLetters(e.customerId),
       'box id': stripTrailingLetter(e.boxId),
       'error category': 'operations_use_only',
@@ -1510,9 +1570,99 @@
       'culinary sku': e.originalSku,
       'comment': e.impact==='SWAP' ? `Swap to ${e.replacementRecipeIndexNum}: ${e.replacementNameEN}` : 'Shortage'
     }));
-    downloadCSV('bulk-error.csv',
-      ['customer id','box id','error category','error sub category','complaint','additional detail 1','additional detail 2','ingredient','recipe name','compensation type','compensation amount','recipe index','culinary sku','comment'],
-      rows);
+    const bulkCsv = "﻿" + toCSV(bulkHeaders, bulkRows);
+
+    const stamp = todayDDMM();
+    return [
+      { name: `factor_p2l_modified_${stamp}.csv`, content: p2lCsv },
+      { name: `bulk-error_${stamp}.csv`, content: bulkCsv }
+    ];
+  }
+
+  async function triggerAllDriveAndEmail(){
+    const statusEl = document.getElementById('drive-status');
+    statusEl.className = 'drive-status uploading';
+    statusEl.textContent = 'Uploading to Drive…';
+    const files = buildAllCSVs();
+    const links = [];
+    try{
+      for (const f of files){
+        const resp = await fetch('/api/upload-to-drive', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ filename: f.name, content: f.content, mimeType: 'text/csv', folderId: DRIVE_FOLDER_ID })
+        });
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error);
+        links.push({ name: f.name, url: data.webViewLink || data.id });
+      }
+      statusEl.className = 'drive-status ok';
+      statusEl.textContent = `Saved ${files.length} file(s) to Drive. Sending summary email…`;
+      await sendEmailSummary(statusEl, links);
+    } catch(err){
+      statusEl.className = 'drive-status err';
+      statusEl.textContent = `Drive upload failed: ${err.message}`;
+    }
+  }
+
+  async function sendEmailSummary(statusEl, driveLinks){
+    const swapCount = state.auditLog.filter(e=>e.impact==='SWAP').length;
+    const shortCount = state.auditLog.filter(e=>e.impact==='SHORT').length;
+    const localeRows = (lastCrmBuild ? ['nl-NL','be-NL','be-FR'] : []).map(loc=>{
+      const s = lastCrmBuild ? lastCrmBuild.stats[loc] : {total:0};
+      return `<tr><td style="padding:4px 8px;">${loc}</td><td style="padding:4px 8px;">${s.total || 0}</td></tr>`;
+    }).join('');
+    const fileRows = driveLinks.map(l=>`<tr><td style="padding:4px 8px;font-family:monospace;">${escapeHtml(l.name)}</td><td style="padding:4px 8px;"><a href="${escapeHtml(l.url)}">${escapeHtml(l.url)}</a></td></tr>`).join('');
+
+    const body = `<h2 style="font-family:sans-serif;">BNL Swap &amp; Shortage — Session Summary</h2>
+<p style="font-family:sans-serif;">Swap rows: <strong>${swapCount}</strong> | Shortage rows: <strong>${shortCount}</strong></p>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:sans-serif;font-size:13px;">
+<thead><tr><th style="padding:4px 8px;">Locale</th><th style="padding:4px 8px;">Customers emailed</th></tr></thead>
+<tbody>${localeRows}</tbody></table>
+<h3 style="font-family:sans-serif;margin-top:18px;">Files saved to Drive</h3>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:sans-serif;font-size:13px;">
+<tbody>${fileRows}</tbody></table>`;
+
+    try{
+      const resp = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ to: 'colin.kreeftenberg@factor75.eu', subject: `BNL Swap & Shortage — ${new Date().toLocaleDateString()}`, body })
+      });
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+      statusEl.className = 'drive-status ok';
+      statusEl.textContent = `Files saved to Drive. Summary email sent.`;
+    } catch(err){
+      statusEl.className = 'drive-status ok';
+      statusEl.textContent = `Files saved to Drive. Email failed: ${err.message}`;
+    }
+  }
+
+  document.getElementById('btn-post-drive').addEventListener('click', triggerAllDriveAndEmail);
+
+  document.getElementById('download-box').addEventListener('click', ()=>{
+    const csvFiles = buildAllCSVs();
+    const p2lFile = csvFiles.find(f=>f.name.startsWith('factor_p2l'));
+    if (!p2lFile) return;
+    const blob = new Blob([p2lFile.content], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = p2lFile.name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('download-bartender').addEventListener('click', ()=>{
+    const csvFiles = buildAllCSVs();
+    const bulkFile = csvFiles.find(f=>f.name.startsWith('bulk-error'));
+    if (!bulkFile) return;
+    const blob = new Blob([bulkFile.content], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = bulkFile.name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   });
 
   document.getElementById('reset-runs').addEventListener('click', ()=>{
@@ -1527,8 +1677,10 @@
     document.getElementById('crmReviewBody').innerHTML = '';
     document.getElementById('crmDownloadRow').innerHTML = '';
     document.getElementById('slackBody').innerHTML = '';
-    document.getElementById('stage5').classList.add('disabled');
-    document.getElementById('stage6').classList.add('disabled');
+    document.getElementById('drive-status').className = 'drive-status';
+    document.getElementById('drive-status').textContent = '';
+    document.getElementById('stage5').setAttribute('data-disabled', 'true');
+    document.getElementById('stage6').setAttribute('data-disabled', 'true');
   });
   refreshExportGate();
 
