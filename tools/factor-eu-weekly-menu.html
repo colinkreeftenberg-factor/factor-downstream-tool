@@ -23,7 +23,7 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
 .app-header{
   border-bottom:2px solid var(--saffron);
   overflow:hidden;position:relative;
-  background:#fff;
+  background:var(--natural-2);
 }
 .header-inner{max-width:1280px;margin:0 auto;display:flex;align-items:stretch;min-height:108px;}
 .header-left{flex:1;display:flex;align-items:center;gap:14px;padding:20px 32px;background:var(--natural-2);}
@@ -32,12 +32,12 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
 .app-title{font-size:28px;font-weight:800;letter-spacing:-0.02em;color:var(--carbon);line-height:1;text-transform:uppercase;}
 .app-title span{color:var(--saffron);}
 .app-sub{font-size:12px;color:#7a7a70;margin-top:5px;}
-.header-photo{width:340px;flex:none;position:relative;overflow:hidden;}
+.header-photo{width:340px;flex:none;position:relative;overflow:hidden;background:var(--natural-2);}
 .header-photo img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;}
 .home-btn{
   position:absolute;top:12px;right:14px;
   appearance:none;border:1.5px solid var(--line);border-radius:var(--r-pill);
-  background:rgba(241,241,234,0.9);color:var(--carbon);cursor:pointer;text-decoration:none;
+  background:rgba(231,230,220,0.9);color:var(--carbon);cursor:pointer;text-decoration:none;
   font-family:inherit;font-weight:600;font-size:11.5px;
   padding:5px 13px;display:flex;align-items:center;gap:5px;
   transition:border-color .15s,box-shadow .15s;
@@ -51,7 +51,7 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
 .controls-bar{
   display:flex;align-items:center;gap:8px;flex-wrap:wrap;
   background:#FBFBF7;border:1px solid var(--line);
-  border-radius:12px;padding:8px 12px;margin-bottom:12px;
+  border-radius:12px;padding:8px 12px;margin-bottom:8px;
 }
 .ctrl-sep{width:1px;height:20px;background:var(--line);margin:0 2px;flex:none;}
 .ctrl-label{font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:500;color:#8a897d;letter-spacing:0.07em;text-transform:uppercase;white-space:nowrap;}
@@ -118,6 +118,18 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
 .fpill:hover{border-color:var(--carbon);}
 .fpill.active{background:var(--saffron);border-color:var(--saffron);color:var(--carbon);}
 
+/* ── SLOTS BAR ── */
+.slots-bar{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  margin-bottom:8px;padding:5px 2px;
+}
+.slots-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;color:#9a997d;letter-spacing:0.07em;text-transform:uppercase;}
+.slot-chip{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;
+  background:var(--carbon);color:var(--natural);
+  border-radius:5px;padding:2px 7px;
+}
+
 /* ── RESULTS ── */
 .results-meta{margin-bottom:6px;}
 .results-count{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8a897d;}
@@ -147,7 +159,7 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
   white-space:nowrap;letter-spacing:0.02em;
 }
 
-/* Recipe column — card + expand below */
+/* Recipe column: card + expand panel stacked */
 .recipe-col{flex:1;min-width:0;display:flex;flex-direction:column;}
 
 .recipe-card{
@@ -163,22 +175,23 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
 .recipe-col.expanded .recipe-card{
   border-color:var(--carbon);
   border-radius:var(--r) var(--r) 0 0;
-  border-bottom-color:var(--line);
+  border-bottom:none;
 }
 
 .recipe-name{
   font-weight:700;font-size:12.5px;line-height:1.3;flex:1;min-width:0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
+.name-missing{color:#b8b7a8;font-style:italic;font-weight:500;font-size:11px;letter-spacing:0.02em;}
 .recipe-tags{display:flex;align-items:center;gap:4px;flex:none;}
 
-/* Protein — distinct teal */
+/* Protein */
 .tag-protein{
   font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;
   background:#0b3d47;color:#e0f4f8;
   border-radius:var(--r-pill);padding:2px 8px;white-space:nowrap;
 }
-/* Diet tags — colored by type */
+/* Diet tags */
 .tag-diet{
   font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:500;
   border-radius:var(--r-pill);padding:2px 7px;white-space:nowrap;border:1px solid transparent;
@@ -200,24 +213,36 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
   font-family:'IBM Plex Mono',monospace;font-size:7px;font-weight:600;color:#5b5b54;flex:none;
 }
 
-/* ── EXPAND PANEL — connected to recipe card only ── */
+/* ── EXPAND PANEL — inside .recipe-col, same width as card ── */
 .expand-panel{
   display:none;
   border:1px solid var(--carbon);border-top:none;
   border-radius:0 0 var(--r) var(--r);
   background:#fff;
-  padding:11px 13px;
+  padding:12px 14px;
 }
 .recipe-col.expanded .expand-panel{display:block;}
-.expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+.expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 .expand-lbl{
   font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;
-  color:#8a897d;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:4px;
+  color:#8a897d;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:5px;
 }
-.expand-text{font-size:12px;line-height:1.6;color:#3d3d38;}
+.expand-text{font-size:12px;line-height:1.65;color:#3d3d38;}
 .expand-placeholder{color:#a9a799;font-style:italic;font-size:12px;}
-/* Allergen highlight */
+
+/* Allergen highlight in ingredient text */
 .allergen{color:#9B2629;font-weight:700;background:rgba(155,38,41,0.08);border-radius:2px;padding:0 2px;}
+
+/* Allergen bullet list */
+.allergen-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px;}
+.allergen-list li{
+  display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#9B2629;
+}
+.allergen-list li::before{
+  content:'';display:block;width:5px;height:5px;border-radius:50%;
+  background:#9B2629;flex:none;
+}
 
 /* State */
 .state-screen{text-align:center;padding:60px 24px;}
@@ -246,7 +271,7 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
       <div>
         <div class="app-eyebrow">Customer Care · Internal Tool</div>
         <h1 class="app-title">FACTOR EU<span>_</span> — WEEKLY MENU</h1>
-        <div class="app-sub">Select week &amp; language to see what's in the boxes</div>
+        <div class="app-sub">Select week &amp; language to see what goes into the boxes</div>
       </div>
     </div>
     <div class="header-photo">
@@ -315,6 +340,7 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
     </div>
   </div>
 
+  <div class="slots-bar" id="slotsBar" hidden></div>
   <div class="results-meta"><span class="results-count" id="resultsCount">—</span></div>
   <div id="mainContent">
     <div class="state-screen"><div class="spinner"></div><div class="state-title">Loading menu…</div><div class="state-sub">Fetching from Google Sheets</div></div>
@@ -343,17 +369,36 @@ function normalizeProtein(raw){
   return map[u]||(raw.charAt(0).toUpperCase()+raw.slice(1).toLowerCase());
 }
 
-// Parse **text** markers: ALL CAPS inside = allergen (red), mixed = bold
+// Parse **...** markers for ingredient text display:
+// **ALLCAPS** → red allergen highlight, **MixedCase** → bold only
 function parseIngredientText(text){
   if(!text||!text.trim())return'<span class="expand-placeholder">Not yet available</span>';
-  const escaped=text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  return escaped.replace(/\*\*([^*]+)\*\*/g,(m,content)=>{
-    const letters=content.replace(/[^a-zA-Z]/g,'');
+  const esc=text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return esc.replace(/\*\*([^*]+)\*\*/g,(m,c)=>{
+    const letters=c.replace(/[^a-zA-Z]/g,'');
     const isAllergen=letters.length>0&&letters===letters.toUpperCase();
-    return isAllergen
-      ?`<strong class="allergen">${content}</strong>`
-      :`<strong>${content}</strong>`;
+    return isAllergen?`<strong class="allergen">${c}</strong>`:`<strong>${c}</strong>`;
   });
+}
+
+// Extract allergen names (ALLCAPS **markers**) as an array
+function extractAllergens(text){
+  if(!text||!text.trim())return[];
+  const allergens=[];
+  const re=/\*\*([^*]+)\*\*/g;
+  let m;
+  while((m=re.exec(text))!==null){
+    const c=m[1].trim();
+    const letters=c.replace(/[^a-zA-Z]/g,'');
+    if(letters.length>0&&letters===letters.toUpperCase())allergens.push(c);
+  }
+  return allergens;
+}
+
+function renderAllergens(text){
+  const list=extractAllergens(text);
+  if(!list.length)return'<span class="expand-placeholder">None identified</span>';
+  return`<ul class="allergen-list">${list.map(a=>`<li>${a}</li>`).join('')}</ul>`;
 }
 
 const LANG_CFG={nl:{col:8,slotKey:'BENL'},fr:{col:12,slotKey:'BENL'},da:{col:9,slotKey:'DKSE'},sv:{col:10,slotKey:'DKSE'},de:{col:11,slotKey:'DE'},en:{col:2,slotKey:'ALL'}};
@@ -364,8 +409,7 @@ function parseRow(r){
     slotBENL:r[4]||'',slotDKSE:r[5]||'',slotDE:r[6]||'',
     nameNL:r[8]||'',nameDA:r[9]||'',nameSV:r[10]||'',nameDE:r[11]||'',nameFR:r[12]||'',
     protein:normalizeProtein(r[13]||''),
-    allergens:r[14]||'',
-    ingredients:r[24]||'', // future column
+    ingredients:r[14]||'', // full ingredient text (with **allergen** markers)
     tags:TAG_COLS.filter(t=>(r[t.col]||'').toUpperCase()==='TRUE').map(t=>t.key),
   };
 }
@@ -375,7 +419,8 @@ function getSlot(r,lang){
   const k=LANG_CFG[lang].slotKey;
   return(k==='BENL'?r.slotBENL:k==='DKSE'?r.slotDKSE:r.slotDE)||'—';
 }
-function getName(r,lang){return{nl:r.nameNL,fr:r.nameFR,da:r.nameDA,sv:r.nameSV,de:r.nameDE,en:r.nameEN}[lang]||r.nameEN||'—';}
+function getName(r,lang){return{nl:r.nameNL,fr:r.nameFR,da:r.nameDA,sv:r.nameSV,de:r.nameDE,en:r.nameEN}[lang]||r.nameEN||'';}
+
 function isoWeek(d){
   const dt=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
   const day=dt.getUTCDay()||7;dt.setUTCDate(dt.getUTCDate()+4-day);
@@ -394,15 +439,24 @@ function buildProteinPills(rows){
   a.className='fpill active';a.dataset.protein='ALL';a.textContent='All';c.appendChild(a);
   proteins.forEach(p=>{const b=document.createElement('button');b.className='fpill';b.dataset.protein=p;b.textContent=p;c.appendChild(b);});
 }
+
 function populateWeeks(rows){
   const cw=isoWeek(new Date());
-  const weeks=[...new Set(rows.map(r=>r.week).filter(w=>w.startsWith('W')))];
+  const weeks=[...new Set(rows.map(r=>r.week).filter(w=>w&&w.startsWith('W')))];
   weeks.sort((a,b)=>parseInt(a.slice(1))-parseInt(b.slice(1)));
   const filtered=weeks.filter(w=>{const n=parseInt(w.slice(1));return n>=cw-4&&n<=cw+4;});
   const sel=document.getElementById('weekSelect');sel.innerHTML='';
   filtered.forEach(w=>{const o=document.createElement('option');o.value=w;o.textContent=w;if(parseInt(w.slice(1))===cw)o.selected=true;sel.appendChild(o);});
   if(!sel.value&&filtered.length)sel.value=filtered[filtered.length-1];
   activeWeek=sel.value;
+}
+
+function renderSlotsBar(rows,lang){
+  const bar=document.getElementById('slotsBar');
+  const slots=[...new Set(rows.map(r=>getSlot(r,lang)).filter(s=>s&&s!=='—'))].sort((a,b)=>(parseInt(a)||9999)-(parseInt(b)||9999));
+  if(!slots.length){bar.hidden=true;return;}
+  bar.hidden=false;
+  bar.innerHTML=`<span class="slots-lbl">Slots in ${activeWeek}:</span> ${slots.map(s=>`<span class="slot-chip">${s}</span>`).join('')}`;
 }
 
 function render(){
@@ -413,22 +467,31 @@ function render(){
   if(activeProtein.size)rows=rows.filter(r=>activeProtein.has(r.protein));
   if(activeTag.size)rows=rows.filter(r=>[...activeTag].some(t=>r.tags.includes(t)));
   rows.sort((a,b)=>{const sa=parseInt(getSlot(a,lang))||9999,sb=parseInt(getSlot(b,lang))||9999;return sa-sb;});
+
+  // Slot bar — from unfiltered week rows (show all slots available that week)
+  const weekRows=allRows.filter(r=>r.week===activeWeek);
+  renderSlotsBar(weekRows,lang);
+
   document.getElementById('resultsCount').textContent=`${rows.length} recipe${rows.length!==1?'s':''}`;
   const main=document.getElementById('mainContent');
   if(!rows.length){main.innerHTML='<div class="state-screen"><div class="state-title">No recipes found</div><div class="state-sub">Adjust the filters above.</div></div>';return;}
 
   const list=document.createElement('div');list.className='recipe-list';
-  rows.forEach((recipe,i)=>{
+  rows.forEach(recipe=>{
     const slot=getSlot(recipe,lang);
-    const name=getName(recipe,lang);
+    const rawName=getName(recipe,lang);
     const isExp=expandedCode===recipe.code;
 
     let prefHTML='';
     if(PREF_ICONS[recipe.pref])prefHTML=`<img class="pref-icon" src="${PREF_ICONS[recipe.pref]}" title="${recipe.pref}">`;
     else if(recipe.pref&&recipe.pref!=='-')prefHTML=`<div class="pref-badge-sm">${recipe.pref}</div>`;
 
-    const tagHTML=recipe.tags.map(t=>{const cfg=TAG_COLS.find(tc=>tc.key===t);return cfg?`<span class="tag-diet ${cfg.cls}">${cfg.label}</span>`:'';}).join('');
+    const tagHTML=recipe.tags.map(t=>{const cfg=TAG_COLS.find(tc=>tc.key===t);return cfg?`<span class="tag-diet ${cfg.cls}">${cfg.label}</span>`:''}).join('');
     const proteinHTML=recipe.protein?`<span class="tag-protein">${recipe.protein}</span>`:'';
+
+    const nameDisplay=rawName
+      ?`<span class="recipe-name">${rawName}</span>`
+      :`<span class="recipe-name"><span class="name-missing">RECIPE NAME MISSING</span></span>`;
 
     const row=document.createElement('div');
     row.className='recipe-row';
@@ -436,8 +499,8 @@ function render(){
       <div class="slot-badge">${slot}</div>
       <div class="code-badge">${recipe.code}</div>
       <div class="recipe-col${isExp?' expanded':''}">
-        <div class="recipe-card${isExp?' expanded':''}">
-          <span class="recipe-name">${name}</span>
+        <div class="recipe-card">
+          ${nameDisplay}
           <div class="recipe-tags">${proteinHTML}${tagHTML}${prefHTML}</div>
         </div>
         <div class="expand-panel">
@@ -448,7 +511,7 @@ function render(){
             </div>
             <div>
               <div class="expand-lbl">Allergens</div>
-              <div class="expand-text">${parseIngredientText(recipe.allergens)}</div>
+              <div class="expand-text">${renderAllergens(recipe.ingredients)}</div>
             </div>
           </div>
         </div>
