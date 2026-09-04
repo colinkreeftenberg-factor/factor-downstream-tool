@@ -3,6 +3,7 @@ const { GoogleAuth } = require('google-auth-library');
 const LINE_SHEET_ID = '1CJ7raeP-Ex7eOkQ0ShpbgXKeHi1EJWXE6XNITArW7Do';
 const BACKEND_SHEET_ID = '1DjYDHfwKLRkQzlEj22whxrBjdk9T36VRQqMGE91l17U';
 const BNL_PRODUCTION_SHEET_ID = '1NQzhmy1jkfqDoxUQWabxvIV5568eIj4aqsOCaZBozH8';
+const CC_MENU_SHEET_ID = '1JwNt8YFMVEWTOR7Au-Zjaofz69kQEra7s442WmawenQ';
 
 const SOURCES = {
   bartender: { spreadsheetId: LINE_SHEET_ID, range: 'Bartender!A:Z' },
@@ -21,7 +22,8 @@ const SOURCES = {
   bnl_mealdb: { spreadsheetId: BNL_PRODUCTION_SHEET_ID, range: 'MealDatabase!A:AJ' },
   bnl_verden2: { spreadsheetId: BACKEND_SHEET_ID, range: 'Verden2!A:M' },
   bnl_production: { spreadsheetId: BNL_PRODUCTION_SHEET_ID, range: 'source_timestamps_enriched!A:P' },
-  bnl_pricebnl: { spreadsheetId: BNL_PRODUCTION_SHEET_ID, range: "'Price BNL'!A:G" }
+  bnl_pricebnl: { spreadsheetId: BNL_PRODUCTION_SHEET_ID, range: "'Price BNL'!A:G" },
+  cc_menu: { spreadsheetId: CC_MENU_SHEET_ID, range: 'Overview!A:Z' }
 };
 
 let cachedClient = null;
