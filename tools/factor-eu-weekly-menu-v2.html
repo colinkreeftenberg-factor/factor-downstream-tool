@@ -11,15 +11,16 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakarta Sans',-apple-system,sans-serif;-webkit-font-smoothing:antialiased;}
 
-/* HEADER — full-width flex, no inner wrapper, no white gaps */
-.app-header{display:flex;align-items:stretch;min-height:108px;border-bottom:2px solid #FFC800;overflow:hidden;position:relative;background:#E7E6DC;}
-.header-left{flex:1;display:flex;align-items:center;gap:14px;padding:20px 32px;background:#E7E6DC;}
+/* HEADER */
+.app-header{border-bottom:2px solid #FFC800;background:#E7E6DC;overflow:hidden;}
+.header-inner{max-width:1280px;margin:0 auto;display:flex;align-items:stretch;min-height:108px;position:relative;}
+.header-left{flex:1;display:flex;align-items:center;gap:14px;padding:20px 32px;}
 .logo-img{width:40px;height:40px;border-radius:9px;flex:none;object-fit:cover;}
 .app-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:#8a897d;margin-bottom:4px;}
 .app-title{font-size:28px;font-weight:800;letter-spacing:-.02em;color:#141414;line-height:1;text-transform:uppercase;}
 .app-title span{color:#FFC800;}
 .app-sub{font-size:12px;color:#7a7a70;margin-top:5px;}
-.header-photo{width:320px;flex:none;overflow:hidden;background:#E7E6DC;}
+.header-photo{width:320px;flex:none;overflow:hidden;}
 .header-photo img{width:100%;height:100%;object-fit:cover;display:block;}
 .home-btn{position:absolute;top:12px;right:14px;appearance:none;border:1.5px solid var(--line);border-radius:var(--r-pill);background:rgba(231,230,220,.92);color:var(--carbon);cursor:pointer;text-decoration:none;font-family:inherit;font-weight:600;font-size:11.5px;padding:5px 13px;display:flex;align-items:center;gap:5px;transition:border-color .15s;}
 .home-btn:hover{border-color:var(--carbon);}
@@ -54,10 +55,7 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
 
 /* STATUS / SLOTS */
 .info-row{display:flex;align-items:center;gap:12px;margin-bottom:7px;flex-wrap:wrap;}
-.slots-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.slots-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;color:#9a997d;letter-spacing:.07em;text-transform:uppercase;}
-.slot-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;background:var(--carbon);color:var(--natural);border-radius:5px;padding:2px 7px;}
-.img-status{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9a997d;margin-left:auto;}
+.img-status{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9a997d;}
 .results-meta{margin-bottom:6px;}
 .results-count{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8a897d;}
 
@@ -127,19 +125,21 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
 </head>
 <body>
 <header class="app-header">
-  <div class="header-left">
-    <img src="../assets/logo.png" class="logo-img" alt="Factor_"/>
-    <div>
-      <div class="app-eyebrow">Customer Care &middot; Internal Tool</div>
-      <h1 class="app-title">FACTOR EU<span>_</span> &mdash; WEEKLY MENU</h1>
-      <div class="app-sub">Select week &amp; language to see what goes into the boxes</div>
+  <div class="header-inner">
+    <div class="header-left">
+      <img src="../assets/logo.png" class="logo-img" alt="Factor_"/>
+      <div>
+        <div class="app-eyebrow">Customer Care &middot; Internal Tool</div>
+        <h1 class="app-title">FACTOR EU<span>_</span> &mdash; WEEKLY MENU</h1>
+        <div class="app-sub">Select week &amp; language to see what goes into the boxes</div>
+      </div>
     </div>
+    <div class="header-photo"><img src="../assets/hero.png" alt=""/></div>
+    <a href="/" class="home-btn">
+      <svg width="11" height="11" viewBox="0 0 13 13" fill="none"><path d="M1 6.5L6.5 1L12 6.5M2.5 5V12H5.5V9H7.5V12H10.5V5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Home
+    </a>
   </div>
-  <div class="header-photo"><img src="../assets/hero.png" alt=""/></div>
-  <a href="/" class="home-btn">
-    <svg width="11" height="11" viewBox="0 0 13 13" fill="none"><path d="M1 6.5L6.5 1L12 6.5M2.5 5V12H5.5V9H7.5V12H10.5V5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Home
-  </a>
 </header>
 
 <div class="wrap">
@@ -199,7 +199,6 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
   </div>
 
   <div class="info-row">
-    <div class="slots-bar" id="slotsBar" hidden></div>
     <span class="img-status" id="imgStatus">Loading photo index&hellip;</span>
   </div>
   <div class="results-meta"><span class="results-count" id="resultsCount">&mdash;</span></div>
@@ -361,14 +360,6 @@ function populateWeeks(rows){
   activeWeek=sel.value;
 }
 
-function renderSlotsBar(rows,lang){
-  const bar=document.getElementById('slotsBar');
-  const slots=[...new Set(rows.map(r=>getSlot(r,lang)).filter(s=>s&&s!=='—'))].sort((a,b)=>(parseInt(a)||9999)-(parseInt(b)||9999));
-  if(!slots.length){bar.hidden=true;return;}
-  bar.hidden=false;
-  bar.innerHTML='<span class="slots-lbl">Slots in '+activeWeek+':</span> '+slots.map(s=>'<span class="slot-chip">'+s+'</span>').join('');
-}
-
 // ── Render ─────────────────────────────────────────────────────────────────────
 function render(){
   const lang=activeLang;
@@ -379,7 +370,6 @@ function render(){
   if(activeTag.size)rows=rows.filter(r=>[...activeTag].some(t=>r.tags.includes(t)));
   rows.sort((a,b)=>(parseInt(getSlot(a,lang))||9999)-(parseInt(getSlot(b,lang))||9999));
 
-  renderSlotsBar(allRows.filter(r=>r.week===activeWeek),lang);
   document.getElementById('resultsCount').textContent=rows.length+' recipe'+(rows.length!==1?'s':'');
 
   const main=document.getElementById('mainContent');
