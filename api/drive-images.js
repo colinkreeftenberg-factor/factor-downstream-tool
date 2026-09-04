@@ -17,66 +17,67 @@ async function getAuthClient() {
   return cachedClient;
 }
 
-async function listAll(client, params) {
-  const items = [];
-  let pageToken = null;
-  do {
-    const qs = new URLSearchParams({ ...params, pageSize: '1000' });
-    if (pageToken) qs.set('pageToken', pageToken);
-    const resp = await client.request({
-      url: `https://www.googleapis.com/drive/v3/files?${qs}`,
-    });
-    items.push(...(resp.data.files || []));
-    pageToken = resp.data.nextPageToken || null;
-  } while (pageToken);
-  return items;
+async function driveList(client, params) {
+  const qs = new URLSearchParams({ pageSize: '1000', ...params });
+  const resp = await client.request({
+    url: `https://www.googleapis.com/drive/v3/files?${qs}`,
+  });
+  return resp.data.files || [];
+}
+
+function parseCode(folderName) {
+  // "FV0972A - Salmon Piccata"  →  "FV0972A"
+  // "FE4014B-Chicken"           →  "FE4014B"
+  const m = folderName.match(/^([A-Za-z]{2}\d+[A-Za-z]?)\b/);
+  return m ? m[1].toUpperCase() : folderName.split(/[\s-_]/)[0].toUpperCase();
+}
+
+function pickBestFile(files) {
+  if (!files.length) return null;
+  const low = files.find(f => f.name.toLowerCase().includes('low'));
+  if (low) return low;
+  return [...files].sort(
+    (a, b) => (parseInt(a.size) || 999999) - (parseInt(b.size) || 999999)
+  )[0];
+}
+
+// Run async tasks with limited concurrency
+async function pMap(items, fn, limit = 20) {
+  const results = new Array(items.length).fill(null);
+  let idx = 0;
+  async function worker() {
+    while (idx < items.length) {
+      const i = idx++;
+      try { results[i] = await fn(items[i]); } catch { /* skip */ }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
 }
 
 module.exports = async function handler(req, res) {
   try {
     const client = await getAuthClient();
 
-    // 1. List recipe folders (direct children) — one API call
-    const folders = await listAll(client, {
+    // 1. List all recipe subfolders (one API call)
+    const folders = await driveList(client, {
       q: `'${PARENT_FOLDER_ID}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-      fields: 'nextPageToken,files(id,name)',
+      fields: 'files(id,name)',
     });
 
-    // Build folder-id → recipe-code lookup
-    const folderToCode = {};
-    for (const f of folders) {
-      const code = f.name.split(/\s*-\s*/)[0].trim().toUpperCase();
-      if (code) folderToCode[f.id] = code;
-    }
-
-    // 2. List ALL image files anywhere under the parent — one or two API calls
-    //    Using 'ancestors' instead of 'parents' covers all subfolders at once.
-    const allFiles = await listAll(client, {
-      q: `'${PARENT_FOLDER_ID}' in ancestors and mimeType contains 'image/' and trashed=false`,
-      fields: 'nextPageToken,files(id,name,size,parents)',
-    });
-
-    // 3. Group by recipe code, pick the best file per recipe
-    const codeFiles = {};
-    for (const file of allFiles) {
-      const parentId = (file.parents || [])[0];
-      const code = folderToCode[parentId];
-      if (!code) continue;
-      if (!codeFiles[code]) codeFiles[code] = [];
-      codeFiles[code].push(file);
-    }
-
-    const mapping = {}; // code → fileId
-    for (const [code, files] of Object.entries(codeFiles)) {
-      // Prefer file with 'low' in name; fall back to smallest size
-      let best = files.find(f => f.name.toLowerCase().includes('low'));
-      if (!best) {
-        best = [...files].sort(
-          (a, b) => (parseInt(a.size) || 999999) - (parseInt(b.size) || 999999)
-        )[0];
-      }
+    // 2. For each folder, find the best image (parallel, 20 at a time)
+    const mapping = {};
+    await pMap(folders, async (folder) => {
+      const code = parseCode(folder.name);
+      if (!code) return;
+      const files = await driveList(client, {
+        q: `'${folder.id}' in parents and mimeType contains 'image/' and trashed=false`,
+        fields: 'files(id,name,size)',
+        pageSize: '50',
+      });
+      const best = pickBestFile(files);
       if (best) mapping[code] = best.id;
-    }
+    }, 20);
 
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
     res.status(200).json(mapping);
