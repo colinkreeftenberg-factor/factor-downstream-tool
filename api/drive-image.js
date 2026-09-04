@@ -27,7 +27,7 @@ module.exports = async function handler(req, res) {
 
     // Directly download the file by ID — single Drive API call
     const imgResp = await client.request({
-      url: `https://www.googleapis.com/drive/v3/files/${id}?alt=media`,
+      url: `https://www.googleapis.com/drive/v3/files/${id}?alt=media&supportsAllDrives=true`,
       responseType: 'arraybuffer',
     });
 

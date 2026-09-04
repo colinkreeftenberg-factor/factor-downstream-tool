@@ -18,7 +18,12 @@ async function getAuthClient() {
 }
 
 async function driveList(client, params) {
-  const qs = new URLSearchParams({ pageSize: '1000', ...params });
+  const qs = new URLSearchParams({
+    pageSize: '1000',
+    includeItemsFromAllDrives: 'true',
+    supportsAllDrives: 'true',
+    ...params,
+  });
   const resp = await client.request({
     url: `https://www.googleapis.com/drive/v3/files?${qs}`,
   });
