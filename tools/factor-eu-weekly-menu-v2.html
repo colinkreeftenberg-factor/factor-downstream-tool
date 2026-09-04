@@ -297,13 +297,20 @@ function initObserver(){
 async function loadFileMap(){
   try{
     const res=await fetch('/api/drive-images');
-    fileMap=res.ok?await res.json():{};
+    if(!res.ok){
+      const body=await res.text();
+      console.warn('[drive-images] API error',res.status,body);
+      fileMap={};
+    } else {
+      fileMap=await res.json();
+    }
     const n=Object.keys(fileMap).length;
-    document.getElementById('imgStatus').textContent=
-      n?n+' photos in index':'No photos found in Drive — check folder access';
-  }catch{
+    console.log('[drive-images] index has',n,'codes. Sample keys:',Object.keys(fileMap).slice(0,10));
+    window._driveIndexCount=n;
+  }catch(e){
     fileMap={};
-    document.getElementById('imgStatus').textContent='Photo index unavailable';
+    window._driveIndexCount=0;
+    console.warn('[drive-images] fetch failed:',e.message);
   }
   // Re-render so expand panels and thumbnails both pick up file IDs
   if(allRows.length)render();
@@ -440,12 +447,20 @@ function render(){
 
   main.innerHTML='';main.appendChild(list);
 
-  // Update img status with match count
+  // Update img status with both index count and match count
   if(fileMap!==null){
     const total=document.querySelectorAll('img.recipe-thumb').length;
     const matched=document.querySelectorAll('img.recipe-thumb[data-fileid]').length;
+    const n=window._driveIndexCount||0;
+    const recipeCodes=rows.map(r=>r.code);
+    console.log('[recipes] codes in view:',recipeCodes);
+    console.log('[recipes]',matched,'of',total,'matched from Drive index of',n,'codes');
     const statusEl=document.getElementById('imgStatus');
-    statusEl.textContent=matched+'/'+total+' recipes have photos';
+    if(n===0){
+      statusEl.textContent='Drive index empty — check deployment & folder access';
+    } else {
+      statusEl.textContent=n+' in Drive index · '+matched+'/'+total+' matched';
+    }
   }
 }
 
