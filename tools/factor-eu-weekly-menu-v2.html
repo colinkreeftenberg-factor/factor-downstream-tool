@@ -3,35 +3,29 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Factor EU — Weekly Menu</title>
+<title>Factor EU &mdash; Weekly Menu (Photos)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --carbon:#141414;
-  --natural:#F1F1EA;
-  --natural-2:#E7E6DC;
-  --saffron:#FFC800;
-  --line:#D9D7C9;
-  --r:8px;
-  --r-pill:999px;
+  --carbon:#141414;--natural:#F1F1EA;--natural-2:#E7E6DC;--saffron:#FFC800;
+  --line:#D9D7C9;--r:8px;--r-pill:999px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakarta Sans',-apple-system,sans-serif;-webkit-font-smoothing:antialiased;}
 
-/* ── HEADER ── */
-.app-header{border-bottom:2px solid var(--saffron);overflow:hidden;position:relative;background:var(--natural-2);}
-.header-inner{max-width:1280px;margin:0 auto;display:flex;align-items:stretch;min-height:108px;}
-.header-left{flex:1;display:flex;align-items:center;gap:14px;padding:20px 32px;background:var(--natural-2);}
+/* ── HEADER (full-width flex, no inner wrapper) ── */
+.app-header{display:flex;align-items:stretch;min-height:108px;border-bottom:2px solid #FFC800;overflow:hidden;position:relative;background:#E7E6DC;}
+.header-left{flex:1;display:flex;align-items:center;gap:14px;padding:20px 32px;background:#E7E6DC;}
 .logo-img{width:40px;height:40px;border-radius:9px;flex:none;object-fit:cover;}
 .app-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:0.13em;text-transform:uppercase;color:#8a897d;margin-bottom:4px;}
-.app-title{font-size:28px;font-weight:800;letter-spacing:-0.02em;color:var(--carbon);line-height:1;text-transform:uppercase;}
-.app-title span{color:var(--saffron);}
+.app-title{font-size:28px;font-weight:800;letter-spacing:-0.02em;color:#141414;line-height:1;text-transform:uppercase;}
+.app-title span{color:#FFC800;}
 .app-sub{font-size:12px;color:#7a7a70;margin-top:5px;}
-.header-photo{width:340px;flex:none;position:relative;overflow:hidden;background:var(--natural-2);}
+.header-photo{width:320px;flex:none;overflow:hidden;background:#E7E6DC;}
 .header-photo img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;}
-.home-btn{position:absolute;top:12px;right:14px;appearance:none;border:1.5px solid var(--line);border-radius:var(--r-pill);background:rgba(231,230,220,0.9);color:var(--carbon);cursor:pointer;text-decoration:none;font-family:inherit;font-weight:600;font-size:11.5px;padding:5px 13px;display:flex;align-items:center;gap:5px;transition:border-color .15s,box-shadow .15s;}
-.home-btn:hover{border-color:var(--carbon);box-shadow:0 0 0 3px rgba(20,20,20,0.07);}
+.home-btn{position:absolute;top:12px;right:14px;appearance:none;border:1.5px solid var(--line);border-radius:var(--r-pill);background:rgba(231,230,220,0.92);color:var(--carbon);cursor:pointer;text-decoration:none;font-family:inherit;font-weight:600;font-size:11.5px;padding:5px 13px;display:flex;align-items:center;gap:5px;transition:border-color .15s;}
+.home-btn:hover{border-color:var(--carbon);}
 
 /* ── WRAP ── */
 .wrap{max-width:1280px;margin:0 auto;padding:16px 32px 80px;}
@@ -43,69 +37,54 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
 .ctrl-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .ctrl-select{appearance:none;border:1.5px solid var(--line);border-radius:var(--r-pill);background:#fff;color:var(--carbon);cursor:pointer;font-family:inherit;font-weight:600;font-size:12px;padding:4px 26px 4px 11px;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23141414' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;transition:border-color .15s;}
 .ctrl-select:focus{outline:none;border-color:var(--carbon);}
-.ctrl-select:hover{border-color:var(--carbon);}
-
-/* Multi-select dropdown */
 .multi-drop{position:relative;}
-.multi-drop-btn{appearance:none;border:1.5px solid var(--line);border-radius:var(--r-pill);background:#fff;color:var(--carbon);cursor:pointer;font-family:inherit;font-weight:600;font-size:12px;padding:4px 26px 4px 11px;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23141414' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;transition:border-color .15s,background .15s;white-space:nowrap;}
+.multi-drop-btn{appearance:none;border:1.5px solid var(--line);border-radius:var(--r-pill);background:#fff;color:var(--carbon);cursor:pointer;font-family:inherit;font-weight:600;font-size:12px;padding:4px 26px 4px 11px;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23141414' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;white-space:nowrap;}
 .multi-drop-btn.has-selection{background:var(--saffron);border-color:var(--saffron);}
-.multi-drop-btn:hover{border-color:var(--carbon);}
 .multi-drop-panel{display:none;position:absolute;top:calc(100% + 5px);left:0;z-index:200;background:#fff;border:1.5px solid var(--line);border-radius:10px;box-shadow:0 4px 16px rgba(20,20,20,0.12);min-width:185px;overflow:hidden;}
 .multi-drop.open .multi-drop-panel{display:block;}
 .multi-drop-item{display:flex;align-items:center;gap:9px;padding:8px 13px;cursor:pointer;font-size:12.5px;font-weight:500;transition:background .1s;border-bottom:1px solid var(--line);}
 .multi-drop-item:last-child{border-bottom:none;}
 .multi-drop-item:hover{background:var(--natural-2);}
 .multi-drop-item.checked{background:#FFFDF0;}
-.check-box{width:15px;height:15px;border-radius:4px;border:1.5px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;background:#fff;transition:background .1s,border-color .1s;}
+.check-box{width:15px;height:15px;border-radius:4px;border:1.5px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;background:#fff;}
 .multi-drop-item.checked .check-box{background:var(--saffron);border-color:var(--saffron);}
 .check-box svg{display:none;}
 .multi-drop-item.checked .check-box svg{display:block;}
 .multi-drop-item img{width:17px;height:17px;object-fit:contain;border-radius:3px;}
-
-/* Filter pills */
 .filter-pills{display:flex;flex-wrap:wrap;gap:4px;}
-.fpill{appearance:none;border:1.5px solid var(--line);border-radius:var(--r-pill);background:#fff;color:var(--carbon);cursor:pointer;font-family:inherit;font-weight:600;font-size:11px;padding:3px 10px;display:flex;align-items:center;gap:4px;transition:border-color .12s,background .12s;white-space:nowrap;height:26px;}
+.fpill{appearance:none;border:1.5px solid var(--line);border-radius:var(--r-pill);background:#fff;color:var(--carbon);cursor:pointer;font-family:inherit;font-weight:600;font-size:11px;padding:3px 10px;display:flex;align-items:center;gap:4px;white-space:nowrap;height:26px;transition:border-color .12s,background .12s;}
 .fpill:hover{border-color:var(--carbon);}
-.fpill.active{background:var(--saffron);border-color:var(--saffron);color:var(--carbon);}
+.fpill.active{background:var(--saffron);border-color:var(--saffron);}
 
 /* ── SLOTS BAR ── */
 .slots-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;padding:5px 2px;}
 .slots-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;color:#9a997d;letter-spacing:0.07em;text-transform:uppercase;}
 .slot-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;background:var(--carbon);color:var(--natural);border-radius:5px;padding:2px 7px;}
 
-/* ── RESULTS ── */
 .results-meta{margin-bottom:6px;}
 .results-count{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8a897d;}
 
 /* ── RECIPE LIST ── */
 .recipe-list{display:flex;flex-direction:column;gap:3px;}
 .recipe-row{display:flex;align-items:flex-start;gap:4px;}
-
-.slot-badge{flex:none;width:54px;min-height:46px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:500;background:var(--carbon);color:var(--natural);border-radius:var(--r);display:flex;align-items:center;justify-content:center;letter-spacing:0.02em;}
+.slot-badge{flex:none;width:54px;min-height:50px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:500;background:var(--carbon);color:var(--natural);border-radius:var(--r);display:flex;align-items:center;justify-content:center;}
 .recipe-row:nth-child(odd) .slot-badge{background:#1e1e1e;}
-.code-badge{flex:none;min-height:46px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;background:var(--saffron);color:var(--carbon);border-radius:var(--r);padding:0 9px;display:flex;align-items:center;justify-content:center;white-space:nowrap;letter-spacing:0.02em;}
-
-/* Recipe column: card + expand panel stacked */
+.code-badge{flex:none;min-height:50px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;background:var(--saffron);color:var(--carbon);border-radius:var(--r);padding:0 9px;display:flex;align-items:center;justify-content:center;white-space:nowrap;}
 .recipe-col{flex:1;min-width:0;display:flex;flex-direction:column;}
-
-.recipe-card{min-height:46px;display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:var(--r);padding:4px 11px 4px 4px;cursor:pointer;transition:border-color .12s,background .12s;}
+.recipe-card{min-height:50px;display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:var(--r);padding:4px 11px 4px 4px;cursor:pointer;transition:border-color .12s,background .12s;}
 .recipe-row:nth-child(odd) .recipe-card{background:#FBFBF7;}
 .recipe-row:nth-child(even) .recipe-card{background:#F5F4EE;}
 .recipe-card:hover{border-color:#a9a799;}
 .recipe-col.expanded .recipe-card{border-color:var(--carbon);border-radius:var(--r) var(--r) 0 0;border-bottom:none;}
 
 /* Thumbnail */
-.recipe-thumb{width:38px;height:38px;object-fit:cover;border-radius:5px;flex:none;background:var(--natural-2);border:1px solid var(--line);transition:opacity .3s;}
-.recipe-thumb.blank{opacity:0;}
+.recipe-thumb{width:42px;height:42px;object-fit:cover;border-radius:5px;flex:none;background:var(--natural-2);border:1px solid var(--line);opacity:0;transition:opacity .35s;}
 .recipe-thumb.loaded{opacity:1;}
 
 .recipe-name{font-weight:700;font-size:12.5px;line-height:1.3;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.name-missing{color:#b8b7a8;font-style:italic;font-weight:500;font-size:11px;letter-spacing:0.02em;}
+.name-missing{color:#b8b7a8;font-style:italic;font-weight:500;font-size:11px;}
 .recipe-tags{display:flex;align-items:center;gap:4px;flex:none;flex-wrap:wrap;}
-
-/* Protein */
 .tag-protein{font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;background:#0b3d47;color:#e0f4f8;border-radius:var(--r-pill);padding:2px 8px;white-space:nowrap;}
-/* Diet tags */
 .tag-diet{font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:500;border-radius:var(--r-pill);padding:2px 7px;white-space:nowrap;border:1px solid transparent;}
 .tag-KETO{background:rgba(155,38,41,.1);border-color:rgba(155,38,41,.3);color:#7a1f22;}
 .tag-CAL-SMART{background:rgba(97,223,255,.18);border-color:rgba(97,223,255,.45);color:#1a7a96;}
@@ -116,30 +95,25 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
 .tag-VEGAN{background:rgba(32,107,25,.08);border-color:rgba(32,107,25,.24);color:#206B19;}
 .tag-DAIRY-FREE{background:rgba(97,223,255,.12);border-color:rgba(97,223,255,.35);color:#1a7a96;}
 .tag-FIBER{background:rgba(199,156,0,.1);border-color:rgba(199,156,0,.3);color:#7a5e00;}
-
 .pref-icon{width:24px;height:24px;object-fit:contain;border-radius:4px;flex:none;}
-.pref-badge-sm{width:24px;height:24px;border-radius:4px;background:var(--natural-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:7px;font-weight:600;color:#5b5b54;flex:none;}
 
 /* ── EXPAND PANEL ── */
 .expand-panel{display:none;border:1px solid var(--carbon);border-top:none;border-radius:0 0 var(--r) var(--r);background:#fff;padding:14px;}
 .recipe-col.expanded .expand-panel{display:block;}
-
 .expand-grid{display:grid;grid-template-columns:180px 1fr 1fr;gap:16px;align-items:start;}
-.expand-img{width:180px;aspect-ratio:4/3;object-fit:cover;border-radius:6px;border:1px solid var(--line);background:var(--natural-2);display:block;}
-.expand-img.blank{opacity:0.4;}
+.expand-img{width:180px;aspect-ratio:4/3;object-fit:cover;border-radius:6px;border:1px solid var(--line);background:var(--natural-2);display:block;opacity:0;transition:opacity .35s;}
+.expand-img.loaded{opacity:1;}
 .expand-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;color:#8a897d;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:5px;}
 .expand-text{font-size:12px;line-height:1.65;color:#3d3d38;}
 .expand-placeholder{color:#a9a799;font-style:italic;font-size:12px;}
-
-/* Allergen in ingredient text */
 .allergen{color:#9B2629;font-weight:700;background:rgba(155,38,41,0.08);border-radius:2px;padding:0 2px;}
-
-/* Allergen bullet list */
 .allergen-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;}
 .allergen-list li{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#9B2629;}
 .allergen-list li::before{content:'';display:block;width:5px;height:5px;border-radius:50%;background:#9B2629;flex:none;}
 
-/* State */
+/* Image loading status */
+.img-status{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9a997d;margin-top:4px;text-align:right;}
+
 .state-screen{text-align:center;padding:60px 24px;}
 .spinner{width:24px;height:24px;border:2.5px solid var(--line);border-top-color:var(--carbon);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -150,7 +124,6 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
   .header-photo{display:none;}
   .header-left{padding:16px 18px;}
   .wrap{padding:12px 14px 60px;}
-  .recipe-name{white-space:normal;}
   .code-badge{display:none;}
   .expand-grid{grid-template-columns:1fr;}
   .expand-img{width:100%;aspect-ratio:16/9;}
@@ -158,21 +131,16 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
 </style>
 </head>
 <body>
-
 <header class="app-header">
-  <div class="header-inner">
-    <div class="header-left">
-      <img src="../assets/logo.png" class="logo-img" alt="Factor_" />
-      <div>
-        <div class="app-eyebrow">Customer Care · Internal Tool</div>
-        <h1 class="app-title">FACTOR EU<span>_</span> — WEEKLY MENU</h1>
-        <div class="app-sub">Select week &amp; language to see what goes into the boxes</div>
-      </div>
-    </div>
-    <div class="header-photo">
-      <img src="../assets/hero.png" alt="" />
+  <div class="header-left">
+    <img src="../assets/logo.png" class="logo-img" alt="Factor_" />
+    <div>
+      <div class="app-eyebrow">Customer Care &middot; Internal Tool</div>
+      <h1 class="app-title">FACTOR EU<span>_</span> &mdash; WEEKLY MENU</h1>
+      <div class="app-sub">Select week &amp; language to see what goes into the boxes</div>
     </div>
   </div>
+  <div class="header-photo"><img src="../assets/hero.png" alt="" /></div>
   <a href="/" class="home-btn">
     <svg width="11" height="11" viewBox="0 0 13 13" fill="none"><path d="M1 6.5L6.5 1L12 6.5M2.5 5V12H5.5V9H7.5V12H10.5V5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     Home
@@ -183,7 +151,7 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
   <div class="controls-bar">
     <div class="ctrl-group">
       <span class="ctrl-label">Week</span>
-      <select id="weekSelect" class="ctrl-select"><option>Loading…</option></select>
+      <select id="weekSelect" class="ctrl-select"><option>Loading&hellip;</option></select>
     </div>
     <div class="ctrl-sep"></div>
     <div class="ctrl-group">
@@ -234,11 +202,11 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
       </div>
     </div>
   </div>
-
+  <div id="imgStatus" class="img-status" hidden></div>
   <div class="slots-bar" id="slotsBar" hidden></div>
-  <div class="results-meta"><span class="results-count" id="resultsCount">—</span></div>
+  <div class="results-meta"><span class="results-count" id="resultsCount">&mdash;</span></div>
   <div id="mainContent">
-    <div class="state-screen"><div class="spinner"></div><div class="state-title">Loading menu…</div><div class="state-sub">Fetching recipes from Google Sheets</div></div>
+    <div class="state-screen"><div class="spinner"></div><div class="state-title">Loading menu&hellip;</div><div class="state-sub">Fetching recipes from Google Sheets</div></div>
   </div>
 </div>
 
@@ -258,39 +226,36 @@ const TAG_COLS = [
 ];
 
 function normalizeProtein(raw) {
-  const u = (raw || '').trim().toUpperCase();
-  const map = {BEEF:'Beef','BEEF-PORK':'Beef & Pork',PORK:'Pork',POULTRY:'Chicken',CHICKEN:'Chicken',FISH:'Fish',SEAFOOD:'Seafood',SALMON:'Salmon',VEGETARIAN:'Vegetarian'};
-  if (!u || u === 'ALL' || u === '-') return '';
-  return map[u] || (raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase());
+  const u = (raw||'').trim().toUpperCase();
+  const m = {BEEF:'Beef','BEEF-PORK':'Beef & Pork',PORK:'Pork',POULTRY:'Chicken',CHICKEN:'Chicken',FISH:'Fish',SEAFOOD:'Seafood',SALMON:'Salmon',VEGETARIAN:'Vegetarian'};
+  if (!u || u==='ALL' || u==='-') return '';
+  return m[u] || (raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase());
 }
 
-// Parse **text** markers: split on '**', every odd segment is a marked span.
-// ALLCAPS = allergen highlight; mixed case = bold only.
 function parseIngredientText(text) {
   if (!text || !text.trim()) return '<span class="expand-placeholder">Not yet available</span>';
-  const parts = text.replace(/</g, '&lt;').replace(/>/g, '&gt;').split('**');
+  const parts = text.replace(/</g,'&lt;').replace(/>/g,'&gt;').split('**');
   let out = '';
   for (let i = 0; i < parts.length; i++) {
     if (i % 2 === 0) { out += parts[i]; continue; }
     const c = parts[i];
-    const letters = c.replace(/[^a-zA-Z]/g, '');
+    const letters = c.replace(/[^a-zA-Z]/g,'');
     const isAllergen = letters.length > 0 && letters === letters.toUpperCase();
     out += isAllergen ? '<strong class="allergen">' + c + '</strong>' : '<strong>' + c + '</strong>';
   }
   return out || '<span class="expand-placeholder">Not yet available</span>';
 }
 
-// Extract ALLCAPS **...** entries as allergen list
 function extractAllergens(text) {
   if (!text || !text.trim()) return [];
   const parts = text.split('**');
-  const allergens = [];
+  const out = [];
   for (let i = 1; i < parts.length; i += 2) {
     const c = parts[i].trim();
-    const letters = c.replace(/[^a-zA-Z]/g, '');
-    if (letters.length > 0 && letters === letters.toUpperCase()) allergens.push(c);
+    const letters = c.replace(/[^a-zA-Z]/g,'');
+    if (letters.length > 0 && letters === letters.toUpperCase()) out.push(c);
   }
-  return allergens;
+  return out;
 }
 
 function renderAllergens(text) {
@@ -299,332 +264,273 @@ function renderAllergens(text) {
   return '<ul class="allergen-list">' + list.map(a => '<li>' + a + '</li>').join('') + '</ul>';
 }
 
-// ── Drive image loading ──────────────────────────────────────────────────────
-let folderMap = null; // null = loading, {} = loaded
+// ── Drive image map (code → fileId, pre-resolved server-side) ──────────────
+let fileMap = null; // null = loading, {} = loaded
 
-function findFolderForCode(code) {
-  if (!folderMap || !code) return null;
-  // Direct match
+function findFileId(code) {
+  if (!fileMap || !code) return null;
   const up = code.toUpperCase();
-  if (folderMap[up]) return folderMap[up];
-  // Fallback: try earlier letter suffixes alphabetically
+  if (fileMap[up]) return fileMap[up];
+  // Fallback: try earlier letter suffixes
   const base = up.slice(0, -1);
-  const lastChar = up.slice(-1);
-  if (/[B-Z]/.test(lastChar)) {
-    for (let c = lastChar.charCodeAt(0) - 1; c >= 65; c--) {
+  const last = up.slice(-1);
+  if (/[B-Z]/.test(last)) {
+    for (let c = last.charCodeAt(0) - 1; c >= 65; c--) {
       const tryCode = base + String.fromCharCode(c);
-      if (folderMap[tryCode]) return folderMap[tryCode];
+      if (fileMap[tryCode]) return fileMap[tryCode];
     }
   }
   return null;
 }
 
-let imageObserver = null;
+let observer = null;
 
 function initObserver() {
-  imageObserver = new IntersectionObserver(entries => {
+  observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       if (!entry.isIntersecting) return;
       const img = entry.target;
-      const folder = img.dataset.folder;
-      if (folder) {
-        img.src = '/api/drive-image?folder=' + folder;
-        imageObserver.unobserve(img);
+      const fid = img.dataset.fileid;
+      if (fid && !img.src.includes('/api/drive-image')) {
+        img.src = '/api/drive-image?id=' + fid;
+        observer.unobserve(img);
       }
     });
-  }, { rootMargin: '400px' });
+  }, { rootMargin: '500px' });
 }
 
-function assignFolders() {
-  if (!folderMap || !imageObserver) return;
+function assignFileIds() {
+  if (!fileMap || !observer) return;
   document.querySelectorAll('img[data-code]').forEach(img => {
-    const folder = findFolderForCode(img.dataset.code);
-    if (folder && img.dataset.folder !== folder) {
-      img.dataset.folder = folder;
-      if (!img.src || img.classList.contains('blank')) {
-        imageObserver.observe(img);
-      }
+    const fid = findFileId(img.dataset.code);
+    if (fid && img.dataset.fileid !== fid) {
+      img.dataset.fileid = fid;
+      observer.observe(img);
     }
   });
+  // Update img-status indicator
+  const total = document.querySelectorAll('img[data-code]').length;
+  const matched = document.querySelectorAll('img[data-fileid]').length;
+  const statusEl = document.getElementById('imgStatus');
+  if (total) {
+    statusEl.hidden = false;
+    statusEl.textContent = matched + '/' + total + ' photos matched';
+  }
 }
 
-async function loadFolderMap() {
+async function loadFileMap() {
+  const statusEl = document.getElementById('imgStatus');
   try {
+    statusEl.hidden = false;
+    statusEl.textContent = 'Loading photo index…';
     const res = await fetch('/api/drive-images');
-    folderMap = res.ok ? await res.json() : {};
-  } catch { folderMap = {}; }
-  assignFolders();
+    fileMap = res.ok ? await res.json() : {};
+    statusEl.textContent = Object.keys(fileMap).length + ' photos in Drive index';
+  } catch {
+    fileMap = {};
+    statusEl.textContent = 'Photo index unavailable';
+  }
+  assignFileIds();
 }
 
-// ── Data helpers ─────────────────────────────────────────────────────────────
-const LANG_CFG = {
-  nl:{col:8,slotKey:'BENL'},fr:{col:12,slotKey:'BENL'},
-  da:{col:9,slotKey:'DKSE'},sv:{col:10,slotKey:'DKSE'},
-  de:{col:11,slotKey:'DE'},en:{col:2,slotKey:'ALL'}
-};
+// ── Data helpers ────────────────────────────────────────────────────────────
+const LANG_CFG = {nl:{slotKey:'BENL'},fr:{slotKey:'BENL'},da:{slotKey:'DKSE'},sv:{slotKey:'DKSE'},de:{slotKey:'DE'},en:{slotKey:'ALL'}};
 
 function parseRow(r) {
   return {
-    code: r[0]||'', pref: r[1]||'', nameEN: r[2]||'', week: r[3]||'',
-    slotBENL: r[4]||'', slotDKSE: r[5]||'', slotDE: r[6]||'',
-    nameNL: r[8]||'', nameDA: r[9]||'', nameSV: r[10]||'', nameDE: r[11]||'', nameFR: r[12]||'',
-    protein: normalizeProtein(r[13]||''),
-    ingredients: r[14]||'',
-    tags: TAG_COLS.filter(t => (r[t.col]||'').toUpperCase() === 'TRUE').map(t => t.key),
+    code:r[0]||'',pref:r[1]||'',nameEN:r[2]||'',week:r[3]||'',
+    slotBENL:r[4]||'',slotDKSE:r[5]||'',slotDE:r[6]||'',
+    nameNL:r[8]||'',nameDA:r[9]||'',nameSV:r[10]||'',nameDE:r[11]||'',nameFR:r[12]||'',
+    protein:normalizeProtein(r[13]||''),
+    ingredients:r[14]||'',
+    tags:TAG_COLS.filter(t=>(r[t.col]||'').toUpperCase()==='TRUE').map(t=>t.key),
   };
 }
 
-function getSlot(r, lang) {
-  if (lang === 'en') return [r.slotBENL, r.slotDKSE, r.slotDE].filter(Boolean).join('/') || '—';
-  const k = LANG_CFG[lang].slotKey;
-  return (k === 'BENL' ? r.slotBENL : k === 'DKSE' ? r.slotDKSE : r.slotDE) || '—';
+function getSlot(r,lang){
+  if(lang==='en') return [r.slotBENL,r.slotDKSE,r.slotDE].filter(Boolean).join('/')||'—';
+  const k=LANG_CFG[lang].slotKey;
+  return (k==='BENL'?r.slotBENL:k==='DKSE'?r.slotDKSE:r.slotDE)||'—';
 }
-function getName(r, lang) {
-  return {nl:r.nameNL, fr:r.nameFR, da:r.nameDA, sv:r.nameSV, de:r.nameDE, en:r.nameEN}[lang] || r.nameEN || '';
-}
+function getName(r,lang){return{nl:r.nameNL,fr:r.nameFR,da:r.nameDA,sv:r.nameSV,de:r.nameDE,en:r.nameEN}[lang]||r.nameEN||'';}
+function isoWeek(d){const dt=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=dt.getUTCDay()||7;dt.setUTCDate(dt.getUTCDate()+4-day);const ys=new Date(Date.UTC(dt.getUTCFullYear(),0,1));return Math.ceil((((dt-ys)/86400000)+1)/7);}
 
-function isoWeek(d) {
-  const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const day = dt.getUTCDay() || 7;
-  dt.setUTCDate(dt.getUTCDate() + 4 - day);
-  const ys = new Date(Date.UTC(dt.getUTCFullYear(), 0, 1));
-  return Math.ceil((((dt - ys) / 86400000) + 1) / 7);
-}
+// ── App state ───────────────────────────────────────────────────────────────
+let allRows=[],activeWeek='',activeLang='nl';
+let activePref=new Set(),activeProtein=new Set(),activeTag=new Set();
+let expandedCode=null;
 
-// ── State ─────────────────────────────────────────────────────────────────────
-let allRows = [], activeWeek = '', activeLang = 'nl';
-let activePref = new Set(), activeProtein = new Set(), activeTag = new Set();
-let expandedCode = null;
-
-function buildProteinPills(rows) {
-  const proteins = [...new Set(rows.map(r => r.protein).filter(Boolean))].sort();
-  const c = document.getElementById('proteinPills');
-  c.innerHTML = '';
-  const a = document.createElement('button');
-  a.className = 'fpill active'; a.dataset.protein = 'ALL'; a.textContent = 'All';
-  c.appendChild(a);
-  proteins.forEach(p => {
-    const b = document.createElement('button');
-    b.className = 'fpill'; b.dataset.protein = p; b.textContent = p;
-    c.appendChild(b);
-  });
+function buildProteinPills(rows){
+  const proteins=[...new Set(rows.map(r=>r.protein).filter(Boolean))].sort();
+  const c=document.getElementById('proteinPills');c.innerHTML='';
+  const a=document.createElement('button');a.className='fpill active';a.dataset.protein='ALL';a.textContent='All';c.appendChild(a);
+  proteins.forEach(p=>{const b=document.createElement('button');b.className='fpill';b.dataset.protein=p;b.textContent=p;c.appendChild(b);});
 }
 
-function populateWeeks(rows) {
-  const cw = isoWeek(new Date());
-  const weeks = [...new Set(rows.map(r => r.week).filter(w => w && w.startsWith('W')))];
-  weeks.sort((a, b) => parseInt(a.slice(1)) - parseInt(b.slice(1)));
-  const filtered = weeks.filter(w => { const n = parseInt(w.slice(1)); return n >= cw - 4 && n <= cw + 4; });
-  const sel = document.getElementById('weekSelect');
-  sel.innerHTML = '';
-  filtered.forEach(w => {
-    const o = document.createElement('option');
-    o.value = w; o.textContent = w;
-    if (parseInt(w.slice(1)) === cw) o.selected = true;
-    sel.appendChild(o);
-  });
-  if (!sel.value && filtered.length) sel.value = filtered[filtered.length - 1];
-  activeWeek = sel.value;
+function populateWeeks(rows){
+  const cw=isoWeek(new Date());
+  const weeks=[...new Set(rows.map(r=>r.week).filter(w=>w&&w.startsWith('W')))];
+  weeks.sort((a,b)=>parseInt(a.slice(1))-parseInt(b.slice(1)));
+  const filtered=weeks.filter(w=>{const n=parseInt(w.slice(1));return n>=cw-4&&n<=cw+4;});
+  const sel=document.getElementById('weekSelect');sel.innerHTML='';
+  filtered.forEach(w=>{const o=document.createElement('option');o.value=w;o.textContent=w;if(parseInt(w.slice(1))===cw)o.selected=true;sel.appendChild(o);});
+  if(!sel.value&&filtered.length)sel.value=filtered[filtered.length-1];
+  activeWeek=sel.value;
 }
 
-function renderSlotsBar(rows, lang) {
-  const bar = document.getElementById('slotsBar');
-  const slots = [...new Set(rows.map(r => getSlot(r, lang)).filter(s => s && s !== '—'))]
-    .sort((a, b) => (parseInt(a) || 9999) - (parseInt(b) || 9999));
-  if (!slots.length) { bar.hidden = true; return; }
-  bar.hidden = false;
-  bar.innerHTML = '<span class="slots-lbl">Slots in ' + activeWeek + ':</span> '
-    + slots.map(s => '<span class="slot-chip">' + s + '</span>').join('');
+function renderSlotsBar(rows,lang){
+  const bar=document.getElementById('slotsBar');
+  const slots=[...new Set(rows.map(r=>getSlot(r,lang)).filter(s=>s&&s!=='—'))].sort((a,b)=>(parseInt(a)||9999)-(parseInt(b)||9999));
+  if(!slots.length){bar.hidden=true;return;}
+  bar.hidden=false;
+  bar.innerHTML='<span class="slots-lbl">Slots in '+activeWeek+':</span> '+slots.map(s=>'<span class="slot-chip">'+s+'</span>').join('');
 }
 
-// ── Render ─────────────────────────────────────────────────────────────────────
-function render() {
-  const lang = activeLang;
-  let rows = allRows.filter(r => r.week === activeWeek);
-  if (lang !== 'en') {
-    const nk = {nl:'nameNL', fr:'nameFR', da:'nameDA', sv:'nameSV', de:'nameDE'}[lang];
-    rows = rows.filter(r => r[nk]);
-  }
-  if (activePref.size) rows = rows.filter(r => activePref.has(r.pref));
-  if (activeProtein.size) rows = rows.filter(r => activeProtein.has(r.protein));
-  if (activeTag.size) rows = rows.filter(r => [...activeTag].some(t => r.tags.includes(t)));
-  rows.sort((a, b) => {
-    const sa = parseInt(getSlot(a, lang)) || 9999;
-    const sb = parseInt(getSlot(b, lang)) || 9999;
-    return sa - sb;
-  });
+// ── Render ───────────────────────────────────────────────────────────────────
+function render(){
+  const lang=activeLang;
+  let rows=allRows.filter(r=>r.week===activeWeek);
+  if(lang!=='en'){const nk={nl:'nameNL',fr:'nameFR',da:'nameDA',sv:'nameSV',de:'nameDE'}[lang];rows=rows.filter(r=>r[nk]);}
+  if(activePref.size)rows=rows.filter(r=>activePref.has(r.pref));
+  if(activeProtein.size)rows=rows.filter(r=>activeProtein.has(r.protein));
+  if(activeTag.size)rows=rows.filter(r=>[...activeTag].some(t=>r.tags.includes(t)));
+  rows.sort((a,b)=>(parseInt(getSlot(a,lang))||9999)-(parseInt(getSlot(b,lang))||9999));
 
-  renderSlotsBar(allRows.filter(r => r.week === activeWeek), lang);
-  document.getElementById('resultsCount').textContent = rows.length + ' recipe' + (rows.length !== 1 ? 's' : '');
+  renderSlotsBar(allRows.filter(r=>r.week===activeWeek),lang);
+  document.getElementById('resultsCount').textContent=rows.length+' recipe'+(rows.length!==1?'s':'');
 
-  const main = document.getElementById('mainContent');
-  if (!rows.length) {
-    main.innerHTML = '<div class="state-screen"><div class="state-title">No recipes found</div><div class="state-sub">Adjust the filters above.</div></div>';
-    return;
-  }
+  const main=document.getElementById('mainContent');
+  if(!rows.length){main.innerHTML='<div class="state-screen"><div class="state-title">No recipes found</div><div class="state-sub">Adjust the filters above.</div></div>';return;}
 
-  const list = document.createElement('div');
-  list.className = 'recipe-list';
+  const list=document.createElement('div');list.className='recipe-list';
 
-  rows.forEach(recipe => {
-    const slot = getSlot(recipe, lang);
-    const rawName = getName(recipe, lang);
-    const isExp = expandedCode === recipe.code;
-    const folderId = findFolderForCode(recipe.code) || '';
+  rows.forEach(recipe=>{
+    const slot=getSlot(recipe,lang);
+    const rawName=getName(recipe,lang);
+    const isExp=expandedCode===recipe.code;
+    const fid=findFileId(recipe.code)||'';
 
-    let prefHTML = '';
-    if (PREF_ICONS[recipe.pref]) {
-      prefHTML = '<img class="pref-icon" src="' + PREF_ICONS[recipe.pref] + '" title="' + recipe.pref + '">';
-    } else if (recipe.pref && recipe.pref !== '-') {
-      prefHTML = '<div class="pref-badge-sm">' + recipe.pref + '</div>';
-    }
+    let prefHTML='';
+    if(PREF_ICONS[recipe.pref])prefHTML='<img class="pref-icon" src="'+PREF_ICONS[recipe.pref]+'" title="'+recipe.pref+'">';
+    else if(recipe.pref&&recipe.pref!=='-')prefHTML='<div class="pref-badge-sm">'+recipe.pref+'</div>';
 
-    const tagHTML = recipe.tags.map(t => {
-      const cfg = TAG_COLS.find(tc => tc.key === t);
-      return cfg ? '<span class="tag-diet ' + cfg.cls + '">' + cfg.label + '</span>' : '';
-    }).join('');
-    const proteinHTML = recipe.protein ? '<span class="tag-protein">' + recipe.protein + '</span>' : '';
+    const tagHTML=recipe.tags.map(t=>{const cfg=TAG_COLS.find(tc=>tc.key===t);return cfg?'<span class="tag-diet '+cfg.cls+'">'+cfg.label+'</span>':''}).join('');
+    const proteinHTML=recipe.protein?'<span class="tag-protein">'+recipe.protein+'</span>':'';
+    const nameDisplay=rawName
+      ?'<span class="recipe-name">'+rawName+'</span>'
+      :'<span class="recipe-name"><span class="name-missing">RECIPE NAME MISSING</span></span>';
 
-    const nameDisplay = rawName
-      ? '<span class="recipe-name">' + rawName + '</span>'
-      : '<span class="recipe-name"><span class="name-missing">RECIPE NAME MISSING</span></span>';
+    const fidAttr=fid?' data-fileid="'+fid+'"':'';
+    const thumbSrc=fid?'/api/drive-image?id='+fid:'';
 
-    // Thumb: set data-code for observer to resolve, data-folder if already known
-    const thumbFolder = folderId ? ' data-folder="' + folderId + '"' : '';
-    const thumbSrc = folderId ? '' : 'src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" ';
-    const thumbClass = 'recipe-thumb blank' + (folderId ? '' : '');
-
-    const expandThumbSrc = folderId ? '/api/drive-image?folder=' + folderId : '';
-
-    const row = document.createElement('div');
-    row.className = 'recipe-row';
-    row.innerHTML =
-      '<div class="slot-badge">' + slot + '</div>' +
-      '<div class="code-badge">' + recipe.code + '</div>' +
-      '<div class="recipe-col' + (isExp ? ' expanded' : '') + '">' +
-        '<div class="recipe-card">' +
-          '<img ' + thumbSrc + 'class="' + thumbClass + '" data-code="' + recipe.code + '"' + thumbFolder + ' alt="" />' +
-          nameDisplay +
-          '<div class="recipe-tags">' + proteinHTML + tagHTML + prefHTML + '</div>' +
-        '</div>' +
-        '<div class="expand-panel">' +
-          '<div class="expand-grid">' +
-            '<div>' +
-              (expandThumbSrc
-                ? '<img class="expand-img" src="' + expandThumbSrc + '" alt="" onerror="this.classList.add('blank')" />'
-                : '<div class="expand-img blank" style="display:flex;align-items:center;justify-content:center;font-size:11px;color:#a9a799;">No image</div>') +
-            '</div>' +
-            '<div>' +
-              '<div class="expand-lbl">Ingredients</div>' +
-              '<div class="expand-text">' + parseIngredientText(recipe.ingredients) + '</div>' +
-            '</div>' +
-            '<div>' +
-              '<div class="expand-lbl">Allergens</div>' +
-              '<div class="expand-text">' + renderAllergens(recipe.ingredients) + '</div>' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
+    const row=document.createElement('div');
+    row.className='recipe-row';
+    row.innerHTML=
+      '<div class="slot-badge">'+slot+'</div>'+
+      '<div class="code-badge">'+recipe.code+'</div>'+
+      '<div class="recipe-col'+(isExp?' expanded':'')+'">'+
+        '<div class="recipe-card">'+
+          '<img class="recipe-thumb" data-code="'+recipe.code+'"'+fidAttr+' alt="" />'+
+          nameDisplay+
+          '<div class="recipe-tags">'+proteinHTML+tagHTML+prefHTML+'</div>'+
+        '</div>'+
+        '<div class="expand-panel">'+
+          '<div class="expand-grid">'+
+            '<div>'+
+              (fid?'<img class="expand-img" src="/api/drive-image?id='+fid+'" alt="" />'
+                  :'<div style="width:180px;aspect-ratio:4/3;background:var(--natural-2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#a9a799;border:1px solid var(--line)">No photo</div>')+
+            '</div>'+
+            '<div>'+
+              '<div class="expand-lbl">Ingredients</div>'+
+              '<div class="expand-text">'+parseIngredientText(recipe.ingredients)+'</div>'+
+            '</div>'+
+            '<div>'+
+              '<div class="expand-lbl">Allergens</div>'+
+              '<div class="expand-text">'+renderAllergens(recipe.ingredients)+'</div>'+
+            '</div>'+
+          '</div>'+
+        '</div>'+
       '</div>';
 
-    row.querySelector('.recipe-card').addEventListener('click', () => {
-      expandedCode = (isExp ? null : recipe.code);
-      render();
-    });
+    // Expand toggle
+    row.querySelector('.recipe-card').addEventListener('click',()=>{expandedCode=(isExp?null:recipe.code);render();});
 
-    // Fade-in thumbnail when loaded
-    const thumb = row.querySelector('.recipe-thumb');
-    thumb.addEventListener('load', () => { thumb.classList.remove('blank'); thumb.classList.add('loaded'); });
-    thumb.addEventListener('error', () => { thumb.classList.add('blank'); });
+    // Fade-in when loaded
+    const thumb=row.querySelector('.recipe-thumb');
+    thumb.addEventListener('load',()=>thumb.classList.add('loaded'));
+    thumb.addEventListener('error',()=>{thumb.style.opacity='0.15';});
+    if(fid){
+      thumb.src='/api/drive-image?id='+fid;
+    } else if(observer){
+      observer.observe(thumb);
+    }
+    const expandImg=row.querySelector('.expand-img');
+    if(expandImg){
+      expandImg.addEventListener('load',()=>expandImg.classList.add('loaded'));
+    }
 
     list.appendChild(row);
   });
 
-  main.innerHTML = '';
-  main.appendChild(list);
-
-  // Assign folders and start observing newly rendered images
-  assignFolders();
-
-  // Observe any with folder already set (expanded or folderMap loaded)
-  if (imageObserver) {
-    document.querySelectorAll('img[data-folder]').forEach(img => {
-      if (!img.src || img.src.endsWith('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=') || img.classList.contains('blank')) {
-        imageObserver.observe(img);
-      }
-    });
-  }
+  main.innerHTML='';main.appendChild(list);
+  assignFileIds();
 }
 
-// ── Event handlers ─────────────────────────────────────────────────────────────
-const prefDrop = document.getElementById('prefDrop');
-document.getElementById('prefDropPanel').addEventListener('click', e => {
-  const item = e.target.closest('[data-pref]');
-  if (!item) return;
+// ── Events ───────────────────────────────────────────────────────────────────
+const prefDrop=document.getElementById('prefDrop');
+document.getElementById('prefDropPanel').addEventListener('click',e=>{
+  const item=e.target.closest('[data-pref]');if(!item)return;
   item.classList.toggle('checked');
-  const p = item.dataset.pref;
-  if (item.classList.contains('checked')) activePref.add(p); else activePref.delete(p);
-  const btn = document.getElementById('prefDropBtn');
-  btn.textContent = activePref.size ? activePref.size + ' selected' : 'All preferences';
-  btn.classList.toggle('has-selection', activePref.size > 0);
+  const p=item.dataset.pref;
+  if(item.classList.contains('checked'))activePref.add(p);else activePref.delete(p);
+  const btn=document.getElementById('prefDropBtn');
+  btn.textContent=activePref.size?activePref.size+' selected':'All preferences';
+  btn.classList.toggle('has-selection',activePref.size>0);
   render();
 });
-document.getElementById('prefDropBtn').addEventListener('click', e => { e.stopPropagation(); prefDrop.classList.toggle('open'); });
-document.addEventListener('click', () => prefDrop.classList.remove('open'));
+document.getElementById('prefDropBtn').addEventListener('click',e=>{e.stopPropagation();prefDrop.classList.toggle('open');});
+document.addEventListener('click',()=>prefDrop.classList.remove('open'));
 
-document.getElementById('proteinPills').addEventListener('click', e => {
-  const btn = e.target.closest('[data-protein]');
-  if (!btn) return;
-  const p = btn.dataset.protein;
-  if (p === 'ALL') activeProtein.clear();
-  else { if (activeProtein.has(p)) activeProtein.delete(p); else activeProtein.add(p); }
-  document.querySelectorAll('[data-protein]').forEach(b =>
-    b.classList.toggle('active', b.dataset.protein === 'ALL' ? activeProtein.size === 0 : activeProtein.has(b.dataset.protein))
-  );
+document.getElementById('proteinPills').addEventListener('click',e=>{
+  const btn=e.target.closest('[data-protein]');if(!btn)return;
+  const p=btn.dataset.protein;
+  if(p==='ALL')activeProtein.clear();
+  else{if(activeProtein.has(p))activeProtein.delete(p);else activeProtein.add(p);}
+  document.querySelectorAll('[data-protein]').forEach(b=>b.classList.toggle('active',b.dataset.protein==='ALL'?activeProtein.size===0:activeProtein.has(b.dataset.protein)));
   render();
 });
 
-document.getElementById('tagPills').addEventListener('click', e => {
-  const btn = e.target.closest('[data-tag]');
-  if (!btn) return;
-  const t = btn.dataset.tag;
-  if (t === 'ALL') activeTag.clear();
-  else { if (activeTag.has(t)) activeTag.delete(t); else activeTag.add(t); }
-  document.querySelectorAll('[data-tag]').forEach(b =>
-    b.classList.toggle('active', b.dataset.tag === 'ALL' ? activeTag.size === 0 : activeTag.has(b.dataset.tag))
-  );
+document.getElementById('tagPills').addEventListener('click',e=>{
+  const btn=e.target.closest('[data-tag]');if(!btn)return;
+  const t=btn.dataset.tag;
+  if(t==='ALL')activeTag.clear();
+  else{if(activeTag.has(t))activeTag.delete(t);else activeTag.add(t);}
+  document.querySelectorAll('[data-tag]').forEach(b=>b.classList.toggle('active',b.dataset.tag==='ALL'?activeTag.size===0:activeTag.has(b.dataset.tag)));
   render();
 });
 
-document.getElementById('weekSelect').addEventListener('change', e => { activeWeek = e.target.value; render(); });
-document.getElementById('langSelect').addEventListener('change', e => { activeLang = e.target.value; render(); });
+document.getElementById('weekSelect').addEventListener('change',e=>{activeWeek=e.target.value;render();});
+document.getElementById('langSelect').addEventListener('change',e=>{activeLang=e.target.value;render();});
 
-// ── Boot ───────────────────────────────────────────────────────────────────────
-async function fetchData() {
-  try {
-    const res = await fetch('/api/data?sheet=cc_menu');
-    if (!res.ok) {
-      const body = await res.text();
-      let msg = 'HTTP ' + res.status;
-      try { msg += ' — ' + (JSON.parse(body).error || body); } catch { msg += ' — ' + body; }
-      throw new Error(msg);
-    }
-    const json = await res.json();
-    allRows = json.data.slice(2).map(parseRow).filter(r => r.code && r.week);
-    populateWeeks(allRows);
-    buildProteinPills(allRows);
-    activeWeek = document.getElementById('weekSelect').value;
-    activeLang = document.getElementById('langSelect').value;
+// ── Boot ─────────────────────────────────────────────────────────────────────
+async function fetchData(){
+  try{
+    const res=await fetch('/api/data?sheet=cc_menu');
+    if(!res.ok){const b=await res.text();let m='HTTP '+res.status;try{m+=' — '+(JSON.parse(b).error||b);}catch{m+=' — '+b;}throw new Error(m);}
+    const json=await res.json();
+    allRows=json.data.slice(2).map(parseRow).filter(r=>r.code&&r.week);
+    populateWeeks(allRows);buildProteinPills(allRows);
+    activeWeek=document.getElementById('weekSelect').value;
+    activeLang=document.getElementById('langSelect').value;
     render();
-  } catch (err) {
-    document.getElementById('mainContent').innerHTML =
-      '<div class="state-screen"><div class="state-title">Could not load data</div><div class="state-sub">' + err.message + '</div></div>';
-    document.getElementById('resultsCount').textContent = 'Error';
+  }catch(err){
+    document.getElementById('mainContent').innerHTML='<div class="state-screen"><div class="state-title">Could not load data</div><div class="state-sub">'+err.message+'</div></div>';
   }
 }
 
 initObserver();
 fetchData();
-loadFolderMap(); // parallel — arrives after initial render, triggers assignFolders()
+loadFileMap(); // parallel with recipe data
 </script>
 </body>
 </html>

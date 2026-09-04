@@ -21,28 +21,21 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
 
 /* ── HEADER ── */
 .app-header{
-  border-bottom:2px solid var(--saffron);
+  display:flex;align-items:stretch;min-height:108px;
+  border-bottom:2px solid #FFC800;
   overflow:hidden;position:relative;
-  background:var(--natural-2);
+  background:#E7E6DC;
 }
-.header-inner{max-width:1280px;margin:0 auto;display:flex;align-items:stretch;min-height:108px;}
-.header-left{flex:1;display:flex;align-items:center;gap:14px;padding:20px 32px;background:var(--natural-2);}
+.header-left{flex:1;display:flex;align-items:center;gap:14px;padding:20px 32px;background:#E7E6DC;}
 .logo-img{width:40px;height:40px;border-radius:9px;flex:none;object-fit:cover;}
 .app-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:0.13em;text-transform:uppercase;color:#8a897d;margin-bottom:4px;}
-.app-title{font-size:28px;font-weight:800;letter-spacing:-0.02em;color:var(--carbon);line-height:1;text-transform:uppercase;}
-.app-title span{color:var(--saffron);}
+.app-title{font-size:28px;font-weight:800;letter-spacing:-0.02em;color:#141414;line-height:1;text-transform:uppercase;}
+.app-title span{color:#FFC800;}
 .app-sub{font-size:12px;color:#7a7a70;margin-top:5px;}
-.header-photo{width:340px;flex:none;position:relative;overflow:hidden;background:var(--natural-2);}
+.header-photo{width:320px;flex:none;overflow:hidden;background:#E7E6DC;}
 .header-photo img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;}
-.home-btn{
-  position:absolute;top:12px;right:14px;
-  appearance:none;border:1.5px solid var(--line);border-radius:var(--r-pill);
-  background:rgba(231,230,220,0.9);color:var(--carbon);cursor:pointer;text-decoration:none;
-  font-family:inherit;font-weight:600;font-size:11.5px;
-  padding:5px 13px;display:flex;align-items:center;gap:5px;
-  transition:border-color .15s,box-shadow .15s;
-}
-.home-btn:hover{border-color:var(--carbon);box-shadow:0 0 0 3px rgba(20,20,20,0.07);}
+.home-btn{position:absolute;top:12px;right:14px;appearance:none;border:1.5px solid #D9D7C9;border-radius:999px;background:rgba(231,230,220,0.92);color:#141414;cursor:pointer;text-decoration:none;font-family:inherit;font-weight:600;font-size:11.5px;padding:5px 13px;display:flex;align-items:center;gap:5px;transition:border-color .15s,box-shadow .15s;}
+.home-btn:hover{border-color:#141414;box-shadow:0 0 0 3px rgba(20,20,20,0.07);}
 
 /* ── WRAP ── */
 .wrap{max-width:1280px;margin:0 auto;padding:16px 32px 80px;}
@@ -265,18 +258,16 @@ html,body{background:var(--natural);color:var(--carbon);font-family:'Plus Jakart
 <body>
 
 <header class="app-header">
-  <div class="header-inner">
-    <div class="header-left">
-      <img src="../assets/logo.png" class="logo-img" alt="Factor_" />
-      <div>
-        <div class="app-eyebrow">Customer Care · Internal Tool</div>
-        <h1 class="app-title">FACTOR EU<span>_</span> — WEEKLY MENU</h1>
-        <div class="app-sub">Select week &amp; language to see what goes into the boxes</div>
-      </div>
+  <div class="header-left">
+    <img src="../assets/logo.png" class="logo-img" alt="Factor_" />
+    <div>
+      <div class="app-eyebrow">Customer Care &middot; Internal Tool</div>
+      <h1 class="app-title">FACTOR EU<span>_</span> &mdash; WEEKLY MENU</h1>
+      <div class="app-sub">Select week &amp; language to see what goes into the boxes</div>
     </div>
-    <div class="header-photo">
-      <img src="../assets/hero.png" alt="" />
-    </div>
+  </div>
+  <div class="header-photo">
+    <img src="../assets/hero.png" alt="" />
   </div>
   <a href="/" class="home-btn">
     <svg width="11" height="11" viewBox="0 0 13 13" fill="none"><path d="M1 6.5L6.5 1L12 6.5M2.5 5V12H5.5V9H7.5V12H10.5V5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>

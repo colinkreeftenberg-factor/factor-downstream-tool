@@ -17,40 +17,17 @@ async function getAuthClient() {
 }
 
 module.exports = async function handler(req, res) {
-  const { folder } = req.query;
-  if (!folder || !/^[a-zA-Z0-9_-]+$/.test(folder)) {
-    return res.status(400).json({ error: 'Invalid folder ID' });
+  const { id } = req.query;
+  if (!id || !/^[a-zA-Z0-9_-]+$/.test(id)) {
+    return res.status(400).json({ error: 'Invalid file ID' });
   }
 
   try {
     const client = await getAuthClient();
 
-    // List image files in this recipe folder
-    const qs = new URLSearchParams({
-      q: `'${folder}' in parents and mimeType contains 'image/' and trashed=false`,
-      fields: 'files(id,name,size)',
-      pageSize: '50',
-    });
-    const listResp = await client.request({
-      url: `https://www.googleapis.com/drive/v3/files?${qs}`,
-    });
-    const files = listResp.data.files || [];
-
-    if (!files.length) {
-      return res.status(404).send('No images');
-    }
-
-    // Prefer file with 'low' in name (low-res version); fall back to smallest size
-    let best = files.find(f => f.name.toLowerCase().includes('low'));
-    if (!best) {
-      best = [...files].sort(
-        (a, b) => (parseInt(a.size) || 999999) - (parseInt(b.size) || 999999)
-      )[0];
-    }
-
-    // Fetch and proxy the image
+    // Directly download the file by ID — single Drive API call
     const imgResp = await client.request({
-      url: `https://www.googleapis.com/drive/v3/files/${best.id}?alt=media`,
+      url: `https://www.googleapis.com/drive/v3/files/${id}?alt=media`,
       responseType: 'arraybuffer',
     });
 
